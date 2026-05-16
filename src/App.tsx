@@ -162,6 +162,16 @@ export default function App() {
     
     testConnection();
 
+    // Handle redirect result (for mobile Safari)
+    import('./lib/firebase').then(({ handleRedirectResult }) => {
+      handleRedirectResult().then(currentUser => {
+        if (currentUser) {
+          setUser(currentUser);
+          showToast("Redirect Login Success");
+        }
+      });
+    });
+
     // Listen for Firebase Auth changes
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
