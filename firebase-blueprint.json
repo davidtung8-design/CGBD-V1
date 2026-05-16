@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "UserPerf": {
+      "title": "User Performance Data",
+      "description": "Annual targets, personal stats, and team data",
+      "type": "object",
+      "properties": {
+        "personalQ": { "type": "number" },
+        "teamQ": { "type": "number" },
+        "recruitCount": { "type": "number" },
+        "totalNOC": { "type": "number" },
+        "totalANP": { "type": "number" },
+        "monthlyRecords": { "type": "array" },
+        "prospectList": { "type": "array" },
+        "recruitList": { "type": "array" },
+        "teamMembers": { "type": "array" },
+        "weekActs": { "type": "object" },
+        "weekRecruitActs": { "type": "object" },
+        "dailyMission": { "type": "string" },
+        "dailyGoal": { "type": "string" },
+        "todayQ": { "type": "number" },
+        "todayNOC": { "type": "number" },
+        "todayANP": { "type": "number" },
+        "annualTargetGSPC": { "type": "number" },
+        "annualTargetTeam": { "type": "number" },
+        "dailyActivities": { "type": "object" },
+        "nightMessage": { "type": "string" },
+        "milestones": { "type": "array" },
+        "wishingStatement": { "type": "string" },
+        "personalEnergy": { "type": "number" },
+        "personalFocus": { "type": "number" },
+        "dailyActivitiesLog": { "type": "object" }
+      }
+    },
+    "CalendarEvent": {
+      "title": "Calendar Event",
+      "description": "Represents a scheduled block of time",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "startHour": { "type": "number" },
+        "endHour": { "type": "number" },
+        "weekday": { "type": "number" },
+        "weekOffset": { "type": "number" },
+        "activityId": { "type": "number" }
+      }
+    },
+    "DailyTodos": {
+      "title": "Daily Todo List",
+      "description": "Array of todo items for a specific date",
+      "type": "object",
+      "properties": {
+        "items": { "type": "array" }
+      }
+    },
+    "DailyRecord": {
+      "title": "Daily Performance Record",
+      "description": "R/G values, six tasks, and 5352111 protocol progress",
+      "type": "object",
+      "properties": {
+        "r": { "type": "string" },
+        "g": { "type": "string" },
+        "sixTasks": { "type": "array" },
+        "protocol5352111": { "type": "array" },
+        "protocolDetails": { "type": "object" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}/perf/main": {
+      "schema": "UserPerf",
+      "description": "Core performance metrics for the user"
+    },
+    "/users/{userId}/events/{eventId}": {
+      "schema": "CalendarEvent",
+      "description": "Weekly tactical deployments"
+    },
+    "/users/{userId}/todos/{date}": {
+      "schema": "DailyTodos",
+      "description": "Daily todo items"
+    },
+    "/users/{userId}/daily/{date}": {
+      "schema": "DailyRecord",
+      "description": "Daily R/G/6-tasks and 5352111 protocol"
+    }
+  }
+}

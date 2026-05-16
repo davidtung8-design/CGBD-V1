@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Helpers ---
+    
+    function isValidUserPerf(data) {
+      return data.get('personalQ', 0) is number
+          && data.get('teamQ', 0) is number
+          && data.get('wishingStatement', '').size() <= 1000
+          && data.get('milestones', []).size() <= 50;
+    }
+
+    function isValidCalendarEvent(data) {
+      return data.title is string && data.title.size() <= 200
+          && data.startHour is number && data.startHour >= 0 && data.startHour <= 24
+          && data.endHour is number && data.endHour >= 0 && data.endHour <= 24
+          && data.weekday is number && data.weekday >= 0 && data.weekday <= 6
+          && data.weekOffset is number
+          && data.activityId is number;
+    }
+
+    function isValidDailyTodo(data) {
+      return data.items is list && data.items.size() <= 100;
+    }
+
+    function isValidDailyRecord(data) {
+      return data.r is string && data.r.size() <= 5000
+          && data.g is string && data.g.size() <= 5000
+          && data.get('sixTasks', []).size() <= 6
+          && data.get('protocol5352111', []).size() <= 50;
+    }
+
+    // --- Rules ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      
+      match /perf/main {
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidUserPerf(incoming());
+        allow update: if isOwner(userId) && isValidUserPerf(incoming());
+      }
+      
+      match /events/{eventId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(eventId) && isValidCalendarEvent(incoming());
+        allow update: if isOwner(userId) && isValidCalendarEvent(incoming());
+        allow delete: if isOwner(userId);
+      }
+      
+      match /todos/{date} {
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(date) && isValidDailyTodo(incoming());
+        allow update: if isOwner(userId) && isValidDailyTodo(incoming());
+        allow delete: if isOwner(userId);
+      }
+      
+      match /daily/{date} {
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(date) && isValidDailyRecord(incoming());
+        allow update: if isOwner(userId) && isValidDailyRecord(incoming());
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
