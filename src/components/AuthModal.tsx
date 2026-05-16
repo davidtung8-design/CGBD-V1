@@ -47,11 +47,17 @@ export function AuthModal({ isOpen, onClose, isDarkMode, showToast }: AuthModalP
       onClose();
     } catch (error: any) {
       console.error("Auth Error Detail:", error);
-      const msg = error.code === 'auth/user-not-found' ? '用户不存在' :
+      let msg = error.code === 'auth/user-not-found' ? '用户不存在' :
                   error.code === 'auth/wrong-password' ? '密码错误' :
                   error.code === 'auth/network-request-failed' ? '网络请求被拦截 (Safari 隐私限制)' :
+                  error.code === 'auth/operation-not-allowed' ? '未在 Firebase 控制台中启用 Google 登录' :
                   error.message;
-      alert(`登录失败: ${msg}\n错误代码: ${error.code}`);
+      
+      if (error.code === 'auth/operation-not-allowed') {
+        alert(`❌ 错误: 未启用 Google 登录\n\n请在 Firebase 控制台的 Authentication -> Sign-in method 中启用 Google 登录。`);
+      } else {
+        alert(`登录失败: ${msg}\n错误代码: ${error.code}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -63,8 +69,15 @@ export function AuthModal({ isOpen, onClose, isDarkMode, showToast }: AuthModalP
       await signInWithGoogle();
       showToast("Google 登录成功");
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      if (error.code === 'auth/operation-not-allowed') {
+        alert(`❌ 登录失败 (auth/operation-not-allowed)\n\n原因: Google 登录提供程序尚未在 Firebase 控制台中启用。\n\n解决办法: 请通知管理员到 Firebase 控制台 -> Authentication -> Sign-in method 启用 Google Provider。`);
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        showToast("登录窗口已关闭");
+      } else {
+        alert(`Google 登录失败: ${error.message}`);
+      }
     } finally {
       setIsLoading(false);
     }

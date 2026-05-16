@@ -174,6 +174,13 @@ export default function App() {
     // Test connection to Firestore
     testConnection();
 
+    // Log environment info for debugging fetch issues
+    console.log("Environment: ", {
+      isIframe: window.self !== window.top,
+      hasFetch: typeof window.fetch === 'function',
+      fetchDescriptor: Object.getOwnPropertyDescriptor(window, 'fetch')
+    });
+
     // Handle redirect result (for mobile Safari)
     handleRedirectResult().then(currentUser => {
       if (currentUser) {
