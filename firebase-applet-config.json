@@ -1,10 +1,9 @@
 {
-  "projectId": "marklar-myth-007pf",
-  "appId": "1:615161656368:web:66612259b919afad7769f5",
-  "apiKey": "AIzaSyCyin4CsZeWuR1K9N1Rl4uBs_tCkdJc38k",
-  "authDomain": "marklar-myth-007pf.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-cd0a4119-7248-47ff-bfe2-f788d73347e0",
-  "storageBucket": "marklar-myth-007pf.firebasestorage.app",
-  "messagingSenderId": "615161656368",
-  "measurementId": ""
+  "projectId": "gen-lang-client-0820220767",
+  "appId": "1:166734078119:web:88ef5ee3838e3d6257bb82",
+  "apiKey": "AIzaSyCcLzO2u0uPk-Bm-49kA3CZj3imRoxeRjQ",
+  "authDomain": "gen-lang-client-0820220767.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "gen-lang-client-0820220767.firebasestorage.app",
+  "messagingSenderId": "166734078119"
 }

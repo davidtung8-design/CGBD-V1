@@ -101,7 +101,7 @@ export const signInWithGoogle = async () => {
   } catch (error: any) {
     console.error("Sign-in error detail:", error);
     if (error.code === 'auth/unauthorized-domain') {
-       throw new Error(`域名未授权 (Unauthorized Domain).\n当前域名: ${window.location.hostname}\n解决办法: \n1. 复制此域名: ${window.location.hostname}\n2. 到 Firebase -> Authentication -> Settings -> Authorized Domains\n3. 点击 [Add domain] 并粘贴。`);
+       throw new Error(`域名未授权 (Unauthorized Domain).\n当前域名: ${window.location.hostname}\n当前 Firebase 项目: ${firebaseConfig.projectId}\n解决办法: \n1. 确保您在 Firebase 控制台操作的是项目: ${firebaseConfig.projectId}\n2. 复制域名: ${window.location.hostname}\n3. 到 Authentication -> Settings -> Authorized Domains 添加它。`);
     }
     throw error;
   }
