@@ -27,9 +27,9 @@ interface ContestDefinition {
 
 const CONTESTS: ContestDefinition[] = [
   // Superbeez Series (Quarterly)
-  { id: '2.1-Q1', name: 'Superbeez Q1', chineseName: '超级蜜蜂 Q1', description: 'Min 25 NOC in Quarter 1 (Jan-Mar)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 1, category: 'sales', icon: <Medal size={20} />, color: 'from-blue-400 to-indigo-600' },
-  { id: '2.1-Q2', name: 'Superbeez Q2', chineseName: '超级蜜蜂 Q2', description: 'Min 25 NOC in Quarter 2 (Apr-Jun)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 2, category: 'sales', icon: <Medal size={20} />, color: 'from-blue-500 to-indigo-700' },
-  { id: '2.1-Q3', name: 'Superbeez Q3', chineseName: '超级蜜蜂 Q3', description: 'Min 25 NOC in Quarter 3 (Jul-Sep)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 3, category: 'sales', icon: <Medal size={20} />, color: 'from-blue-600 to-indigo-800' },
+  { id: '2.1-Q1', name: 'Superbeez Q1', chineseName: '超级蜜蜂 Q1', description: 'Min 25 NOC in Quarter 1 (Jan-Mar)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 1, category: 'sales', icon: <Medal size={20} />, color: 'from-white to-slate-400' },
+  { id: '2.1-Q2', name: 'Superbeez Q2', chineseName: '超级蜜蜂 Q2', description: 'Min 25 NOC in Quarter 2 (Apr-Jun)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 2, category: 'sales', icon: <Medal size={20} />, color: 'from-white to-slate-500' },
+  { id: '2.1-Q3', name: 'Superbeez Q3', chineseName: '超级蜜蜂 Q3', description: 'Min 25 NOC in Quarter 3 (Jul-Sep)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 3, category: 'sales', icon: <Medal size={20} />, color: 'from-white to-slate-600' },
   
   // Management Awards
   { id: '2.3', name: 'Superbeez Builder', chineseName: '超级蜜蜂增员奖', description: 'Min 2 Superbeez Award Qualifiers in DG (Excl. Personal Sales)', targetMetric: 'qualifier', targetValue: 2, period: 'quarterly', category: 'management', icon: <Users size={20} />, color: 'from-orange-400 to-rose-600' },
@@ -47,7 +47,7 @@ const CONTESTS: ContestDefinition[] = [
   { id: '8.0b', name: 'Star Producer Silver', chineseName: '超级巨星 (银)', description: 'Progressive FYC Targets', targetMetric: 'fyc', targetValue: 55000, period: 'yearly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-400 to-slate-600', quarterlyProgress: { q1: 9900, q2: 22000, q3: 37400 } },
   { id: '8.0c', name: 'Star Producer Gold', chineseName: '超级巨星 (金)', description: 'Progressive FYC Targets', targetMetric: 'fyc', targetValue: 80000, period: 'yearly', category: 'sales', icon: <Medal size={20} />, color: 'from-yellow-500 to-yellow-700', quarterlyProgress: { q1: 14400, q2: 32000, q3: 54400 } },
   { id: '8.0d', name: 'Star Producer Platinum', chineseName: '超级巨星 (白金)', description: 'Progressive FYC Targets', targetMetric: 'fyc', targetValue: 100000, period: 'yearly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-200 to-slate-400', quarterlyProgress: { q1: 18000, q2: 40000, q3: 68000 } },
-  { id: '8.0e', name: 'Star Producer Diamond', chineseName: '超级巨星 (钻石)', description: 'Progressive FYC Targets', targetMetric: 'fyc', targetValue: 150000, period: 'yearly', category: 'top', icon: <Zap size={20} />, color: 'from-blue-400 to-indigo-600', quarterlyProgress: { q1: 27000, q2: 60000, q3: 102000 } },
+  { id: '8.0e', name: 'Star Producer Diamond', chineseName: '超级巨星 (钻石)', description: 'Progressive FYC Targets', targetMetric: 'fyc', targetValue: 150000, period: 'yearly', category: 'top', icon: <Zap size={20} />, color: 'from-white to-slate-400', quarterlyProgress: { q1: 27000, q2: 60000, q3: 102000 } },
 
   // Management (Group)
   { id: '14.0a', name: 'Super Direct Group Bronze', chineseName: '超级直属组奖 (铜)', description: 'RM 500,000 QFYLP_C (Excl. Personal)', targetMetric: 'qfylp', targetValue: 500000, period: 'yearly', category: 'management', icon: <Trophy size={20} />, color: 'from-amber-600 to-amber-800' },
@@ -58,7 +58,7 @@ const CONTESTS: ContestDefinition[] = [
 
   // High Performance
   { id: '3.0', name: 'Starlight 1000', chineseName: '千星闪耀', description: 'QFYLP 100,000', targetMetric: 'qfylp', targetValue: 100000, period: 'yearly', category: 'top', icon: <Star size={20} />, color: 'from-indigo-400 to-purple-600 shadow-purple-500/20' },
-  { id: '2.4', name: 'Superbeez 100', chineseName: '百单制胜', description: '100 NOC within the year', targetMetric: 'noc', targetValue: 100, period: 'yearly', category: 'sales', icon: <Trophy size={20} />, color: 'from-blue-500 to-cyan-600' },
+  { id: '2.4', name: 'Superbeez 100', chineseName: '百单制胜', description: '100 NOC within the year', targetMetric: 'noc', targetValue: 100, period: 'yearly', category: 'sales', icon: <Trophy size={20} />, color: 'from-white to-slate-300' },
   { id: '5.1', name: 'Top of the Top', chineseName: '最高荣誉', description: '150 NOC Accumulation', targetMetric: 'noc', targetValue: 150, period: 'yearly', category: 'top', icon: <Crown size={20} />, color: 'from-rose-500 to-orange-600 shadow-rose-500/20' },
   
   // Elite
@@ -187,7 +187,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
                     <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">Contest {contest.id}</div>
                     <div className={cn(
                       "text-[10px] font-bold uppercase tracking-widest mt-1",
-                      isAchieved ? "text-emerald-500" : "text-blue-500"
+                      isAchieved ? "text-emerald-500" : "text-white"
                     )}>
                       {contest.period}
                     </div>
@@ -243,7 +243,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
                   </div>
                   <div className={cn(
                     "text-xs font-black font-mono",
-                    isAchieved ? "text-emerald-500" : "text-blue-500"
+                    isAchieved ? "text-emerald-500" : "text-white"
                   )}>
                     {progress.toFixed(1)}%
                   </div>
@@ -255,7 +255,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
                      animate={{ width: `${progress}%` }}
                      className={cn(
                        "h-full rounded-full bg-gradient-to-r",
-                       isAchieved ? "from-emerald-500 to-teal-600" : "from-blue-500 to-indigo-600"
+                       isAchieved ? "from-emerald-500 to-teal-600" : "from-white to-slate-400"
                      )}
                    />
                 </div>
@@ -283,8 +283,8 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
       </div>
 
       {/* Manual Entry Warning */}
-      <div className="p-8 bento-card bg-blue-500/10 border-blue-500/20 text-center">
-         <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.2em] mb-2 font-mono">Precision Tracking Invariant</p>
+      <div className="p-8 bento-card bg-white/10 border-white/20 text-center">
+         <p className="text-[10px] text-white font-bold uppercase tracking-[0.2em] mb-2 font-mono">Precision Tracking Invariant</p>
          <p className="text-[11px] text-slate-500 max-w-2xl mx-auto leading-relaxed">
            Award calculations are based on your aggregated Monthly Records and Daily Logs. 
            Ensure all actual sales and case counts are synchronized for accurate qualification auditing.

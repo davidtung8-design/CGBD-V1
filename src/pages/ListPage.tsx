@@ -265,7 +265,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
       )}>
         <div className="flex flex-col md:flex-row gap-6 items-center">
           <div className="flex bg-slate-800/10 p-1.5 rounded-[1.5rem] border border-slate-800/10 shrink-0">
-            <button onClick={() => setActiveTab('prospect')} className={cn("px-8 py-3 rounded-[1.2rem] text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2", activeTab === 'prospect' ? "bg-blue-500 text-white shadow-xl" : "text-slate-500")}>
+            <button onClick={() => setActiveTab('prospect')} className={cn("px-8 py-3 rounded-[1.2rem] text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2", activeTab === 'prospect' ? (isDarkMode ? "bg-white text-black shadow-xl" : "bg-slate-900 text-white shadow-xl") : "text-slate-500")}>
               <Target size={14} /> Prospects
             </button>
             <button onClick={() => setActiveTab('recruit')} className={cn("px-8 py-3 rounded-[1.2rem] text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2", activeTab === 'recruit' ? "bg-emerald-500 text-white shadow-xl" : "text-slate-500")}>
@@ -277,7 +277,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
             <input 
               type="text"
               placeholder={`Search database...`}
-              className={cn("w-full h-14 pl-14 pr-6 rounded-[1.5rem] border outline-none transition-all font-medium", isDarkMode ? "bg-slate-900 border-slate-800 text-white focus:border-blue-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-blue-500")}
+              className={cn("w-full h-14 pl-14 pr-6 rounded-[1.5rem] border outline-none transition-all font-medium", isDarkMode ? "bg-slate-900 border-slate-800 text-white focus:border-white" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-white")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -287,7 +287,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setFilterCategory('All')} className={cn("px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest", filterCategory === 'All' ? "bg-slate-700 text-white" : "bg-slate-100 text-slate-500")}>All</button>
             {categories.map(cat => (
-              <button key={cat} onClick={() => setFilterCategory(cat)} className={cn("px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest", filterCategory === cat ? "bg-blue-500 text-white" : "bg-slate-100 text-slate-500")}>{cat}</button>
+              <button key={cat} onClick={() => setFilterCategory(cat)} className={cn("px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest", filterCategory === cat ? (isDarkMode ? "bg-white text-black" : "bg-slate-900 text-white") : "bg-slate-100 text-slate-500")}>{cat}</button>
             ))}
           </div>
 
@@ -312,7 +312,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {pinnedEntries.map((item, idx) => (
-                <div key={item.id} className={cn("bento-card p-6 border-l-4 relative group transition-all hover:scale-[1.02]", activeTab === 'prospect' ? "border-l-blue-500" : "border-l-emerald-500", isDarkMode ? "bg-slate-900/60" : "bg-white shadow-xl shadow-slate-200/50")}>
+                <div key={item.id} className={cn("bento-card p-6 border-l-4 relative group transition-all hover:scale-[1.02]", activeTab === 'prospect' ? "border-l-white" : "border-l-emerald-500", isDarkMode ? "bg-slate-900/60" : "bg-white shadow-xl shadow-slate-200/50")}>
                     <div className="absolute top-4 right-4 flex items-center gap-2 z-30">
                       <button 
                         onClick={() => togglePin(activeTab, item.id)} 
@@ -351,7 +351,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
         <input type="file" ref={vcfInputRef} className="hidden" accept=".vcf" onChange={(e) => handleImportVCF(activeTab, e)} />
         <div className="p-8 border-b border-slate-800/10 flex flex-col sm:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
-             <div className={cn("p-4 rounded-[1.5rem]", activeTab === 'prospect' ? "bg-blue-500/10 text-blue-500" : "bg-emerald-500/10 text-emerald-500")}>
+             <div className={cn("p-4 rounded-[1.5rem]", activeTab === 'prospect' ? "bg-white/10 text-white" : "bg-emerald-500/10 text-emerald-500")}>
                <Database size={24} />
              </div>
              <div>
@@ -385,7 +385,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
             </thead>
             <tbody className={cn("divide-y", isDarkMode ? "divide-slate-800/30" : "divide-slate-100")}>
               {filteredEntries.map((item) => (
-                <tr key={item.id} className="hover:bg-blue-500/[0.02]">
+                <tr key={item.id} className="hover:bg-white/[0.02]">
                   <td className="p-5 text-center">
                     <button onClick={() => togglePin(activeTab, item.id)} className={cn("p-2 rounded-xl border", item.isPinned ? "text-amber-500 border-amber-500/30" : "text-slate-400 border-slate-800/10")}>
                       <Star size={16} fill={item.isPinned ? "currentColor" : "none"} />
@@ -418,7 +418,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                     }} />
                   </td>
                   <td className="p-3 text-center">
-                    <button onClick={() => handleOpenFollowup(item.id)} className={cn("px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest", item.followupLogs?.length ? "bg-blue-500 text-white" : "bg-slate-800/10 text-slate-500")}>
+                    <button onClick={() => handleOpenFollowup(item.id)} className={cn("px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest", item.followupLogs?.length ? (isDarkMode ? "bg-white text-black" : "bg-slate-900 text-white") : "bg-slate-800/10 text-slate-500")}>
                       <History size={12} /> {item.followupLogs?.length || 'HISTORY'}
                     </button>
                   </td>
@@ -454,7 +454,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                   <>
                     <div className="flex justify-between items-center border-b pb-6">
                       <div className="flex items-center gap-4">
-                        <History className="text-blue-500" size={24} />
+                        <History className="text-white" size={24} />
                         <div>
                           <h3 className="text-lg font-black uppercase tracking-widest">Operational History</h3>
                           <p className="text-xs text-slate-500">{node.name}</p>
@@ -466,13 +466,13 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                        <div className="p-6 bg-slate-800/10 rounded-3xl space-y-4">
                          <input type="datetime-local" className="w-full bg-transparent border-b p-2 outline-none" value={newLogDate} onChange={e => setNewLogDate(e.target.value)} />
                          <textarea className="w-full bg-transparent border rounded-xl p-4 h-24 outline-none resize-none" placeholder="Add follow-up notes..." value={newLogNote} onChange={e => setNewLogNote(e.target.value)} />
-                         <button onClick={handleAddFollowupLog} className="w-full py-3 bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-widest">Record Session</button>
+                         <button onClick={handleAddFollowupLog} className="w-full py-3 bg-white text-slate-950 rounded-xl text-xs font-black uppercase tracking-widest">Record Session</button>
                        </div>
                        <div className="space-y-4">
                          {node.followupLogs?.map((log: any) => (
                            <div key={log.id} className="p-5 border rounded-2xl relative group">
                              <button onClick={() => removeFollowupLog(log.id)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500"><Trash2 size={14} /></button>
-                             <div className="text-[10px] text-blue-500 font-bold mb-1">{format(new Date(log.datetime), 'yyyy.MM.dd HH:mm')}</div>
+                             <div className="text-[10px] text-white font-bold mb-1">{format(new Date(log.datetime), 'yyyy.MM.dd HH:mm')}</div>
                              <p className="text-sm">{log.note}</p>
                            </div>
                          ))}

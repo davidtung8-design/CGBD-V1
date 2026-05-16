@@ -99,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
                 ) : (
                   <span 
                     onClick={() => setShowSyncEdit(true)}
-                    className="text-[10px] text-slate-300 font-bold truncate max-w-[80px] cursor-pointer hover:text-blue-400"
+                    className="text-[10px] text-slate-300 font-bold truncate max-w-[80px] cursor-pointer hover:text-white"
                   >
                     {isLoggedIn ? userEmail : (syncId || 'Anonymous')}
                   </span>
@@ -112,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button 
              onClick={onSyncIcal}
-             className="w-10 h-10 rounded-2xl bg-blue-600/20 text-blue-500 flex items-center justify-center border border-blue-500/20 hover:bg-blue-600 hover:text-white transition-all shadow-lg shadow-blue-900/20 group"
+             className="w-10 h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center border border-white/20 hover:bg-white hover:text-slate-950 transition-all shadow-lg shadow-white/10 group"
              title="一键同步 Apple 日历 (Sync Apple Calendar)"
            >
               <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-500" />

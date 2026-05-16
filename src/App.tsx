@@ -10,7 +10,7 @@ import {
   Milestone, PerfData, ThemeKey, ThemeConfig 
 } from './types';
 import { Header } from './components/Header';
-import { Home, Target, ClipboardList, Zap, Settings, Plus, Minus, Trash2, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw, Edit3, Award, Trophy, Calendar, CalendarPlus, History, X, BookOpen, PieChart as PieChartIcon, ListTodo, Volume2, VolumeX } from 'lucide-react';
+import { Home, Target, ClipboardList, Zap, Settings, Plus, Minus, Trash2, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw, Edit3, Award, Trophy, Calendar, CalendarPlus, History, X, BookOpen, PieChart as PieChartIcon, ListTodo, Volume2, VolumeX, CloudRain, Moon, Waves, Coffee } from 'lucide-react';
 import { THEMES, ACTIVITIES, ENCOURAGEMENTS, GROUP_CONFIG } from './constants';
 import { formatNumber, cn, getLunarDate, formatHour, formatTimeRange } from './lib/utils';
 import { 
@@ -52,10 +52,10 @@ const DEFAULT_MONTHLY: MonthlyRecord[] = [
 }));
 
 export const ambientSounds = {
-  rain: 'https://raw.githubusercontent.com/rafaelcastrocouto/ambient-sounds/master/sounds/rain.mp3',
-  zen: 'https://raw.githubusercontent.com/rafaelcastrocouto/ambient-sounds/master/sounds/night.mp3',
-  ocean: 'https://raw.githubusercontent.com/rafaelcastrocouto/ambient-sounds/master/sounds/ocean.mp3',
-  lofi: 'https://raw.githubusercontent.com/rafaelcastrocouto/ambient-sounds/master/sounds/coffee.mp3'
+  rain: 'https://cdn.pixabay.com/audio/2022/03/24/audio_3d1a3c7a3a.mp3',
+  zen: 'https://cdn.pixabay.com/audio/2022/07/04/audio_e6e22e2303.mp3',
+  ocean: 'https://cdn.pixabay.com/audio/2022/03/10/audio_c1c4f44538.mp3',
+  lofi: 'https://cdn.pixabay.com/audio/2022/05/27/audio_18087374a9.mp3'
 };
 
 const INITIAL_PERF: PerfData = {
@@ -103,7 +103,15 @@ export default function App() {
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    // Auto-detect language usually works well for EN/CN
+    
+    // Explicit Language Detection
+    const hasChinese = /[\u4e00-\u9fa5]/.test(text);
+    if (hasChinese) {
+        utterance.lang = 'zh-CN';
+    } else {
+        utterance.lang = 'en-US';
+    }
+
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     
@@ -146,6 +154,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [ambientSound, setAmbientSound] = useState(false);
   const [selectedSound, setSelectedSound] = useState<'rain' | 'zen' | 'ocean' | 'lofi'>('zen');
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [focusTime, setFocusTime] = useState(0); // in seconds
   const [targetMins, setTargetMins] = useState(30);
   const [isFocusTimerRunning, setIsFocusTimerRunning] = useState(false);
@@ -207,7 +216,6 @@ export default function App() {
       audioRef.current = new Audio();
       audioRef.current.loop = true;
       audioRef.current.volume = 0.4;
-      audioRef.current.crossOrigin = "anonymous";
       
       audioRef.current.onerror = (e) => {
         const error = audioRef.current?.error;
@@ -224,15 +232,16 @@ export default function App() {
       audioRef.current.load();
     }
 
-    if (ambientSound) {
+    if (ambientSound && hasInteracted) {
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(error => {
-          console.error("Audio play promise failed:", error.message);
           if (error.name === "NotAllowedError") {
-            showToast("Click anywhere to enable audio playback");
+            console.warn("Autoplay blocked. Audio will start on next interaction.");
+          } else {
+            console.error("Audio play promise failed:", error.message);
+            setAmbientSound(false);
           }
-          setAmbientSound(false);
         });
       }
     } else {
@@ -240,10 +249,9 @@ export default function App() {
     }
 
     return () => {
-      // Just pause, don't destroy the ref on every source change
       audioRef.current?.pause();
     };
-  }, [ambientSound, selectedSound, showToast]);
+  }, [ambientSound, selectedSound, showToast, hasInteracted]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(new Date());
 
@@ -840,9 +848,20 @@ export default function App() {
     }
   }, [events, baseDate, viewOffset, showToast]);
 
+  const handleInteraction = useCallback(() => {
+    if (!hasInteracted) {
+      setHasInteracted(true);
+      if (ambientSound && audioRef.current && audioRef.current.paused) {
+        audioRef.current.play().catch(e => console.warn("Failed to play audio on interaction:", e));
+      }
+    }
+  }, [hasInteracted, ambientSound]);
+
   // --- Rendering ---
   return (
-    <div className="min-h-screen pb-24 transition-all duration-500" 
+    <div className={cn("min-h-screen pb-24 transition-all duration-500", isDarkMode ? "dark" : "light-mode")} 
+      onClick={handleInteraction}
+      onKeyDown={handleInteraction}
       style={{ 
         fontFamily: '-apple-system, sans-serif' 
       } as React.CSSProperties}>
@@ -894,62 +913,129 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[5000] flex flex-col items-center justify-center backdrop-blur-3xl bg-black/95 p-10"
+            className="fixed inset-0 z-[5000] flex flex-col items-center justify-center bg-black p-10 overflow-hidden"
           >
+            {/* Super Transcendent Flux Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <motion.div 
+                animate={{ 
+                  scale: [1, 1.4, 1.2, 1],
+                  rotate: [0, 90, 180, 270, 360],
+                  x: [-100, 100, 50, -100],
+                  y: [-100, 50, 150, -100]
+                }}
+                transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                className="absolute w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(251,146,60,0.2)_0%,transparent_60%)] blur-[120px]"
+              />
+              <motion.div 
+                animate={{ 
+                  scale: [1.2, 1, 1.5, 1.2],
+                  rotate: [360, 270, 180, 90, 0],
+                  x: [100, -100, 0, 100],
+                  y: [100, -50, 100, 100]
+                }}
+                transition={{ duration: 35, repeat: Infinity, ease: "linear" }}
+                className="absolute w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(244,63,94,0.15)_0%,transparent_60%)] blur-[120px]"
+              />
+              <motion.div 
+                animate={{ 
+                  scale: [1, 1.3, 1],
+                  x: [0, 50, -50, 0],
+                  y: [0, -50, 50, 0]
+                }}
+                transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+                className="absolute w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,transparent_60%)] blur-[120px]"
+              />
+              <motion.div 
+                animate={{ 
+                  opacity: [0.1, 0.3, 0.1],
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute inset-0 bg-[conic-gradient(from_0deg,transparent,rgba(255,255,255,0.05),transparent)]"
+              />
+            </div>
+
             <button 
               onClick={() => setIsLargeTimerOpen(false)}
-              className="absolute top-10 right-10 p-4 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all"
+              className="absolute top-10 right-10 z-50 p-6 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all text-white/20 hover:text-white backdrop-blur-xl group"
             >
-              <X size={32} className="text-white" />
+              <X size={40} className="group-active:scale-90 transition-transform" />
             </button>
 
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="text-center"
+              initial={{ scale: 0.9, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="relative z-10 w-full max-w-7xl flex flex-col items-center justify-center h-full"
             >
-              <span className="block text-[12px] font-black text-blue-500 uppercase tracking-[0.6em] mb-16">Strategic Focus Protocol Active</span>
-              
-              <div 
-                className="flex flex-col items-center select-none cursor-pointer group"
-                onClick={() => setIsLargeTimerOpen(false)}
-              >
-                <span className="text-[14rem] sm:text-[20rem] md:text-[26rem] font-black text-white leading-none tracking-tighter tabular-nums drop-shadow-[0_0_50px_rgba(59,130,246,0.3)] group-hover:scale-105 transition-transform duration-700">
-                  {formatFocusTime(focusTime).split(':')[0]}
-                </span>
-                <span className="text-[7rem] sm:text-[10rem] md:text-[12rem] font-black text-blue-500 leading-none tracking-tighter tabular-nums -mt-[3rem] sm:-mt-[5rem] flex items-center gap-8 opacity-80">
-                  <div className="w-6 h-6 bg-blue-500 rounded-full animate-pulse shadow-[0_0_20px_rgba(59,130,246,1)]" />
-                  {formatFocusTime(focusTime).split(':')[1]}
-                  <div className="w-6 h-6 bg-blue-500 rounded-full animate-pulse shadow-[0_0_20px_rgba(59,130,246,1)]" />
-                </span>
+               <div className="mb-20 flex flex-col items-center gap-6">
+                <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-3xl">
+                  <div className="w-2 h-2 rounded-full bg-white animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                  <span className="text-[12px] font-black text-white uppercase tracking-[0.5em] leading-none">Operational Essence</span>
+                </div>
               </div>
 
-              <div className="mt-24 flex flex-col items-center gap-6">
-                <div className="flex items-center gap-8">
-                  <button 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (focusTimerRef.current) clearInterval(focusTimerRef.current);
-                        setIsFocusTimerRunning(false);
-                        setIsLargeTimerOpen(false);
-                    }}
-                    className="px-12 py-6 bg-red-600 text-white rounded-[2.5rem] font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-red-500/30 hover:bg-red-700 hover:scale-105 active:scale-95 transition-all"
-                  >
-                    Abort Mission
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setIsLargeTimerOpen(false);
-                    }}
-                    className="px-12 py-6 bg-white/10 text-white border border-white/20 backdrop-blur-xl rounded-[2.5rem] font-black text-sm uppercase tracking-[0.3em] hover:bg-white/20 hover:scale-105 active:scale-95 transition-all"
-                  >
-                    Keep Running
-                  </button>
+              <div className="relative flex flex-col items-center justify-center w-full">
+                {/* Main Large Numbers with Apple-style Fluidity */}
+                <div className="relative flex items-center justify-center">
+                  {/* Decorative Background Glow for Numbers */}
+                  <div className="absolute inset-x-[-20%] inset-y-[-20%] bg-gradient-to-t from-white/10 via-transparent to-transparent blur-[100px] pointer-events-none" />
+                  
+                  <div className="flex items-baseline">
+                    <motion.span 
+                      key={formatFocusTime(focusTime).split(':')[0]}
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      className="text-[20rem] sm:text-[30rem] md:text-[42rem] font-black leading-none tracking-tighter tabular-nums text-transparent bg-clip-text bg-gradient-to-br from-orange-400 via-rose-500 to-indigo-600 drop-shadow-[0_0_80px_rgba(244,63,94,0.3)]"
+                    >
+                      {formatFocusTime(focusTime).split(':')[0]}
+                    </motion.span>
+                    <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-rose-500/20 mb-[4rem] sm:mb-[6rem] md:mb-[8rem] ml-10 tabular-nums">
+                      {formatFocusTime(focusTime).split(':')[1]}
+                    </span>
+                  </div>
                 </div>
-                <p className="mt-12 text-[10px] text-slate-500 uppercase tracking-[0.5em] font-mono font-bold">Resonance Level: Super-Transcendent</p>
+
+                {/* Progress Ring or Bar */}
+                <div className="mt-12 w-full max-w-xl px-12">
+                   <div className="h-1 bg-white/5 rounded-full overflow-hidden backdrop-blur-md">
+                      <motion.div 
+                        className="h-full bg-white shadow-[0_0_25px_rgba(255,255,255,0.6)]"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(focusTime / (targetMins * 60)) * 100}%` }}
+                        transition={{ type: "spring", bounce: 0, duration: 1 }}
+                      />
+                   </div>
+                </div>
               </div>
+
+              <div className="mt-24 grid grid-cols-2 gap-8 w-full max-w-md">
+                 <div className="flex flex-col items-center gap-2 p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-2xl group transition-all hover:bg-white/10">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Mission Clock</span>
+                    <span className="text-3xl font-mono font-black text-white tracking-widest">{targetMins}:00</span>
+                 </div>
+                 <div className="flex flex-col items-center gap-2 p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-2xl group transition-all hover:bg-white/10">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Status Mode</span>
+                    <span className="text-3xl font-mono font-black text-white tracking-widest">ACTIVE</span>
+                 </div>
+              </div>
+
+              <div className="mt-20 flex gap-8">
+                 <button 
+                  onClick={toggleFocusedTimer}
+                  className="w-24 h-24 flex items-center justify-center bg-red-500 hover:bg-red-600 rounded-full shadow-[0_0_40px_rgba(239,68,68,0.3)] transition-all active:scale-90 group"
+                 >
+                   <X size={40} className="text-white group-hover:rotate-90 transition-transform duration-500" />
+                 </button>
+                 <button 
+                  onClick={() => setIsLargeTimerOpen(false)}
+                  className="px-16 py-8 bg-white text-slate-950 font-black text-[12px] uppercase tracking-[0.5em] rounded-[2.5rem] shadow-[0_0_50px_rgba(255,255,255,0.2)] transition-all active:scale-95 hover:bg-slate-100"
+                 >
+                   Return to Matrix
+                 </button>
+              </div>
+              
+              <p className="mt-16 text-[9px] text-slate-600 font-bold uppercase tracking-[0.6em] animate-pulse">Super-Transcendent Operational State</p>
             </motion.div>
           </motion.div>
         )}
@@ -1020,7 +1106,7 @@ export default function App() {
               >
                 <div className="flex justify-between items-center mb-6 shrink-0">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 bg-blue-500 text-white rounded-2xl shadow-lg shadow-blue-500/20">
+                    <div className="p-3 bg-white text-slate-950 rounded-2xl shadow-lg shadow-white/20">
                       <Zap size={20} />
                     </div>
                     <div>
@@ -1062,8 +1148,8 @@ export default function App() {
                           className={cn(
                             "w-full p-4 rounded-2xl border outline-none font-medium text-xs transition-all min-h-[60px]",
                             isDarkMode 
-                              ? "bg-slate-900 border-slate-800 focus:border-blue-500 text-white" 
-                              : "bg-slate-50 border-slate-200 focus:border-blue-500 text-slate-900"
+                              ? "bg-slate-900 border-slate-800 focus:border-white text-white" 
+                              : "bg-slate-50 border-slate-200 focus:border-slate-800 text-slate-900"
                           )}
                           placeholder={
                             activeProtocolId === 'a' ? "姓名、地点、聊了什么内容..." :
@@ -1108,7 +1194,7 @@ export default function App() {
                       setIsProtocolModalOpen(false);
                       setActiveProtocolId(null);
                     }}
-                    className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-blue-500/30 active:scale-95 transition-all"
+                    className="flex-1 py-4 bg-white text-slate-950 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-white/30 active:scale-95 transition-all"
                   >
                     Confirm & Sync Node
                   </button>
@@ -1141,7 +1227,7 @@ export default function App() {
                         "p-4 rounded-[2rem] shadow-xl transition-all active:scale-95",
                         isSpeaking 
                           ? "bg-red-500 text-white shadow-red-500/30 animate-pulse" 
-                          : "bg-blue-500/10 text-blue-500 shadow-sm border border-blue-500/20 hover:bg-blue-500/20"
+                          : "bg-white/10 text-white shadow-sm border border-white/20 hover:bg-white/20"
                       )}
                       title={isSpeaking ? "Stop Reading" : "Read Aloud"}
                     >
@@ -1174,62 +1260,21 @@ export default function App() {
 
             {/* 5352111 Elite Discipline Protocol */}
             <div className={cn(
-              "bento-card md:col-span-8 p-8 relative overflow-hidden",
-              isDarkMode ? "bg-slate-900/60 border-blue-500/20" : "bg-blue-50/30 border-blue-100"
+              "bento-card md:col-span-7 p-8 relative overflow-hidden",
+              isDarkMode ? "bg-slate-900/60 border-white/10" : "bg-white border-slate-200"
             )}>
               <div className="absolute top-0 right-0 p-8 opacity-5">
-                <Zap size={160} className="text-blue-500" />
+                <Zap size={160} className="text-white" />
               </div>
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20">
+                    <div className="p-2 bg-white text-slate-950 rounded-xl shadow-lg shadow-white/20">
                       <Zap size={18} />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-blue-500 leading-none">Elite Protocol 5352111</h3>
+                      <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-white leading-none">Elite Protocol 5352111</h3>
                       <p className="text-[9px] text-slate-500 mt-1 uppercase font-medium">每日核心作业纪律 · Core Discipline</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    {focusTime > 0 ? (
-                      <div 
-                        onClick={() => setIsLargeTimerOpen(true)}
-                        className={cn(
-                          "px-4 py-2 rounded-2xl flex items-center gap-3 transition-all cursor-pointer group",
-                          isFocusTimerRunning ? "bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20" : "bg-slate-500/10 border border-slate-500/30 text-slate-500"
-                        )}
-                      >
-                        <span className="text-lg font-mono font-black">{formatFocusTime(focusTime)}</span>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsFocusTimerRunning(!isFocusTimerRunning);
-                          }}
-                          className="p-1 hover:bg-white/10 rounded-full"
-                        >
-                          {isFocusTimerRunning ? <X size={14} /> : <Zap size={14} />}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={toggleFocusedTimer}
-                          className="px-6 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-blue-500/20 hover:scale-105 transition-all"
-                        >
-                          Focus {targetMins}m
-                        </button>
-                      </div>
-                    )}
-                    <button 
-                      onClick={() => setIsReflectionArchiveOpen(true)}
-                      className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-xl text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:bg-blue-500/20 transition-all"
-                    >
-                      History Archive
-                    </button>
-                    <div className="text-right">
-                      <span className="text-2xl font-mono font-bold text-blue-500 tracking-tighter">7.75h</span>
-                      <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-widest">Total Required</span>
                     </div>
                   </div>
                 </div>
@@ -1268,13 +1313,13 @@ export default function App() {
                         className={cn(
                           "p-4 rounded-2xl border transition-all hover:translate-y-[-1px] cursor-pointer relative group/item overflow-hidden",
                           isDarkMode 
-                            ? (isCompleted ? "bg-blue-600/20 border-blue-500/50" : "bg-slate-900/40 border-slate-800 hover:border-slate-700") 
-                            : (isCompleted ? "bg-blue-50 border-blue-200 shadow-sm" : "bg-white border-slate-200 hover:border-blue-200 shadow-sm")
+                            ? (isCompleted ? "bg-white/10 border-white/30" : "bg-slate-900/40 border-slate-800 hover:border-slate-700") 
+                            : (isCompleted ? "bg-slate-50 border-slate-200 shadow-sm" : "bg-white border-slate-200 hover:border-slate-300 shadow-sm")
                         )}
                       >
                         {isCompleted && (
                           <div className="absolute top-0 right-0 p-1 opacity-20">
-                            <CheckCircle2 size={48} className="text-blue-500" />
+                            <CheckCircle2 size={48} className="text-white" />
                           </div>
                         )}
                         
@@ -1288,7 +1333,7 @@ export default function App() {
                             className={cn(
                               "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300",
                               isCompleted 
-                                ? "bg-blue-500 border-blue-500 text-white" 
+                                ? "bg-white border-white text-slate-950" 
                                 : "border-slate-400 bg-transparent text-transparent"
                             )}
                           >
@@ -1300,7 +1345,7 @@ export default function App() {
                               setActiveProtocolId(item.id);
                               setIsProtocolModalOpen(true);
                             }}
-                            className="text-[7px] font-bold text-blue-500 uppercase tracking-widest hover:underline"
+                            className="text-[7px] font-bold text-white uppercase tracking-widest hover:underline"
                           >
                             {isCompleted ? "Edit Details" : "Add Details"}
                           </button>
@@ -1311,7 +1356,7 @@ export default function App() {
                           <p className={cn(
                             "text-[10px] font-bold uppercase tracking-widest leading-none mb-1.5 transition-colors",
                             isCompleted 
-                              ? (isDarkMode ? "text-blue-400" : "text-blue-700") 
+                              ? "text-white" 
                               : (isDarkMode ? "text-slate-300" : "text-slate-900")
                           )}>{item.label}</p>
                           <p className={cn(
@@ -1339,7 +1384,7 @@ export default function App() {
                           })()}
 
                           <div className="flex justify-between items-center text-[8px] font-mono uppercase tracking-tighter">
-                            <span className={isCompleted ? "text-blue-500" : "text-slate-600"}>{isCompleted ? 'Node Sync OK' : 'Pending'}</span>
+                            <span className={isCompleted ? "text-white font-bold" : "text-slate-600"}>{isCompleted ? 'Node Sync OK' : 'Pending'}</span>
                             <span className="text-slate-600">{item.time}</span>
                           </div>
                         </div>
@@ -1350,13 +1395,42 @@ export default function App() {
               </div>
             </div>
 
+            {/* 6 Most Important Things (6大要事) */}
+            <div className={cn("bento-card md:col-span-5 p-8", !isDarkMode && "bg-white border-slate-200")}>
+              <div className="flex items-center gap-2 mb-6">
+                <ListTodo size={16} className="text-white" />
+                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">6大要事 · Critical 6</h3>
+              </div>
+              <div className="grid gap-3">
+                {safeSixTasks.map((task, idx) => (
+                  <div key={idx} className="flex items-center gap-3 group">
+                    <span className="text-[10px] font-mono text-slate-500 w-4">{idx + 1}.</span>
+                    <input 
+                      type="text"
+                      className={cn(
+                        "flex-1 bg-transparent border-b text-sm py-1 outline-none transition-colors",
+                        isDarkMode ? "border-slate-800 focus:border-white text-slate-200" : "border-slate-200 focus:border-white text-slate-900"
+                      )}
+                      placeholder={`Important task ${idx + 1}...`}
+                      value={task}
+                      onChange={(e) => {
+                        const newTasks = [...safeSixTasks];
+                        newTasks[idx] = e.target.value;
+                        setDailyData(prev => ({ ...prev, [todayKey]: { ...currentDaily, sixTasks: newTasks } }));
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Goal Tracking - Large Bento Card */}
             <div className="bento-card md:col-span-8 p-8 overflow-hidden relative group">
               <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                 <Target size={200} />
               </div>
               <div className="relative z-10">
-                <span className="px-3 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-wider rounded-full border border-blue-500/20">Annual Strategic Focus</span>
+                <span className="px-3 py-1 bg-white/10 text-white text-[10px] font-bold uppercase tracking-wider rounded-full border border-white/20">Annual Strategic Focus</span>
                 
                 <div className="mt-8 grid gap-10 sm:grid-cols-3">
                   <div>
@@ -1368,7 +1442,7 @@ export default function App() {
                         <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">💰 ANP Core</h2>
                         <input 
                           type="number"
-                          className="w-20 bg-slate-800/20 hover:bg-slate-800/40 text-right text-[10px] font-mono text-slate-400 outline-none border-b border-blue-500/30 px-2 py-1 rounded-t-lg transition-colors focus:border-blue-500"
+                          className="w-20 bg-slate-800/20 hover:bg-slate-800/40 text-right text-[10px] font-mono text-slate-400 outline-none border-b border-white/30 px-2 py-1 rounded-t-lg transition-colors focus:border-white"
                           value={perfData.annualTargetGSPC}
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) => setPerfData(prev => ({ ...prev, annualTargetGSPC: parseFloat(e.target.value) || 0 }))}
@@ -1377,7 +1451,7 @@ export default function App() {
                       <div className="flex items-baseline gap-2">
                         <input 
                           type="number"
-                          className="text-4xl font-light text-white bg-transparent border-none outline-none w-full max-w-[150px] p-0 hover:text-blue-400 focus:text-blue-400 transition-colors cursor-text"
+                          className="text-4xl font-light text-white bg-transparent border-none outline-none w-full max-w-[150px] p-0 hover:text-white transition-colors cursor-text"
                           value={perfData.totalANP}
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) => {
@@ -1400,7 +1474,7 @@ export default function App() {
                         <div className="text-[10px] text-slate-500 font-mono">ANP</div>
                       </div>
                       <div className="mt-4 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" 
+                        <div className="h-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]" 
                           style={{ width: `${Math.min(100, (perfData.totalANP / (perfData.annualTargetGSPC || 1)) * 100)}%` }} />
                       </div>
                     </div>
@@ -1503,7 +1577,7 @@ export default function App() {
             )}>
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-blue-500" />
+                  <Calendar size={16} className="text-white" />
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Monthly Matrix</h3>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1552,66 +1626,17 @@ export default function App() {
                           !isCurrentMonth && "opacity-20",
                           isSelected 
                             ? (isDarkMode ? "bg-white text-black font-black" : "bg-slate-900 text-white font-black") 
-                            : (isTodayLocal ? "text-blue-500 font-black border border-blue-500/30" : "text-slate-400 hover:bg-white/5"),
+                            : (isTodayLocal ? "text-white font-black border border-white/30" : "text-slate-400 hover:bg-white/5"),
                         )}
                       >
                         {format(day, 'd')}
                         {hasEvents && !isSelected && (
-                          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-blue-500" />
+                          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white" />
                         )}
                       </button>
                     );
                   });
                 })()}
-              </div>
-
-              {/* Focus Controls (Matches Screenshot) */}
-              <div className="mt-8 pt-4 border-t border-slate-800/50 flex items-center justify-between">
-                {isFocusTimerRunning ? (
-                  <div 
-                    onClick={() => setIsLargeTimerOpen(true)}
-                    className="flex-1 flex items-center justify-between bg-blue-500/10 rounded-xl p-3 border border-blue-500/30 cursor-pointer hover:bg-blue-500/20 transition-all group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                      <span className="text-[14px] font-mono font-black text-blue-500 tracking-tighter tabular-nums">
-                        {formatFocusTime(focusTime)}
-                      </span>
-                    </div>
-                    <span className="text-[8px] font-bold text-blue-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                      Click to Expand
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 bg-slate-800/10 rounded-xl p-1 border border-slate-800/20">
-                    <button 
-                      onClick={() => setTargetMins(prev => Math.max(1, prev - 5))}
-                      className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
-                    >
-                      <Minus size={14} /> 
-                    </button>
-                    <span className="text-[12px] font-mono font-bold text-slate-200 min-w-[60px] text-center uppercase tracking-widest">{targetMins} mins</span>
-                    <button 
-                      onClick={() => setTargetMins(prev => Math.min(240, prev + 5))}
-                      className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                )}
-                
-                <button 
-                  onClick={toggleFocusedTimer}
-                  className={cn(
-                    "ml-4 flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95",
-                    isFocusTimerRunning 
-                      ? "bg-red-500 text-white shadow-lg shadow-red-500/20 hover:bg-red-600" 
-                      : "bg-white text-slate-900 border border-slate-200 shadow-sm hover:shadow-md hover:bg-slate-50"
-                  )}
-                >
-                  {isFocusTimerRunning ? <X size={14} /> : <motion.div animate={{ rotate: [0, 10, 0] }} transition={{ repeat: Infinity }}><Zap size={14} /></motion.div>}
-                  {isFocusTimerRunning ? 'Stop' : 'Focus'}
-                </button>
               </div>
 
               {/* Day Preview */}
@@ -1668,7 +1693,7 @@ export default function App() {
               <div className="mt-4">
                 <p className={cn(
                   "text-xl font-medium leading-relaxed italic transition-colors",
-                  isDarkMode ? "text-slate-100 group-hover:text-white" : "text-slate-800 group-hover:text-blue-600"
+                  isDarkMode ? "text-slate-100 group-hover:text-white" : "text-slate-800 group-hover:text-slate-950"
                 )}>"{encouragement || 'Preparing insight...'}"</p>
                 <p className="text-[10px] text-slate-500 mt-4 uppercase font-mono">Status: {isFocusMode ? 'Matrix Resonance High' : 'Awaiting Operations'}</p>
               </div>
@@ -1681,13 +1706,13 @@ export default function App() {
             )}>
               <div className="w-full flex justify-between items-center mb-6">
                 <div className="flex items-center gap-2">
-                  <PieChartIcon size={16} className="text-blue-500" />
+                  <PieChartIcon size={16} className="text-white" />
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Time Allocation</h3>
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => setIsReflectionArchiveOpen(true)}
-                    className="px-2 py-1 bg-blue-500/10 border border-blue-500/30 rounded-lg text-[8px] font-bold text-blue-500 uppercase tracking-widest hover:bg-blue-500/20 transition-all flex items-center gap-1"
+                    className="px-2 py-1 bg-white/10 border border-white/30 rounded-lg text-[8px] font-bold text-white uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-1"
                   >
                     <History size={10} /> History
                   </button>
@@ -1768,8 +1793,8 @@ export default function App() {
                 className={cn(
                   "w-full rounded-2xl border p-4 text-sm outline-none transition-all min-h-[120px]",
                   isDarkMode 
-                    ? "border-slate-800 bg-slate-900/50 text-slate-200 focus:border-blue-500" 
-                    : "border-slate-200 bg-slate-50 text-slate-900 focus:border-blue-500"
+                    ? "border-slate-800 bg-slate-900/50 text-slate-200 focus:border-white" 
+                    : "border-slate-200 bg-slate-50 text-slate-900 focus:border-white"
                 )}
                 placeholder="Analyze deviations & achievements..."
                 value={currentDaily.r}
@@ -1815,35 +1840,6 @@ export default function App() {
               />
             </div>
 
-            {/* 6 Most Important Things (6大要事) */}
-            <div className={cn("bento-card md:col-span-6 p-8", !isDarkMode && "bg-white border-slate-200")}>
-              <div className="flex items-center gap-2 mb-6">
-                <ListTodo size={16} className="text-blue-500" />
-                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">6大要事 · Critical 6</h3>
-              </div>
-              <div className="grid gap-3">
-                {safeSixTasks.map((task, idx) => (
-                  <div key={idx} className="flex items-center gap-3 group">
-                    <span className="text-[10px] font-mono text-slate-500 w-4">{idx + 1}.</span>
-                    <input 
-                      type="text"
-                      className={cn(
-                        "flex-1 bg-transparent border-b text-sm py-1 outline-none transition-colors",
-                        isDarkMode ? "border-slate-800 focus:border-blue-500 text-slate-200" : "border-slate-200 focus:border-blue-500 text-slate-900"
-                      )}
-                      placeholder={`Important task ${idx + 1}...`}
-                      value={task}
-                      onChange={(e) => {
-                        const newTasks = [...safeSixTasks];
-                        newTasks[idx] = e.target.value;
-                        setDailyData(prev => ({ ...prev, [todayKey]: { ...currentDaily, sixTasks: newTasks } }));
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Timeline View - Full Width Wide Bento Card */}
             <div className={cn("bento-card md:col-span-12 p-8 transition-colors duration-300", !isDarkMode && "bg-white border-slate-200 shadow-slate-100")}>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -1868,7 +1864,7 @@ export default function App() {
                         isDarkMode ? "bg-slate-900 border-slate-800 hover:border-slate-600 active:bg-slate-800" : "bg-white border-slate-200 shadow-sm hover:border-slate-300 active:bg-slate-50"
                       )}
                     >
-                      <Target size={12} className="text-blue-500" />
+                      <Target size={12} className="text-white" />
                       <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Jump to Node</span>
                     </button>
                     <input 
@@ -1955,7 +1951,7 @@ export default function App() {
                               "text-sm font-light mb-1",
                               isDarkMode ? "text-white" : "text-slate-900"
                             )}>{format(day, 'MM/dd')}</span>
-                            <span className="text-[9px] text-blue-500/80 font-medium">{getLunarDate(day)}</span>
+                            <span className="text-[9px] text-white/60 font-medium">{getLunarDate(day)}</span>
                           </div>
                         </th>
                       ))}
@@ -2005,7 +2001,7 @@ export default function App() {
                                 rowSpan={maxSpan}
                                 className={cn(
                                   "group relative min-h-[64px] cursor-pointer bg-transparent p-1 transition-colors border-r",
-                                  isDarkMode ? "hover:bg-white/5 border-slate-800/20" : "hover:bg-blue-500/5 border-slate-100"
+                                  isDarkMode ? "hover:bg-white/5 border-slate-800/20" : "hover:bg-white/5 border-slate-100"
                                 )}
                                 onClick={() => {
                                   setSelectedSlot({ day: weekday, hour, offset: viewOffset });
@@ -2069,7 +2065,23 @@ export default function App() {
         </div>
       )}
 
-        {currentPage === 'perf' && <PerformancePage perfData={perfData} setPerfData={setPerfData} theme={theme} />}
+        {currentPage === 'perf' && (
+          <PerformancePage 
+            perfData={perfData} 
+            setPerfData={setPerfData} 
+            theme={theme}
+            isFocusTimerRunning={isFocusTimerRunning}
+            focusTime={focusTime}
+            targetMins={targetMins}
+            setTargetMins={setTargetMins}
+            toggleFocusedTimer={toggleFocusedTimer}
+            setIsLargeTimerOpen={setIsLargeTimerOpen}
+            ambientSound={ambientSound}
+            setAmbientSound={setAmbientSound}
+            selectedSound={selectedSound}
+            setSelectedSound={setSelectedSound}
+          />
+        )}
         {currentPage === 'list' && (
           <ListPage 
             perfData={perfData} 
@@ -2173,9 +2185,9 @@ export default function App() {
                 isDarkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"
               )}
             >
-              <div className="p-8 border-b border-slate-800/20 flex justify-between items-center bg-gradient-to-r from-blue-500/5 to-transparent">
+              <div className="p-8 border-b border-slate-800/20 flex justify-between items-center bg-gradient-to-r from-white/5 to-transparent">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-blue-500/20 text-blue-500 rounded-2xl">
+                  <div className="p-3 bg-white/10 text-white rounded-2xl">
                     <History size={24} />
                   </div>
                   <div>
@@ -2207,14 +2219,14 @@ export default function App() {
                         isDarkMode ? "bg-slate-900/40 border-slate-800 hover:border-slate-700" : "bg-slate-50/50 border-slate-200 hover:border-slate-300"
                       )}>
                         <div className="flex justify-between items-center mb-6">
-                          <span className="text-xs font-mono font-bold text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full uppercase">
+                          <span className="text-xs font-mono font-bold text-white bg-white/10 px-3 py-1 rounded-full uppercase">
                             {format(new Date(date), 'MMMM dd, yyyy')}
                           </span>
                         </div>
                         
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                           <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-white uppercase tracking-widest">
                               <Target size={12} /> 3v6R Performance
                             </div>
                             <div className={cn(
@@ -2225,7 +2237,7 @@ export default function App() {
                                 const log = perfData.dailyActivitiesLog?.[date] || { of: 0, p: 0, f: 0, c: 0, q: 0 };
                                 return (
                                   <>
-                                    <div className="text-[10px] text-slate-500">Sales: <span className="text-blue-400 font-bold">{log.of+log.p+log.f+log.c}</span></div>
+                                    <div className="text-[10px] text-slate-500">Sales: <span className="text-white font-bold">{log.of+log.p+log.f+log.c}</span></div>
                                     <div className="text-[10px] text-slate-500">QFYLP: <span className="text-yellow-500 font-bold">{formatNumber(log.q || 0)}</span></div>
                                   </>
                                 );
@@ -2285,7 +2297,7 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className={cn(
                 "w-full max-w-lg rounded-[2.5rem] border p-8 shadow-2xl transition-colors duration-300",
-                isDarkMode ? "bg-slate-950 border-slate-800 shadow-blue-500/10" : "bg-white border-slate-200 shadow-slate-200"
+                isDarkMode ? "bg-slate-950 border-slate-800 shadow-white/10" : "bg-white border-slate-200 shadow-slate-200"
               )}
             >
               <div className="flex items-center gap-4 mb-8 p-4 rounded-[2rem] border transition-colors duration-300" 
@@ -2306,7 +2318,7 @@ export default function App() {
                   <input 
                     id="modal-title" 
                     className={cn(
-                      "w-full rounded-2xl border p-4 text-sm outline-none transition-all focus:border-blue-500",
+                      "w-full rounded-2xl border p-4 text-sm outline-none transition-all focus:border-white",
                       isDarkMode ? "border-slate-800 bg-slate-900/50 text-white" : "border-slate-200 bg-slate-50 text-slate-900"
                     )}
                     placeholder="Enter objective name..." 
@@ -2374,7 +2386,7 @@ export default function App() {
                           data-activity-btn
                           className={cn(
                             "flex flex-col items-center gap-1 rounded-2xl p-3 text-[9px] transition-all hover:scale-110 border border-transparent",
-                            isSelected && "ring-4 ring-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-105"
+                            isSelected && "ring-4 ring-white/50 shadow-[0_0_15px_rgba(255,255,255,0.5)] scale-105"
                           )}
                           style={{ 
                             backgroundColor: isDarkMode ? `${groupColor}20` : `${groupColor}15`,

@@ -49,14 +49,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         </div>
         
         <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-blue-600 to-indigo-900 p-0.5 shadow-2xl mb-6">
+          <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-white to-slate-400 p-0.5 shadow-2xl mb-6">
              <div className="w-full h-full rounded-[1.9rem] bg-slate-900 flex items-center justify-center text-3xl">
                👨‍💻
              </div>
           </div>
           
           <h2 className="text-3xl font-bold tracking-tight text-white">时间管理大师</h2>
-          <div className="mt-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+          <div className="mt-2 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-[10px] font-bold text-white uppercase tracking-widest">
             Elite Strategist & Performance Mentor
           </div>
           
@@ -96,12 +96,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   onClick={() => setThemeKey(key)}
                   className={cn(
                     "group relative aspect-square rounded-2xl border-2 transition-all hover:scale-105 active:scale-95",
-                    themeKey === key ? "border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.3)]" : "border-slate-800"
+                    themeKey === key ? "border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]" : "border-slate-800"
                   )}
                   style={{ background: `linear-gradient(135deg, ${t.bg}, ${t.accent})` }}
                 >
                   {themeKey === key && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-blue-600/20 backdrop-blur-[2px] rounded-xl">
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-[2px] rounded-xl">
                       <div className="w-2 h-2 bg-white rounded-full animate-ping" />
                     </div>
                   )}
@@ -113,7 +113,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           <div className="mt-8 space-y-4 pt-8 border-t border-slate-800/50">
               <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-[1.5rem] border border-slate-800">
                 <div className="flex items-center gap-3">
-                   <div className={cn("p-2 rounded-xl transition-colors", isFocusMode ? "bg-blue-500 text-white" : "bg-slate-800 text-slate-500")}>
+                   <div className={cn("p-2 rounded-xl transition-colors", isFocusMode ? "bg-white text-slate-950" : "bg-slate-800 text-slate-500")}>
                       <Zap size={14} />
                    </div>
                    <div>
@@ -123,9 +123,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 </div>
                 <button 
                   onClick={() => setIsFocusMode(!isFocusMode)}
-                  className={cn("w-8 h-4 rounded-full relative transition-colors", isFocusMode ? "bg-blue-600" : "bg-slate-700")}
+                  className={cn("w-8 h-4 rounded-full relative transition-colors", isFocusMode ? "bg-white" : "bg-slate-700")}
                 >
-                  <div className={cn("absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all", isFocusMode ? "right-0.5" : "left-0.5")} />
+                  <div className={cn("absolute top-0.5 w-3 h-3 bg-slate-900 rounded-full transition-all", isFocusMode ? "right-0.5" : "left-0.5")} />
                 </button>
               </div>
 
@@ -133,7 +133,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={cn("p-2 rounded-xl transition-colors shadow-lg", isFocusTimerRunning ? "bg-blue-600 text-white shadow-blue-500/20" : "bg-slate-800 text-slate-500")}>
+                      <div className={cn("p-2 rounded-xl transition-colors shadow-lg", isFocusTimerRunning ? "bg-cyan-500 text-slate-950 shadow-cyan-500/20" : "bg-slate-800 text-slate-500")}>
                         <Zap size={14} />
                       </div>
                       <div 
@@ -143,7 +143,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         <span className="block text-[10px] font-bold text-white uppercase tracking-widest">Focus Count (倒数)</span>
                         <span className="block text-[8px] text-slate-500 uppercase font-mono">
                           {isFocusTimerRunning ? (
-                            <span className="text-blue-400 font-bold group-hover:text-blue-300">Active: {formatFocusTime(focusTime)} (Tap for Big)</span>
+                            <span className="text-cyan-400 font-bold group-hover:text-cyan-300">Active: {formatFocusTime(focusTime)} (Tap to Flux)</span>
                           ) : 'Initiate Deep Focus State'}
                         </span>
                       </div>
@@ -160,7 +160,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         onClick={onToggleTimer}
                         className={cn(
                           "px-4 py-1 text-[9px] font-black uppercase rounded-lg shadow-lg transition-all active:scale-95",
-                          isFocusTimerRunning ? "bg-red-500 text-white shadow-red-500/20" : "bg-blue-600 text-white shadow-blue-500/20"
+                          isFocusTimerRunning ? "bg-red-500 text-white shadow-red-500/20" : "bg-cyan-500 text-slate-950 shadow-cyan-500/20"
                         )}
                       >
                         {isFocusTimerRunning ? 'Abort' : 'Focus'}
@@ -193,10 +193,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                    {ambientSound && (
                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/50">
                         {([
-                          { id: 'zen', label: 'Deep Zen Meditation' },
-                          { id: 'rain', label: 'Soothing Forest Rain' },
-                          { id: 'ocean', label: 'Calm Ocean Waves' },
-                          { id: 'lofi', label: 'Lofi Coffee Shop' }
+                          { id: 'zen', label: 'Zen Resonance' },
+                          { id: 'rain', label: 'Atmospheric Rain' },
+                          { id: 'ocean', label: 'Oceanic Drift' },
+                          { id: 'lofi', label: 'Flux Mind Lofi' }
                         ] as const).map((s) => (
                           <button
                             key={s.id}
@@ -222,12 +222,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         <div className="bento-card p-10 bg-slate-950">
            <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                 <History size={16} className="text-blue-500" />
+                 <History size={16} className="text-white" />
                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Strategic Backup Sync</h3>
               </div>
               <button 
                 onClick={onCreateBackup}
-                className="px-3 py-1 bg-blue-600 text-white text-[9px] font-bold uppercase rounded-lg hover:bg-blue-500 transition-all flex items-center gap-1"
+                className="px-3 py-1 bg-white text-slate-950 text-[9px] font-bold uppercase rounded-lg hover:bg-slate-200 transition-all flex items-center gap-1"
               >
                 <Plus size={12} /> Create Node
               </button>

@@ -1,16 +1,46 @@
 import React from 'react';
 import { PerfData, ThemeConfig } from '../types';
 import { formatNumber, cn } from '../lib/utils';
-import { Target, Users, Zap, Shield, Award, Edit3, Trash2, History } from 'lucide-react';
+import { Target, Users, Zap, Shield, Award, Edit3, Trash2, History, CloudRain, Moon, Waves, Coffee, VolumeX, X, Minus, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface PerformancePageProps {
   perfData: PerfData;
   setPerfData: React.Dispatch<React.SetStateAction<PerfData>>;
   theme: ThemeConfig;
+  isFocusTimerRunning: boolean;
+  focusTime: number;
+  targetMins: number;
+  setTargetMins: React.Dispatch<React.SetStateAction<number>>;
+  toggleFocusedTimer: () => void;
+  setIsLargeTimerOpen: (open: boolean) => void;
+  ambientSound: boolean;
+  setAmbientSound: (on: boolean) => void;
+  selectedSound: 'rain' | 'zen' | 'ocean' | 'lofi';
+  setSelectedSound: (sound: 'rain' | 'zen' | 'ocean' | 'lofi') => void;
 }
 
-export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setPerfData, theme }) => {
+export const PerformancePage: React.FC<PerformancePageProps> = ({ 
+  perfData, 
+  setPerfData, 
+  theme,
+  isFocusTimerRunning,
+  focusTime,
+  targetMins,
+  setTargetMins,
+  toggleFocusedTimer,
+  setIsLargeTimerOpen,
+  ambientSound,
+  setAmbientSound,
+  selectedSound,
+  setSelectedSound
+}) => {
+  const formatFocusTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const personalPct = Math.min(100, Math.floor((perfData.totalANP / (perfData.annualTargetGSPC || 1)) * 100));
   const fycPct = Math.min(100, Math.floor(((perfData.totalFYC || 0) / (perfData.annualTargetFYC || 1)) * 100));
   const teamPct = Math.min(100, Math.floor((perfData.teamQ / 300000) * 100));
@@ -29,6 +59,101 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
 
   return (
     <div className="animate-fadeIn space-y-6">
+      {/* Focus & Ambient Controls (Moved from Home) */}
+      <div className="bento-card p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col gap-4 w-full md:w-auto">
+          <div className="flex items-center gap-3">
+            <Zap size={18} className="text-white" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">Tactical Focus & Ambient</h3>
+          </div>
+          
+          <div className="flex items-center gap-1 bg-slate-800/20 rounded-xl p-1.5 border border-slate-800/40 w-fit">
+            {[
+              { id: 'rain', icon: CloudRain, label: 'Atmospheric Rain' },
+              { id: 'zen', icon: Moon, label: 'Zen Resonance' },
+              { id: 'ocean', icon: Waves, label: 'Oceanic Drift' },
+              { id: 'lofi', icon: Coffee, label: 'Flux Mind Lofi' }
+            ].map(snd => (
+              <button
+                key={snd.id}
+                onClick={() => {
+                  setSelectedSound(snd.id as any);
+                  setAmbientSound(true);
+                }}
+                className={cn(
+                  "w-10 h-10 flex items-center justify-center rounded-lg transition-all",
+                  selectedSound === snd.id && ambientSound
+                    ? "bg-white text-slate-950 shadow-lg shadow-white/20"
+                    : "text-slate-500 hover:text-slate-200 hover:bg-slate-800/50"
+                )}
+                title={snd.label}
+              >
+                <snd.icon size={16} />
+              </button>
+            ))}
+            {ambientSound && (
+              <button 
+                onClick={() => setAmbientSound(false)}
+                className="ml-1 w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                title="Turn off sound"
+              >
+                <VolumeX size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+          {isFocusTimerRunning ? (
+            <div 
+              onClick={() => setIsLargeTimerOpen(true)}
+              className="flex-1 md:w-48 flex items-center justify-between bg-cyan-400/5 rounded-xl p-4 border border-cyan-400/20 cursor-pointer hover:bg-cyan-400/10 transition-all group shadow-[0_0_20px_rgba(34,211,238,0.1)]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
+                <span className="text-xl font-mono font-black text-cyan-400 tracking-tighter tabular-nums">
+                  {formatFocusTime(focusTime)}
+                </span>
+              </div>
+              <span className="text-[8px] font-bold text-cyan-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                Flux Mode
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 bg-slate-800/20 rounded-xl p-1.5 border border-slate-800/40">
+              <button 
+                onClick={() => setTargetMins(prev => Math.max(1, prev - 5))}
+                className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+                title="Decrease time"
+              >
+                <Minus size={16} /> 
+              </button>
+              <span className="text-sm font-mono font-bold text-slate-200 min-w-[80px] text-center uppercase tracking-widest">{targetMins} mins</span>
+              <button 
+                onClick={() => setTargetMins(prev => Math.min(240, prev + 5))}
+                className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+                title="Increase time"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          )}
+          
+          <button 
+            onClick={toggleFocusedTimer}
+            className={cn(
+              "w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all active:scale-95",
+              isFocusTimerRunning 
+                ? "bg-red-500 text-white shadow-lg shadow-red-500/20 hover:bg-red-600" 
+                : "bg-white text-slate-950 shadow-lg shadow-white/20 hover:bg-slate-200"
+            )}
+          >
+            {isFocusTimerRunning ? <X size={16} /> : <Zap size={16} fill="currentColor" />}
+            {isFocusTimerRunning ? 'Terminate' : 'Deploy Focus'}
+          </button>
+        </div>
+      </div>
+
       {/* Header Cards (Bento Style) */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         {stats.map((stat, i) => {
@@ -41,7 +166,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
             )}>
               <div className="flex justify-between items-start">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{stat.label}</span>
-                <div className="p-2 bg-slate-800 rounded-xl text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                <div className="p-2 bg-slate-800 rounded-xl text-white group-hover:bg-white group-hover:text-slate-900 transition-all">
                   {stat.icon}
                 </div>
               </div>
@@ -65,7 +190,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                       <span>/</span>
                       <input 
                         type="number"
-                        className="w-24 bg-transparent border-none outline-none p-0 ml-1 text-slate-600 font-mono focus:text-blue-400"
+                        className="w-24 bg-transparent border-none outline-none p-0 ml-1 text-slate-600 font-mono focus:text-white"
                         value={stat.total}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
@@ -88,28 +213,28 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
       <div className="grid gap-4 md:grid-cols-12">
         <div className="bento-card md:col-span-12 p-8 overflow-hidden relative">
           <div className="flex items-center gap-2 mb-8">
-            <Award size={18} className="text-blue-500" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Core Progress Synthesis</h3>
+            <Award size={18} className="text-white" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">Core Progress Synthesis</h3>
           </div>
           
           <div className="space-y-8">
             {[
-              { label: 'Core ANP Achievement', current: personalPct, color: 'bg-blue-500' },
-              { label: 'FYC Commission Flow', current: fycPct, color: 'bg-indigo-500' },
-              { label: 'Team Coverage Matrix', current: teamPct, color: 'bg-emerald-500' },
-              { label: 'Recruitment Flow Velocity', current: recruitPct, color: 'bg-amber-500' }
+              { label: 'Core ANP Achievement', current: personalPct, color: 'bg-white' },
+              { label: 'FYC Commission Flow', current: fycPct, color: 'bg-slate-400' },
+              { label: 'Team Coverage Matrix', current: teamPct, color: 'bg-slate-500' },
+              { label: 'Recruitment Flow Velocity', current: recruitPct, color: 'bg-slate-600' }
             ].map((p, idx) => (
               <div key={idx} className="space-y-3">
                 <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-slate-500">
                   <span>{p.label}</span>
-                  <span className={cn("font-mono", idx === 0 ? "text-blue-400" : idx === 1 ? "text-emerald-400" : "text-amber-400")}>{p.current}%</span>
+                  <span className={cn("font-mono", idx === 0 ? "text-white" : idx === 1 ? "text-slate-400" : "text-slate-500")}>{p.current}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${p.current}%` }}
                     transition={{ duration: 1, delay: 0.2 + idx * 0.1 }}
-                    className={cn("h-full rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(59,130,246,0.3)]", p.color)} 
+                    className={cn("h-full rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(255,255,255,0.2)]", p.color)} 
                   />
                 </div>
               </div>
@@ -147,7 +272,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                     <td className="p-4 text-center">
                       <input 
                         type="number" 
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-slate-400 font-mono focus:border-blue-500 outline-none"
+                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-slate-400 font-mono focus:border-white outline-none"
                         value={m.target}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
@@ -160,7 +285,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                     <td className="p-4 text-center">
                       <input 
                         type="number" 
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-blue-400 font-mono focus:border-blue-500 outline-none"
+                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white font-mono focus:border-white outline-none"
                         value={m.actual}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
@@ -186,7 +311,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                     <td className="p-4 text-center">
                       <input 
                         type="number" 
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white/50 font-mono focus:border-blue-500 outline-none"
+                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white/50 font-mono focus:border-white outline-none"
                         value={m.anp}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
@@ -199,7 +324,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                     <td className="p-4 text-center">
                       <input 
                         type="number" 
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-blue-400 font-mono focus:border-blue-500 outline-none"
+                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white font-mono focus:border-white outline-none"
                         value={m.fyc || 0}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
@@ -251,13 +376,13 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                   const qNum = Math.floor((i + 1) / 3);
 
                   rows.push(
-                    <tr key={`q-summary-${qNum}`} className="bg-blue-500/5 font-bold border-y border-blue-500/20">
-                      <td className="p-4 text-blue-500 uppercase tracking-widest text-[9px]">Q{qNum} STAGE SUMMARY</td>
+                    <tr key={`q-summary-${qNum}`} className="bg-white/5 font-bold border-y border-white/10">
+                      <td className="p-4 text-white uppercase tracking-widest text-[9px]">Q{qNum} STAGE SUMMARY</td>
                       <td className="p-4 text-center font-mono text-slate-400">{formatNumber(qTarget)}</td>
-                      <td className="p-4 text-center font-mono text-blue-400">{formatNumber(qActual)}</td>
+                      <td className="p-4 text-center font-mono text-white">{formatNumber(qActual)}</td>
                       <td className="p-4 text-center font-mono text-emerald-400">{qNoc}</td>
                       <td className="p-4 text-center font-mono text-white/50">{formatNumber(qAnp)}</td>
-                      <td className="p-4 text-center font-mono text-blue-400">{formatNumber(qFyc)}</td>
+                      <td className="p-4 text-center font-mono text-white">{formatNumber(qFyc)}</td>
                       <td className="p-4 text-center font-mono text-slate-500">{qRecruitTarget}</td>
                       <td className="p-4 text-center font-mono text-amber-500">{qRecruitActual}</td>
                     </tr>
@@ -279,7 +404,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
           <div key={idx} className="bento-card p-8">
             <div className="flex items-center justify-between mb-8">
                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-slate-800 rounded-xl text-blue-500">{sec.icon}</div>
+                  <div className="p-2 bg-slate-800 rounded-xl text-white">{sec.icon}</div>
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">{sec.label}</h3>
                </div>
                <span className="text-xs font-mono text-slate-500">{sec.data.filter(m => m.achieved).length}/{sec.data.length} Nodes</span>
@@ -298,11 +423,11 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                   }}
                   className={cn(
                     "flex items-center justify-between rounded-2xl p-4 border transition-all cursor-pointer hover:scale-[1.02]",
-                    m.achieved ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-slate-900 border-slate-800 text-slate-600"
+                    m.achieved ? "bg-white/10 border-white/20 text-white" : "bg-slate-900 border-slate-800 text-slate-600"
                   )}
                 >
                   <span className="text-[10px] font-bold uppercase tracking-wider">{m.name}</span>
-                  <Award size={14} className={m.achieved ? "text-blue-400" : "text-slate-800 opacity-20"} />
+                  <Award size={14} className={m.achieved ? "text-white" : "text-slate-800 opacity-20"} />
                 </div>
               ))}
             </div>

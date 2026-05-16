@@ -236,7 +236,7 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
               </div>
               
               <div className="space-y-4">
-                <div className="text-[9px] font-bold text-blue-500 uppercase tracking-widest pl-2 border-l-2 border-blue-500/20">Operational Status / 运作状态</div>
+                <div className="text-[9px] font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-white/20">Operational Status / 运作状态</div>
                 <div className="grid grid-cols-2 gap-4">
                   {[
                     { label: 'Energy % / 体力', val: perfData.personalEnergy, key: 'personalEnergy' },
@@ -248,7 +248,7 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
                          type="number"
                          max="100"
                          min="0"
-                         className="w-full bg-slate-900/30 border border-slate-800 rounded-xl p-3 text-lg font-mono font-bold text-white outline-none focus:border-blue-500"
+                         className="w-full bg-slate-900/30 border border-slate-800 rounded-xl p-3 text-lg font-mono font-bold text-white outline-none focus:border-white"
                          value={stat.val}
                          onChange={(e) => setPerfData(prev => ({ ...prev, [stat.key]: parseInt(e.target.value) || 0 }))}
                        />
@@ -262,7 +262,7 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
               <div className="text-[9px] text-slate-500 font-mono italic opacity-60">"Health is the foundation of high-net-worth productivity."</div>
             </div>
           </div>
-          <Zap className="absolute -top-10 -right-10 text-blue-500 opacity-5" size={180} />
+          <Zap className="absolute -top-10 -right-10 text-white opacity-5" size={180} />
         </div>
 
         {/* Activity Log Grid */}
@@ -364,7 +364,7 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
               </button>
 
               {perfData.nightMessage && (
-                <div className="mt-4 animate-fadeIn rounded-2xl bg-slate-900/50 p-4 text-[10px] font-mono leading-relaxed text-blue-400 border border-blue-500/20 whitespace-pre-wrap">
+                <div className="mt-4 animate-fadeIn rounded-2xl bg-slate-900/50 p-4 text-[10px] font-mono leading-relaxed text-white border border-white/20 whitespace-pre-wrap">
                   {perfData.nightMessage}
                 </div>
               )}
@@ -390,7 +390,7 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
 
                    <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                       <div className="space-y-4">
-                         <div className="text-[9px] font-bold text-blue-500 uppercase tracking-widest pl-2 border-l-2 border-blue-500/20">Activities Track</div>
+                         <div className="text-[9px] font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-white/20">Activities Track</div>
                          {['of', 'p', 'f', 'c'].map(key => (
                             <div key={key} className="flex justify-between items-center px-2">
                                <span className="text-[10px] text-slate-500 uppercase font-mono">{key}</span>
@@ -449,16 +449,16 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
                   <thead>
                      <tr className="text-[9px] text-slate-500 uppercase tracking-widest">
                         <th className="p-3 font-bold">Temporal Coord</th>
-                        <th className="p-3 font-bold text-blue-500/80">OF</th>
-                        <th className="p-3 font-bold text-blue-500/80">P</th>
-                        <th className="p-3 font-bold text-blue-500/80">F</th>
-                        <th className="p-3 font-bold text-blue-500/80">C</th>
-                        <th className="p-3 font-bold text-blue-400">Total Ops</th>
+                        <th className="p-3 font-bold text-white/80">OF</th>
+                        <th className="p-3 font-bold text-white/80">P</th>
+                        <th className="p-3 font-bold text-white/80">F</th>
+                        <th className="p-3 font-bold text-white/80">C</th>
+                        <th className="p-3 font-bold text-white">Total Ops</th>
                         <th className="p-3 font-bold text-yellow-500/80">Net ANP</th>
-                        <th className="p-3 font-bold text-emerald-500/80">RO</th>
-                        <th className="p-3 font-bold text-emerald-500/80">RP</th>
-                        <th className="p-3 font-bold text-emerald-500/80">RF</th>
-                        <th className="p-3 font-bold text-emerald-500/80">RS</th>
+                        <th className="p-3 font-bold text-white/80">RO</th>
+                        <th className="p-3 font-bold text-white/80">RP</th>
+                        <th className="p-3 font-bold text-white/80">RF</th>
+                        <th className="p-3 font-bold text-white/80">RS</th>
                         <th className="p-3 font-bold text-emerald-400">Recruit</th>
                      </tr>
                   </thead>
@@ -518,16 +518,16 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
                   <thead className="sticky top-0 bg-slate-900 z-10">
                      <tr className="text-[9px] text-slate-500 uppercase tracking-widest">
                         <th className="p-3 font-bold">Temporal Coord</th>
-                        <th className="p-3 font-bold text-blue-500/80">OF</th>
-                        <th className="p-3 font-bold text-blue-500/80">P</th>
-                        <th className="p-3 font-bold text-blue-500/80">F</th>
-                        <th className="p-3 font-bold text-blue-500/80">C</th>
-                        <th className="p-3 font-bold text-blue-400">Total Ops</th>
+                        <th className="p-3 font-bold text-white/80">OF</th>
+                        <th className="p-3 font-bold text-white/80">P</th>
+                        <th className="p-3 font-bold text-white/80">F</th>
+                        <th className="p-3 font-bold text-white/80">C</th>
+                        <th className="p-3 font-bold text-white">Total Ops</th>
                         <th className="p-3 font-bold text-yellow-500/80">Net ANP</th>
-                        <th className="p-3 font-bold text-emerald-500/80">RO</th>
-                        <th className="p-3 font-bold text-emerald-500/80">RP</th>
-                        <th className="p-3 font-bold text-emerald-500/80">RF</th>
-                        <th className="p-3 font-bold text-emerald-500/80">RS</th>
+                        <th className="p-3 font-bold text-white/80">RO</th>
+                        <th className="p-3 font-bold text-white/80">RP</th>
+                        <th className="p-3 font-bold text-white/80">RF</th>
+                        <th className="p-3 font-bold text-white/80">RS</th>
                         <th className="p-3 font-bold text-emerald-400">Recruit</th>
                      </tr>
                   </thead>
@@ -582,7 +582,7 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
                   </div>
                   <div className="text-right">
                      <div className="flex gap-4 justify-end mt-1">
-                       <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[9px] font-bold uppercase rounded-full font-mono">Total ANP: {formatNumber(yearTotals.anp)}</div>
+                       <div className="px-3 py-1 bg-white/10 border border-white/20 text-white text-[9px] font-bold uppercase rounded-full font-mono">Total ANP: {formatNumber(yearTotals.anp)}</div>
                      </div>
                   </div>
                </div>
@@ -592,16 +592,16 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
                      <thead>
                         <tr className="text-[9px] text-slate-500 uppercase tracking-widest">
                            <th className="p-3 font-bold">Month Coord</th>
-                           <th className="p-3 font-bold text-blue-500/80">OF</th>
-                           <th className="p-3 font-bold text-blue-500/80">P</th>
-                           <th className="p-3 font-bold text-blue-500/80">F</th>
-                           <th className="p-3 font-bold text-blue-500/80">C</th>
-                           <th className="p-3 font-bold text-blue-400">Activities</th>
+                           <th className="p-3 font-bold text-white/80">OF</th>
+                           <th className="p-3 font-bold text-white/80">P</th>
+                           <th className="p-3 font-bold text-white/80">F</th>
+                           <th className="p-3 font-bold text-white/80">C</th>
+                           <th className="p-3 font-bold text-white">Activities</th>
                            <th className="p-3 font-bold text-yellow-500/80">Sales (ANP)</th>
-                           <th className="p-3 font-bold text-emerald-500/80">RO</th>
-                           <th className="p-3 font-bold text-emerald-500/80">RP</th>
-                           <th className="p-3 font-bold text-emerald-500/80">RF</th>
-                           <th className="p-3 font-bold text-emerald-500/80">RS</th>
+                           <th className="p-3 font-bold text-white/80">RO</th>
+                           <th className="p-3 font-bold text-white/80">RP</th>
+                           <th className="p-3 font-bold text-white/80">RF</th>
+                           <th className="p-3 font-bold text-white/80">RS</th>
                            <th className="p-3 font-bold text-emerald-400">Recruit</th>
                         </tr>
                      </thead>
@@ -612,14 +612,14 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
                           return (
                             <tr key={idx} className={cn(
                               "border-b border-slate-800/20 hover:bg-white/[0.03] transition-colors",
-                              m.month === format(selectedDate, 'MMM') && "bg-blue-500/10"
+                              m.month === format(selectedDate, 'MMM') && "bg-white/10"
                             )}>
                                <td className="p-3 font-bold text-slate-400">{m.month}</td>
                                <td className="p-3 text-slate-600">{m.totals.of}</td>
                                <td className="p-3 text-slate-600">{m.totals.p}</td>
                                <td className="p-3 text-slate-600">{m.totals.f}</td>
                                <td className="p-3 text-slate-600">{m.totals.c}</td>
-                               <td className="p-3 font-bold text-blue-400">{sT}</td>
+                               <td className="p-3 font-bold text-white">{sT}</td>
                                <td className="p-3 font-bold text-yellow-400">{formatNumber(m.totals.anp)}</td>
                                <td className="p-3 text-slate-600">{m.totals.ro}</td>
                                <td className="p-3 text-slate-600">{m.totals.rp}</td>
@@ -635,7 +635,7 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
                            <td className="p-4 text-slate-500">{yearTotals.p}</td>
                            <td className="p-4 text-slate-500">{yearTotals.f}</td>
                            <td className="p-4 text-slate-500">{yearTotals.c}</td>
-                           <td className="p-4 text-blue-400 text-sm">{yearTotals.of + yearTotals.p + yearTotals.f + yearTotals.c}</td>
+                           <td className="p-4 text-white text-sm">{yearTotals.of + yearTotals.p + yearTotals.f + yearTotals.c}</td>
                            <td className="p-4 text-yellow-400 text-sm">{formatNumber(yearTotals.anp)}</td>
                            <td className="p-4 text-slate-500">{yearTotals.ro}</td>
                            <td className="p-4 text-slate-500">{yearTotals.rp}</td>
