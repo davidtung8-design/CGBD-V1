@@ -177,10 +177,16 @@ export default function App() {
 
     // Listen for Firebase Auth changes
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      const prevUser = user;
       setUser(currentUser);
       if (currentUser && currentUser.email) {
         setSyncId(currentUser.email);
         localStorage.setItem('dt_sync_id', currentUser.email);
+        
+        // Show welcome toast if they just logged in (transition from null to user)
+        if (!prevUser) {
+          showToast(`欢迎回来: ${currentUser.email}`);
+        }
       }
     });
 
@@ -713,6 +719,16 @@ export default function App() {
           onClose={() => setIsAuthModalOpen(false)}
           isDarkMode={isDarkMode}
           showToast={showToast}
+          user={user}
+          onLogout={async () => {
+             try {
+               await logout();
+               setUser(null);
+               showToast("已退出登录 (Logged out)");
+             } catch (e) {
+               console.error("Logout failed", e);
+             }
+          }}
         />
 
         {/* Protocol Details Modal */}

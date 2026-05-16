@@ -9,9 +9,11 @@ interface AuthModalProps {
   onClose: () => void;
   isDarkMode: boolean;
   showToast: (msg: string) => void;
+  user: any;
+  onLogout: () => void;
 }
 
-export function AuthModal({ isOpen, onClose, isDarkMode, showToast }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, isDarkMode, showToast, user, onLogout }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -67,6 +69,7 @@ export function AuthModal({ isOpen, onClose, isDarkMode, showToast }: AuthModalP
     setIsLoading(true);
     try {
       await signInWithGoogle();
+      // If popup succeeds, we can close and toast. If redirect starts, page handles it on reload.
       showToast("Google 登录成功");
       onClose();
     } catch (error: any) {
@@ -82,6 +85,69 @@ export function AuthModal({ isOpen, onClose, isDarkMode, showToast }: AuthModalP
       setIsLoading(false);
     }
   };
+
+  if (user) {
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 backdrop-blur-md bg-black/60">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={cn(
+                "w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 border relative overflow-hidden text-center",
+                isDarkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"
+              )}
+            >
+              <div className="flex justify-end mb-4">
+                <button 
+                  onClick={onClose}
+                  className="p-2 hover:bg-slate-800/10 rounded-full transition-colors"
+                >
+                  <X size={20} className="text-slate-500" />
+                </button>
+              </div>
+
+              <div className="mb-6 flex flex-col items-center">
+                <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4 border-2 border-emerald-500/30">
+                  <User size={40} className="text-emerald-500" />
+                </div>
+                <h2 className="text-2xl font-bold text-emerald-500">已登录 (Authenticated)</h2>
+                <p className="text-sm text-slate-500 mt-2 font-mono">{user.email}</p>
+                {user.displayName && <p className="text-lg font-bold mt-1">{user.displayName}</p>}
+              </div>
+
+              <div className="p-4 bg-slate-900/30 rounded-2xl border border-slate-800 mb-8">
+                <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">Cloud Sync Information</p>
+                <p className="text-xs mt-2 opacity-80">
+                  您的数据现在已经与云端实时同步。所有更改都将自动保存到此账户。
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <button
+                  onClick={onClose}
+                  className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all"
+                >
+                  继续使用 (Continue Using)
+                </button>
+                <button
+                  onClick={() => {
+                    onLogout();
+                    onClose();
+                  }}
+                  className="w-full py-4 bg-slate-800 text-slate-300 rounded-2xl font-bold border border-slate-700 hover:bg-slate-700 transition-all"
+                >
+                  退出登录 (Logout)
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence>

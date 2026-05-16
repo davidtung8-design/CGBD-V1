@@ -52,7 +52,13 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-3">
           <DTIcon theme={theme} size={32} />
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center">
-            时间管理大师 <span className="text-accent text-[10px] font-mono align-top ml-2 bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20 uppercase">2026 Elite</span>
+            时间管理大师 
+            {isLoggedIn && (
+              <span className="ml-3 px-2 py-0.5 bg-emerald-500 text-white text-[9px] font-black rounded-lg shadow-lg shadow-emerald-500/20 animate-pulse uppercase tracking-tighter">
+                Online Sync
+              </span>
+            )}
+            <span className="text-accent text-[10px] font-mono align-top ml-2 bg-accent/10 px-2 py-0.5 rounded-full border border-accent/20 uppercase">2026 Elite</span>
           </h1>
         </div>
         <p className="text-slate-500 text-[10px] uppercase tracking-[0.2em] mt-1 ml-11">Personal Intelligence & Performance Dashboard</p>
@@ -75,6 +81,9 @@ export const Header: React.FC<HeaderProps> = ({
                 title={isLoggedIn ? "Logout" : "Login / Register"}
               >
                 {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : <UserIcon size={16} />}
+                {isLoggedIn && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900 shadow-lg shadow-emerald-500/40" />
+                )}
               </div>
               <div className="flex flex-col flex-1">
                 {showSyncEdit ? (
