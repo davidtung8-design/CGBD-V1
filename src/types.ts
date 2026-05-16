@@ -114,6 +114,7 @@ export interface PerfData {
   todayNOC: number;
   todayANP: number;
   annualTargetGSPC: number;
+  annualTargetFYC: number;
   annualTargetTeam: number;
   dailyActivities: {
     of: number; p: number; f: number; c: number;

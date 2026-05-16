@@ -12,6 +12,7 @@ interface PerformancePageProps {
 
 export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setPerfData, theme }) => {
   const personalPct = Math.min(100, Math.floor((perfData.totalANP / (perfData.annualTargetGSPC || 1)) * 100));
+  const fycPct = Math.min(100, Math.floor(((perfData.totalFYC || 0) / (perfData.annualTargetFYC || 1)) * 100));
   const teamPct = Math.min(100, Math.floor((perfData.teamQ / 300000) * 100));
   const recruitPct = Math.min(100, Math.floor((perfData.recruitCount / (perfData.annualTargetTeam || 1)) * 100));
 
@@ -19,6 +20,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
     { label: '核心 ANP (QFYLP)', value: perfData.totalANP, total: perfData.annualTargetGSPC, icon: <Target size={18} /> },
     { label: '成交件数 (NOC Nodes)', value: perfData.totalNOC, icon: <Shield size={18} /> },
     { label: '招募战将 (Recruits)', value: perfData.recruitCount, total: perfData.annualTargetTeam, icon: <Zap size={18} /> },
+    { label: 'FYC Commission', value: perfData.totalFYC || 0, total: perfData.annualTargetFYC, icon: <Award size={18} /> },
     { label: '团队整体业绩', value: perfData.teamQ, total: 300000, icon: <Users size={18} /> },
   ];
 
@@ -28,15 +30,14 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
   return (
     <div className="animate-fadeIn space-y-6">
       {/* Header Cards (Bento Style) */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         {stats.map((stat, i) => {
-          const isQ = stat.label.includes('QFYLP') || stat.label.includes('ANP');
-          const isCount = stat.label.includes('招募') || stat.label.includes('NOC');
+          const isWide = i === 0 || i === 4;
           
           return (
             <div key={i} className={cn(
               "bento-card p-6 flex flex-col justify-between group",
-              i === 0 ? "md:col-span-2 md:row-span-1" : "md:col-span-1"
+              isWide ? "md:col-span-2 lg:col-span-1 xl:col-span-1" : "md:col-span-1"
             )}>
               <div className="flex justify-between items-start">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{stat.label}</span>
@@ -56,6 +57,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                       if (stat.label.includes('团队')) setPerfData(prev => ({ ...prev, teamQ: val }));
                       if (stat.label.includes('招募')) setPerfData(prev => ({ ...prev, recruitCount: val }));
                       if (stat.label.includes('NOC')) setPerfData(prev => ({ ...prev, totalNOC: val }));
+                      if (stat.label.includes('FYC')) setPerfData(prev => ({ ...prev, totalFYC: val }));
                     }}
                   />
                   {stat.total && (
@@ -69,6 +71,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                           const val = parseFloat(e.target.value) || 0;
                           if (stat.label.includes('ANP')) setPerfData(prev => ({ ...prev, annualTargetGSPC: val }));
                           if (stat.label.includes('招募')) setPerfData(prev => ({ ...prev, annualTargetTeam: val }));
+                          if (stat.label.includes('FYC')) setPerfData(prev => ({ ...prev, annualTargetFYC: val }));
                         }}
                       />
                     </div>
@@ -92,6 +95,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
           <div className="space-y-8">
             {[
               { label: 'Core ANP Achievement', current: personalPct, color: 'bg-blue-500' },
+              { label: 'FYC Commission Flow', current: fycPct, color: 'bg-indigo-500' },
               { label: 'Team Coverage Matrix', current: teamPct, color: 'bg-emerald-500' },
               { label: 'Recruitment Flow Velocity', current: recruitPct, color: 'bg-amber-500' }
             ].map((p, idx) => (

@@ -54,6 +54,7 @@ const DEFAULT_MONTHLY: MonthlyRecord[] = [
 const INITIAL_PERF: PerfData = {
   personalQ: 535211, teamQ: 0, recruitCount: 0, totalNOC: 0, totalANP: 0, totalFYC: 0,
   annualTargetGSPC: 450000,
+  annualTargetFYC: 250000,
   annualTargetTeam: 10,
   monthlyRecords: DEFAULT_MONTHLY,
   prospectList: [],
@@ -1679,7 +1680,14 @@ export default function App() {
         )}
 
         {currentPage === 'perf' && <PerformancePage perfData={perfData} setPerfData={setPerfData} theme={theme} />}
-        {currentPage === 'list' && <ListPage perfData={perfData} setPerfData={setPerfData} isDarkMode={isDarkMode} />}
+        {currentPage === 'list' && (
+          <ListPage 
+            perfData={perfData} 
+            setPerfData={setPerfData} 
+            isDarkMode={isDarkMode} 
+            showToast={showToast}
+          />
+        )}
         {currentPage === '3v6r' && <ActionPage3v6R perfData={perfData} setPerfData={setPerfData} theme={theme} />}
         {currentPage === 'awards' && <AwardsPage perfData={perfData} isDarkMode={isDarkMode} theme={theme} />}
         {currentPage === 'settings' && <SettingsPage 
