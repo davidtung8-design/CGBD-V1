@@ -160,10 +160,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
              <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
                 <h4 className="text-[11px] font-bold text-white uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> OFFLINE / 离线报错？
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> OFFLINE / 网络连接异常？
                 </h4>
                 <p className="text-[10px] text-slate-500 leading-relaxed uppercase">
-                  请确认您已在 Firebase 控制台的 "Firestore Database" 栏目中点击了 "Create Database" 按钮。
+                  Firebase 服务在中国大陆访问可能受限。如果您看到 "Client is offline"，请尝试使用 VPN 或检查网络代理设置。
                 </p>
              </div>
            </div>

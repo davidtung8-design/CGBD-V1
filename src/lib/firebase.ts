@@ -13,13 +13,24 @@ import {
   browserLocalPersistence,
   setPersistence
 } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  doc, 
+  getDocFromServer,
+  initializeFirestore
+} from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error", err));
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// Fix: Use initializeFirestore with explicit settings for better compatibility in restricted environments
+export const db = initializeFirestore(app, {
+  // If explicitly (default), passing undefined often works better with some SDK versions
+  databaseId: firebaseConfig.firestoreDatabaseId === "(default)" ? undefined : (firebaseConfig.firestoreDatabaseId || undefined),
+  experimentalForceLongPolling: true
+});
 
 export enum OperationType {
   CREATE = 'create',
@@ -144,22 +155,35 @@ export const logout = async () => {
   }
 };
 
-export async function testConnection() {
+export async function testConnection(retries = 2) {
   try {
+    // Try to get the document from server. This ensures we can connect.
     await getDocFromServer(doc(db, 'test', 'connection'));
     console.log("Firestore Connection: OK");
     return { success: true };
   } catch (error: any) {
+    if (retries > 0) {
+      console.log(`Retrying connection test... (${retries} left)`);
+      // Small delay before retry
+      await new Promise(r => setTimeout(r, 1000));
+      return testConnection(retries - 1);
+    }
+
     console.error("Firestore connection attempt failed:", error);
     let reason = "Unknown error";
-    if (error.message && error.message.includes('the client is offline')) {
-      reason = "网络离线或无法连接 Firebase 服务器 (Client is offline or Firebase unreachable)";
+    
+    // Check for specific error codes/messages
+    if (error.message && (error.message.includes('offline') || error.code === 'unavailable')) {
+      reason = "无法建立网络连接 (Network connection fail). 请检查网络或防火墙 (Check firewall/network).";
     } else if (error.code === 'permission-denied') {
-      reason = "权限被拒绝 (Permission Denied). 请检查 Firestore 规则";
+      reason = "权限被拒绝 (Permission Denied). 请检查 Firestore Rules 设置.";
     } else if (error.message && error.message.includes('failed-precondition')) {
-      reason = "项目未初始化 (Project not initialized). 请在控制台点击 'Create Database'";
+      reason = "数据库未准备就绪 (DB not ready). 请在控制台确认 Firestore 已启用.";
+    } else if (error.code === 'not-found') {
+      // This is actually a success for connectivity!
+      return { success: true };
     } else {
-      reason = error.message;
+      reason = `${error.code || 'ERR'}: ${error.message}`;
     }
     return { success: false, reason, code: error.code };
   }

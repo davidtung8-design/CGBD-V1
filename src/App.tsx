@@ -693,19 +693,27 @@ export default function App() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-0 left-0 right-0 z-[1100] bg-red-600 text-white px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-4 text-center shadow-xl"
+            className="fixed top-0 left-0 right-0 z-[1100] bg-orange-600 text-white px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-4 text-center shadow-xl"
           >
             <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
               <RefreshCw size={16} className="animate-spin-slow" />
-              <span>数据库连接异常 / Firestore Offline</span>
+              <span>网络同步可能受限 / Sync Limited</span>
             </div>
             <p className="text-xs font-medium opacity-90 max-w-2xl">{connectionError.reason}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-4 py-1.5 bg-white text-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-colors"
-            >
-              Retry / 重试
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setConnectionError(null)}
+                className="px-4 py-1.5 bg-white/20 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-white/30 transition-colors"
+              >
+                Ignore / 忽略
+              </button>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-4 py-1.5 bg-white text-orange-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-orange-50 transition-colors"
+              >
+                Retry / 重试
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
