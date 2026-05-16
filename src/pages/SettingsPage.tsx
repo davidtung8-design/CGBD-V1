@@ -2,7 +2,7 @@ import React from 'react';
 import { ThemeKey, ThemeConfig } from '../types';
 import { THEMES } from '../constants';
 import { cn } from '../lib/utils';
-import { Moon, Trash2, Phone, Github, Award, History, Zap } from 'lucide-react';
+import { Moon, Trash2, Phone, Github, Award, History, Zap, Plus, Minus } from 'lucide-react';
 import { DTIcon } from '../components/DTIcon';
 import { motion } from 'motion/react';
 
@@ -15,12 +15,29 @@ interface SettingsPageProps {
   setIsFocusMode: (val: boolean) => void;
   ambientSound: boolean;
   setAmbientSound: (val: boolean) => void;
+  selectedSound: 'rain' | 'zen' | 'ocean' | 'lofi';
+  setSelectedSound: (val: 'rain' | 'zen' | 'ocean' | 'lofi') => void;
+  onStartFocusTimer: (mins: number) => void;
+  isFocusTimerRunning: boolean;
+  focusTime: number;
+  formatFocusTime: (secs: number) => string;
+  targetMins: number;
+  setTargetMins: (mins: number) => void;
+  onToggleTimer: () => void;
+  onOpenLargeTimer: () => void;
+  backups: { id: string, timestamp: any, label: string }[];
+  onCreateBackup: () => void;
+  onRestoreBackup: (id: string) => void;
   onClearData: () => void;
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ 
   themeKey, setThemeKey, isDarkMode, setIsDarkMode, 
   isFocusMode, setIsFocusMode, ambientSound, setAmbientSound,
+  selectedSound, setSelectedSound,
+  onStartFocusTimer, isFocusTimerRunning, focusTime, formatFocusTime,
+  targetMins, setTargetMins, onToggleTimer, onOpenLargeTimer,
+  backups, onCreateBackup, onRestoreBackup,
   onClearData 
 }) => {
   return (
@@ -94,7 +111,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
 
           <div className="mt-8 space-y-4 pt-8 border-t border-slate-800/50">
-             <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-[1.5rem] border border-slate-800">
+              <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-[1.5rem] border border-slate-800">
                 <div className="flex items-center gap-3">
                    <div className={cn("p-2 rounded-xl transition-colors", isFocusMode ? "bg-blue-500 text-white" : "bg-slate-800 text-slate-500")}>
                       <Zap size={14} />
@@ -110,62 +127,142 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 >
                   <div className={cn("absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all", isFocusMode ? "right-0.5" : "left-0.5")} />
                 </button>
-             </div>
+              </div>
 
-             <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-[1.5rem] border border-slate-800">
-                <div className="flex items-center gap-3">
-                   <div className={cn("p-2 rounded-xl transition-colors", ambientSound ? "bg-emerald-500 text-white" : "bg-slate-800 text-slate-500")}>
-                      <Phone size={14} />
-                   </div>
-                   <div>
-                      <span className="block text-[10px] font-bold text-white uppercase tracking-widest">Ambient Sound Node</span>
-                      <span className="block text-[8px] text-slate-500 uppercase">Strategic audio mask</span>
-                   </div>
+              <div className="p-4 bg-slate-900/50 rounded-[1.5rem] border border-slate-800">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("p-2 rounded-xl transition-colors shadow-lg", isFocusTimerRunning ? "bg-blue-600 text-white shadow-blue-500/20" : "bg-slate-800 text-slate-500")}>
+                        <Zap size={14} />
+                      </div>
+                      <div 
+                        className={cn(isFocusTimerRunning && "cursor-pointer group")}
+                        onClick={() => isFocusTimerRunning && onOpenLargeTimer()}
+                      >
+                        <span className="block text-[10px] font-bold text-white uppercase tracking-widest">Focus Count (倒数)</span>
+                        <span className="block text-[8px] text-slate-500 uppercase font-mono">
+                          {isFocusTimerRunning ? (
+                            <span className="text-blue-400 font-bold group-hover:text-blue-300">Active: {formatFocusTime(focusTime)} (Tap for Big)</span>
+                          ) : 'Initiate Deep Focus State'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {!isFocusTimerRunning && (
+                        <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+                          <button onClick={() => setTargetMins(Math.max(1, targetMins - 5))} className="p-1 text-slate-500 hover:text-white"><Minus size={10} /></button>
+                          <span className="text-[10px] font-mono font-bold text-white min-w-[30px] text-center">{targetMins}m</span>
+                          <button onClick={() => setTargetMins(Math.min(240, targetMins + 5))} className="p-1 text-slate-500 hover:text-white"><Plus size={10} /></button>
+                        </div>
+                      )}
+                      <button 
+                        onClick={onToggleTimer}
+                        className={cn(
+                          "px-4 py-1 text-[9px] font-black uppercase rounded-lg shadow-lg transition-all active:scale-95",
+                          isFocusTimerRunning ? "bg-red-500 text-white shadow-red-500/20" : "bg-blue-600 text-white shadow-blue-500/20"
+                        )}
+                      >
+                        {isFocusTimerRunning ? 'Abort' : 'Focus'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <button 
-                  onClick={() => setAmbientSound(!ambientSound)}
-                  className={cn("w-8 h-4 rounded-full relative transition-colors", ambientSound ? "bg-emerald-600" : "bg-slate-700")}
-                >
-                  <div className={cn("absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all", ambientSound ? "right-0.5" : "left-0.5")} />
-                </button>
+              </div>
+
+              <div className="p-4 bg-slate-900/50 rounded-[1.5rem] border border-slate-800">
+                <div className="flex flex-col gap-4">
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                         <div className={cn("p-2 rounded-xl transition-colors", ambientSound ? "bg-emerald-500 text-white" : "bg-slate-800 text-slate-500")}>
+                            <Phone size={14} />
+                         </div>
+                         <div>
+                            <span className="block text-[10px] font-bold text-white uppercase tracking-widest">Ambient Sound Node</span>
+                            <span className="block text-[8px] text-slate-500 uppercase">Strategic audio mask</span>
+                         </div>
+                      </div>
+                      <button 
+                        onClick={() => setAmbientSound(!ambientSound)}
+                        className={cn("w-8 h-4 rounded-full relative transition-colors", ambientSound ? "bg-emerald-600" : "bg-slate-700")}
+                      >
+                        <div className={cn("absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all", ambientSound ? "right-0.5" : "left-0.5")} />
+                      </button>
+                   </div>
+                   
+                   {ambientSound && (
+                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/50">
+                        {([
+                          { id: 'zen', label: 'Deep Zen Meditation' },
+                          { id: 'rain', label: 'Soothing Forest Rain' },
+                          { id: 'ocean', label: 'Calm Ocean Waves' },
+                          { id: 'lofi', label: 'Lofi Coffee Shop' }
+                        ] as const).map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => setSelectedSound(s.id)}
+                            className={cn(
+                              "px-3 py-2 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all",
+                              selectedSound === s.id 
+                                ? "bg-emerald-500/20 border border-emerald-500/50 text-emerald-400" 
+                                : "bg-slate-800 border border-transparent text-slate-500 hover:text-slate-300"
+                            )}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                     </div>
+                   )}
+                </div>
              </div>
           </div>
         </div>
 
-        {/* FAQ & Manuals */}
+        {/* Backup & Restore Matrix */}
         <div className="bento-card p-10 bg-slate-950">
-           <div className="flex items-center gap-3 mb-8">
-              <History size={16} className="text-blue-500" />
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Survival & Manual Matrix</h3>
+           <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                 <History size={16} className="text-blue-500" />
+                 <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Strategic Backup Sync</h3>
+              </div>
+              <button 
+                onClick={onCreateBackup}
+                className="px-3 py-1 bg-blue-600 text-white text-[9px] font-bold uppercase rounded-lg hover:bg-blue-500 transition-all flex items-center gap-1"
+              >
+                <Plus size={12} /> Create Node
+              </button>
            </div>
            
-           <div className="space-y-8">
-             <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                <h4 className="text-[11px] font-bold text-white uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> 手机登录无反应？
-                </h4>
-                <p className="text-[10px] text-slate-500 leading-relaxed uppercase">
-                  由于移动端浏览器的各种限制，请在登录界面点击橙色按钮 “在新窗口打开”。这将帮助绕过 iframe 或弹出窗拦截。
-                </p>
-             </div>
-
-             <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                <h4 className="text-[11px] font-bold text-white uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 关于 Firebase Hosting
-                </h4>
-                <p className="text-[10px] text-slate-500 leading-relaxed uppercase">
-                  不是必须的。但如果您希望使用极速解析和更简洁的 Auth 域名，可以在 Firebase Console 开启它。
-                </p>
-             </div>
-
-             <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                <h4 className="text-[11px] font-bold text-white uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> OFFLINE / 网络连接异常？
-                </h4>
-                <p className="text-[10px] text-slate-500 leading-relaxed uppercase">
-                  Firebase 服务在中国大陆访问可能受限。如果您看到 "Client is offline"，请尝试使用 VPN 或检查网络代理设置。
-                </p>
-             </div>
+           <div className="space-y-4">
+             <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-4">Restore system state to a previous node anchor:</p>
+             
+             {backups.length > 0 ? backups.map((b) => (
+               <button 
+                 key={b.id}
+                 onClick={() => {
+                    const confirmRestore = window.confirm(`Restore to [${b.label}]? Current session data will be overwritten.`);
+                    if (confirmRestore) {
+                       onRestoreBackup(b.id);
+                    }
+                 }}
+                 className="w-full p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all text-left flex justify-between items-center group"
+               >
+                 <div className="flex-1">
+                   <h4 className="text-[12px] font-bold text-white uppercase tracking-[0.2em] mb-1 group-hover:text-blue-400 transition-colors">
+                     {b.label}
+                   </h4>
+                   <p className="text-[9px] text-slate-500 uppercase">Strategic Node Archive</p>
+                 </div>
+                 <div className="p-2 bg-slate-900 rounded-xl text-slate-600 group-hover:text-blue-500 transition-colors ml-4">
+                   <History size={16} />
+                 </div>
+               </button>
+             )) : (
+               <div className="py-10 text-center border border-dashed border-slate-800 rounded-2xl">
+                 <p className="text-[10px] text-slate-600 uppercase tracking-widest">No Cloud Nodes Detected</p>
+                 <p className="text-[8px] text-slate-700 uppercase mt-1">Login to sync strategic backups</p>
+               </div>
+             )}
            </div>
         </div>
 

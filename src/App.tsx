@@ -10,7 +10,7 @@ import {
   Milestone, PerfData, ThemeKey, ThemeConfig 
 } from './types';
 import { Header } from './components/Header';
-import { Home, Target, ClipboardList, Zap, Settings, Plus, Trash2, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw, Edit3, Award, Trophy, Calendar, CalendarPlus, History, X, BookOpen, PieChart as PieChartIcon, ListTodo } from 'lucide-react';
+import { Home, Target, ClipboardList, Zap, Settings, Plus, Minus, Trash2, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw, Edit3, Award, Trophy, Calendar, CalendarPlus, History, X, BookOpen, PieChart as PieChartIcon, ListTodo, Volume2, VolumeX } from 'lucide-react';
 import { THEMES, ACTIVITIES, ENCOURAGEMENTS, GROUP_CONFIG } from './constants';
 import { formatNumber, cn, getLunarDate, formatHour, formatTimeRange } from './lib/utils';
 import { 
@@ -22,7 +22,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   doc, setDoc, getDoc, getDocs, collection, query, where, onSnapshot, 
-  writeBatch, deleteDoc, Timestamp 
+  writeBatch, deleteDoc, Timestamp, addDoc, orderBy, limit, serverTimestamp 
 } from 'firebase/firestore';
 import { db, auth, logout, handleRedirectResult, handleFirestoreError, OperationType, testConnection } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -50,6 +50,13 @@ const DEFAULT_MONTHLY: MonthlyRecord[] = [
 ].map(data => ({
   month: data.m, target: 50000, actual: data.a, noc: 0, anp: 0, fyc: 0, recruitTarget: (data.m === "12月" ? 2 : 1), recruitActual: 0
 }));
+
+export const ambientSounds = {
+  rain: 'https://raw.githubusercontent.com/rafaelcastrocouto/ambient-sounds/master/sounds/rain.mp3',
+  zen: 'https://raw.githubusercontent.com/rafaelcastrocouto/ambient-sounds/master/sounds/night.mp3',
+  ocean: 'https://raw.githubusercontent.com/rafaelcastrocouto/ambient-sounds/master/sounds/ocean.mp3',
+  lofi: 'https://raw.githubusercontent.com/rafaelcastrocouto/ambient-sounds/master/sounds/coffee.mp3'
+};
 
 const INITIAL_PERF: PerfData = {
   personalQ: 535211, teamQ: 0, recruitCount: 0, totalNOC: 0, totalANP: 0, totalFYC: 0,
@@ -84,6 +91,32 @@ const INITIAL_PERF: PerfData = {
 export default function App() {
   // --- Navigation ---
   const [currentPage, setCurrentPage] = useState<'home' | 'perf' | 'list' | '3v6r' | 'awards' | 'settings'>('home');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const handleSpeak = (text: string) => {
+    if (!text) return;
+    
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Auto-detect language usually works well for EN/CN
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
   const [themeKey, setThemeKey] = useState<ThemeKey>('default');
   const theme = THEMES[themeKey] || THEMES.default;
 
@@ -112,36 +145,105 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [ambientSound, setAmbientSound] = useState(false);
-  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: "", visible: false });
-  const [connectionError, setConnectionError] = useState<{ reason: string; code?: string } | null>(null);
+  const [selectedSound, setSelectedSound] = useState<'rain' | 'zen' | 'ocean' | 'lofi'>('zen');
+  const [focusTime, setFocusTime] = useState(0); // in seconds
+  const [targetMins, setTargetMins] = useState(30);
+  const [isFocusTimerRunning, setIsFocusTimerRunning] = useState(false);
+  const [isLargeTimerOpen, setIsLargeTimerOpen] = useState(false);
+  const focusTimerRef = useRef<any>(null);
 
+  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: "", visible: false });
   const showToast = useCallback((message: string) => {
     setToast({ message, visible: true });
     setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
   }, []);
+
+  const startFocusTimer = (minutes: number) => {
+    setFocusTime(minutes * 60);
+    setIsFocusTimerRunning(true);
+  };
+
+  useEffect(() => {
+    if (isFocusTimerRunning && focusTime > 0) {
+      focusTimerRef.current = setInterval(() => {
+        setFocusTime(prev => {
+          if (prev <= 1) {
+            if (focusTimerRef.current) clearInterval(focusTimerRef.current);
+            setIsFocusTimerRunning(false);
+            showToast("Focus session complete!");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (focusTimerRef.current) clearInterval(focusTimerRef.current);
+    }
+    return () => { if (focusTimerRef.current) clearInterval(focusTimerRef.current); };
+  }, [isFocusTimerRunning, focusTime, showToast]);
+
+  const toggleFocusedTimer = () => {
+    if (isFocusTimerRunning) {
+      if (focusTimerRef.current) clearInterval(focusTimerRef.current);
+      setIsFocusTimerRunning(false);
+    } else {
+      setFocusTime(targetMins * 60);
+      setIsFocusTimerRunning(true);
+      setIsLargeTimerOpen(true);
+    }
+  };
+
+  const formatFocusTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  const [connectionError, setConnectionError] = useState<{ reason: string; code?: string } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // Initialize audio node
     if (!audioRef.current) {
-      audioRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3'); // Tranquil piano/lo-fi style
+      audioRef.current = new Audio();
       audioRef.current.loop = true;
       audioRef.current.volume = 0.4;
+      audioRef.current.crossOrigin = "anonymous";
+      
+      audioRef.current.onerror = (e) => {
+        const error = audioRef.current?.error;
+        console.error("Audio error event:", error?.code, error?.message);
+        showToast("Audio source unavailable. Switching off.");
+        setAmbientSound(false);
+      };
+    }
+
+    const currentUrl = ambientSounds[selectedSound];
+    if (audioRef.current.src !== currentUrl) {
+      audioRef.current.pause();
+      audioRef.current.src = currentUrl;
+      audioRef.current.load();
     }
 
     if (ambientSound) {
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(error => {
-          console.error("Audio playback failed:", error);
-          // Auto-disable if playback failed (e.g. no user gesture)
+          console.error("Audio play promise failed:", error.message);
+          if (error.name === "NotAllowedError") {
+            showToast("Click anywhere to enable audio playback");
+          }
           setAmbientSound(false);
         });
       }
     } else {
       audioRef.current.pause();
     }
-  }, [ambientSound]);
+
+    return () => {
+      // Just pause, don't destroy the ref on every source change
+      audioRef.current?.pause();
+    };
+  }, [ambientSound, selectedSound, showToast]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(new Date());
 
@@ -158,6 +260,9 @@ export default function App() {
 
     const savedSound = localStorage.getItem('dt_sound');
     if (savedSound) setAmbientSound(savedSound === 'true');
+
+    const savedSelectedSound = localStorage.getItem('dt_selected_sound') as any;
+    if (savedSelectedSound) setSelectedSound(savedSelectedSound);
 
     setEncouragement(ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)]);
     
@@ -348,7 +453,8 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('dt_sound', ambientSound.toString());
-  }, [ambientSound]);
+    localStorage.setItem('dt_selected_sound', selectedSound);
+  }, [ambientSound, selectedSound]);
 
   // --- Data Synchronization ---
   // Sync total performance figures from monthly records
@@ -451,6 +557,70 @@ export default function App() {
     }
     setIsEventModalOpen(false);
   }, [user]);
+
+  const [backups, setBackups] = useState<{ id: string, timestamp: any, label: string }[]>([]);
+
+  // Fetch backups from Firestore
+  useEffect(() => {
+    if (!user) return;
+    const backupsPath = `users/${user.uid}/backups`;
+    try {
+      const q = query(collection(db, backupsPath), orderBy('timestamp', 'desc'), limit(3));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const bList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          timestamp: doc.data().timestamp,
+          label: doc.data().label || (doc.data().timestamp ? format(doc.data().timestamp.toDate(), 'yyyy-MM-dd HH:mm') : 'Pending...')
+        }));
+        setBackups(bList);
+      }, (error) => handleFirestoreError(error, OperationType.GET, backupsPath));
+      return unsubscribe;
+    } catch (e) {
+      console.error("Backup search failed, collection might not exist yet", e);
+    }
+  }, [user]);
+
+  const handleCreateBackup = async () => {
+    if (!user) {
+      showToast("Please login to create cloud backups");
+      return;
+    }
+    const label = prompt("Enter backup label (optional):", `Snapshot ${format(new Date(), 'MMM dd, HH:mm')}`);
+    if (label === null) return;
+    
+    try {
+      const backupData = {
+        perfData,
+        dailyData,
+        events,
+        todoItems,
+        timestamp: serverTimestamp(),
+        label: label || `Snapshot ${format(new Date(), 'MMM dd, HH:mm')}`
+      };
+      await addDoc(collection(db, `users/${user.uid}/backups`), backupData);
+      showToast("Backup anchor created successfully");
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, `users/${user.uid}/backups`);
+    }
+  };
+
+  const handleRestoreBackup = async (backupId: string) => {
+    if (!user) return;
+    const backupRef = doc(db, `users/${user.uid}/backups`, backupId);
+    try {
+      const snap = await getDoc(backupRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.perfData) setPerfData(data.perfData);
+        if (data.dailyData) setDailyData(data.dailyData);
+        if (data.events) setEvents(data.events);
+        if (data.todoItems) setTodoItems(data.todoItems);
+        showToast(`System restored to [${data.label}] node anchor`);
+      }
+    } catch (e) {
+      handleFirestoreError(e, OperationType.GET, backupRef.path);
+    }
+  };
 
   const handleUpdateEvent = useCallback((event: CalendarEvent) => {
     setEvents(prev => prev.map(e => e.id === event.id ? event : e));
@@ -718,6 +888,73 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {isLargeTimerOpen && isFocusTimerRunning && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[5000] flex flex-col items-center justify-center backdrop-blur-3xl bg-black/95 p-10"
+          >
+            <button 
+              onClick={() => setIsLargeTimerOpen(false)}
+              className="absolute top-10 right-10 p-4 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all"
+            >
+              <X size={32} className="text-white" />
+            </button>
+
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="text-center"
+            >
+              <span className="block text-[12px] font-black text-blue-500 uppercase tracking-[0.6em] mb-16">Strategic Focus Protocol Active</span>
+              
+              <div 
+                className="flex flex-col items-center select-none cursor-pointer group"
+                onClick={() => setIsLargeTimerOpen(false)}
+              >
+                <span className="text-[14rem] sm:text-[20rem] md:text-[26rem] font-black text-white leading-none tracking-tighter tabular-nums drop-shadow-[0_0_50px_rgba(59,130,246,0.3)] group-hover:scale-105 transition-transform duration-700">
+                  {formatFocusTime(focusTime).split(':')[0]}
+                </span>
+                <span className="text-[7rem] sm:text-[10rem] md:text-[12rem] font-black text-blue-500 leading-none tracking-tighter tabular-nums -mt-[3rem] sm:-mt-[5rem] flex items-center gap-8 opacity-80">
+                  <div className="w-6 h-6 bg-blue-500 rounded-full animate-pulse shadow-[0_0_20px_rgba(59,130,246,1)]" />
+                  {formatFocusTime(focusTime).split(':')[1]}
+                  <div className="w-6 h-6 bg-blue-500 rounded-full animate-pulse shadow-[0_0_20px_rgba(59,130,246,1)]" />
+                </span>
+              </div>
+
+              <div className="mt-24 flex flex-col items-center gap-6">
+                <div className="flex items-center gap-8">
+                  <button 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (focusTimerRef.current) clearInterval(focusTimerRef.current);
+                        setIsFocusTimerRunning(false);
+                        setIsLargeTimerOpen(false);
+                    }}
+                    className="px-12 py-6 bg-red-600 text-white rounded-[2.5rem] font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-red-500/30 hover:bg-red-700 hover:scale-105 active:scale-95 transition-all"
+                  >
+                    Abort Mission
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsLargeTimerOpen(false);
+                    }}
+                    className="px-12 py-6 bg-white/10 text-white border border-white/20 backdrop-blur-xl rounded-[2.5rem] font-black text-sm uppercase tracking-[0.3em] hover:bg-white/20 hover:scale-105 active:scale-95 transition-all"
+                  >
+                    Keep Running
+                  </button>
+                </div>
+                <p className="mt-12 text-[10px] text-slate-500 uppercase tracking-[0.5em] font-mono font-bold">Resonance Level: Super-Transcendent</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className={cn(
         "mx-auto max-w-7xl px-4 sm:px-6 mb-24 transition-all duration-700",
         isFocusMode && "saturate-[0.5] brightness-[0.8] blur-[0.2px]"
@@ -882,10 +1119,59 @@ export default function App() {
         </AnimatePresence>
 
         {currentPage === 'home' && (
-          <div className={cn(
-            "bento-grid transition-all duration-700",
-            isFocusMode && "gap-10 scale-[0.99] opacity-90"
-          )}>
+          <div className="space-y-6">
+            {/* Wishing Statement (许愿文) AT THE VERY TOP */}
+            <div className={cn(
+              "bento-card p-10 flex flex-col justify-between overflow-hidden relative transition-all duration-500 shadow-2xl mb-6",
+              isDarkMode ? "bg-slate-900 border-amber-500/20 shadow-amber-500/5" : "bg-white border-slate-200 shadow-slate-200"
+            )}>
+              <div className="absolute -bottom-10 -right-10 opacity-10">
+                <Target size={250} className="text-amber-500" />
+              </div>
+              <div className="relative z-10">
+                <div className="flex justify-between items-center mb-8">
+                  <div>
+                    <h3 className="text-lg font-black text-amber-500 uppercase tracking-[0.4em]">Strategic Manifestation · 许愿文</h3>
+                    <p className="text-[10px] text-slate-500 mt-2 uppercase font-mono tracking-widest">Personal Intelligence & Performance Dashboard Protocol</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button 
+                      onClick={() => handleSpeak(perfData.wishingStatement || "")}
+                      className={cn(
+                        "p-4 rounded-[2rem] shadow-xl transition-all active:scale-95",
+                        isSpeaking 
+                          ? "bg-red-500 text-white shadow-red-500/30 animate-pulse" 
+                          : "bg-blue-500/10 text-blue-500 shadow-sm border border-blue-500/20 hover:bg-blue-500/20"
+                      )}
+                      title={isSpeaking ? "Stop Reading" : "Read Aloud"}
+                    >
+                      {isSpeaking ? <VolumeX size={24} /> : <Volume2 size={24} />}
+                    </button>
+                    <div className="p-4 bg-amber-500 text-white rounded-[2rem] shadow-xl shadow-amber-500/30">
+                      <Target size={24} />
+                    </div>
+                  </div>
+                </div>
+                <textarea 
+                  className={cn(
+                    "w-full bg-transparent text-2xl font-black leading-relaxed italic border-none outline-none resize-none custom-scrollbar min-h-[120px] text-center mb-8",
+                    isDarkMode ? "text-white placeholder:text-slate-800" : "text-slate-900 placeholder:text-slate-200"
+                  )}
+                  placeholder="在此写下您的许愿文 (Define your vision here...)"
+                  value={perfData.wishingStatement || ""}
+                  onChange={(e) => setPerfData(prev => ({ ...prev, wishingStatement: e.target.value }))}
+                />
+                <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+              </div>
+            </div>
+
+            <div className={cn(
+              "bento-grid transition-all duration-700",
+              isFocusMode && "gap-10 scale-[0.99] opacity-90"
+            )}>
+              {/* Other home elements follow... */}
+              {/* Removed wishing statement from inside bento-grid */}
+
             {/* 5352111 Elite Discipline Protocol */}
             <div className={cn(
               "bento-card md:col-span-8 p-8 relative overflow-hidden",
@@ -906,6 +1192,35 @@ export default function App() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
+                    {focusTime > 0 ? (
+                      <div 
+                        onClick={() => setIsLargeTimerOpen(true)}
+                        className={cn(
+                          "px-4 py-2 rounded-2xl flex items-center gap-3 transition-all cursor-pointer group",
+                          isFocusTimerRunning ? "bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20" : "bg-slate-500/10 border border-slate-500/30 text-slate-500"
+                        )}
+                      >
+                        <span className="text-lg font-mono font-black">{formatFocusTime(focusTime)}</span>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsFocusTimerRunning(!isFocusTimerRunning);
+                          }}
+                          className="p-1 hover:bg-white/10 rounded-full"
+                        >
+                          {isFocusTimerRunning ? <X size={14} /> : <Zap size={14} />}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={toggleFocusedTimer}
+                          className="px-6 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-blue-500/20 hover:scale-105 transition-all"
+                        >
+                          Focus {targetMins}m
+                        </button>
+                      </div>
+                    )}
                     <button 
                       onClick={() => setIsReflectionArchiveOpen(true)}
                       className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-xl text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:bg-blue-500/20 transition-all"
@@ -1178,34 +1493,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-
-
               </div>
-            </div>
-
-            {/* Wishing Statement (许愿文) moved and resized */}
-            <div className={cn(
-              "bento-card md:col-span-4 p-6 flex flex-col justify-between overflow-hidden relative transition-colors duration-300",
-              isDarkMode ? "bg-slate-900/40" : "bg-white border-slate-200 shadow-sm"
-            )}>
-              <div className="absolute -bottom-4 -right-4 opacity-10">
-                <Target size={100} className="text-amber-500" />
-              </div>
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">许愿文 · Manifestation</span>
-                <div className="p-1 bg-amber-500/10 text-amber-500 rounded-lg">
-                  <Target size={14} />
-                </div>
-              </div>
-              <textarea 
-                className={cn(
-                  "flex-1 w-full bg-transparent text-sm font-medium leading-relaxed italic border-none outline-none resize-none custom-scrollbar min-h-[100px]",
-                  isDarkMode ? "text-slate-100 placeholder:text-slate-700" : "text-slate-800 placeholder:text-slate-300"
-                )}
-                placeholder="在此写下您的许愿文，让宇宙能量为您加持..."
-                value={perfData.wishingStatement || ""}
-                onChange={(e) => setPerfData(prev => ({ ...prev, wishingStatement: e.target.value }))}
-              />
             </div>
 
             {/* Monthly Command Center (New Calendar Card) */}
@@ -1275,6 +1563,55 @@ export default function App() {
                     );
                   });
                 })()}
+              </div>
+
+              {/* Focus Controls (Matches Screenshot) */}
+              <div className="mt-8 pt-4 border-t border-slate-800/50 flex items-center justify-between">
+                {isFocusTimerRunning ? (
+                  <div 
+                    onClick={() => setIsLargeTimerOpen(true)}
+                    className="flex-1 flex items-center justify-between bg-blue-500/10 rounded-xl p-3 border border-blue-500/30 cursor-pointer hover:bg-blue-500/20 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                      <span className="text-[14px] font-mono font-black text-blue-500 tracking-tighter tabular-nums">
+                        {formatFocusTime(focusTime)}
+                      </span>
+                    </div>
+                    <span className="text-[8px] font-bold text-blue-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                      Click to Expand
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 bg-slate-800/10 rounded-xl p-1 border border-slate-800/20">
+                    <button 
+                      onClick={() => setTargetMins(prev => Math.max(1, prev - 5))}
+                      className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+                    >
+                      <Minus size={14} /> 
+                    </button>
+                    <span className="text-[12px] font-mono font-bold text-slate-200 min-w-[60px] text-center uppercase tracking-widest">{targetMins} mins</span>
+                    <button 
+                      onClick={() => setTargetMins(prev => Math.min(240, prev + 5))}
+                      className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-white transition-colors"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                )}
+                
+                <button 
+                  onClick={toggleFocusedTimer}
+                  className={cn(
+                    "ml-4 flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95",
+                    isFocusTimerRunning 
+                      ? "bg-red-500 text-white shadow-lg shadow-red-500/20 hover:bg-red-600" 
+                      : "bg-white text-slate-900 border border-slate-200 shadow-sm hover:shadow-md hover:bg-slate-50"
+                  )}
+                >
+                  {isFocusTimerRunning ? <X size={14} /> : <motion.div animate={{ rotate: [0, 10, 0] }} transition={{ repeat: Infinity }}><Zap size={14} /></motion.div>}
+                  {isFocusTimerRunning ? 'Stop' : 'Focus'}
+                </button>
               </div>
 
               {/* Day Preview */}
@@ -1729,7 +2066,8 @@ export default function App() {
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {currentPage === 'perf' && <PerformancePage perfData={perfData} setPerfData={setPerfData} theme={theme} />}
         {currentPage === 'list' && (
@@ -1751,6 +2089,19 @@ export default function App() {
           setIsFocusMode={setIsFocusMode}
           ambientSound={ambientSound}
           setAmbientSound={setAmbientSound}
+          selectedSound={selectedSound}
+          setSelectedSound={setSelectedSound}
+          onStartFocusTimer={startFocusTimer}
+          isFocusTimerRunning={isFocusTimerRunning}
+          focusTime={focusTime}
+          formatFocusTime={formatFocusTime}
+          targetMins={targetMins}
+          setTargetMins={setTargetMins}
+          onToggleTimer={toggleFocusedTimer}
+          onOpenLargeTimer={() => setIsLargeTimerOpen(true)}
+          backups={backups}
+          onCreateBackup={handleCreateBackup}
+          onRestoreBackup={handleRestoreBackup}
           onClearData={() => {
             localStorage.clear();
             window.location.reload();

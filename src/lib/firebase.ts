@@ -27,10 +27,8 @@ setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persis
 
 // Fix: Use initializeFirestore with explicit settings for better compatibility in restricted environments
 export const db = initializeFirestore(app, {
-  // If explicitly (default), passing undefined often works better with some SDK versions
-  databaseId: firebaseConfig.firestoreDatabaseId === "(default)" ? undefined : (firebaseConfig.firestoreDatabaseId || undefined),
   experimentalForceLongPolling: true
-});
+}, firebaseConfig.firestoreDatabaseId);
 
 export enum OperationType {
   CREATE = 'create',

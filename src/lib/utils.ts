@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Solar } from 'lunar-javascript';
+import { Solar, Lunar } from 'lunar-javascript';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
