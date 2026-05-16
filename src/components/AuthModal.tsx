@@ -67,6 +67,9 @@ export function AuthModal({ isOpen, onClose, isDarkMode, showToast, user, onLogo
 
   const handleGoogle = async () => {
     setIsLoading(true);
+    // Show immediate feedback
+    console.log("Beginning Google Login...");
+    alert("正在调用 Google 认证...\n(Calling Google Auth...)\n\n如果在 Iframe (AI Studio) 中无反应，请点击下方的橙色按钮。");
     try {
       await signInWithGoogle();
       // If popup succeeds, we can close and toast. If redirect starts, page handles it on reload.
@@ -78,6 +81,8 @@ export function AuthModal({ isOpen, onClose, isDarkMode, showToast, user, onLogo
         alert(`❌ 登录失败 (auth/operation-not-allowed)\n\n原因: Google 登录提供程序尚未在 Firebase 控制台中启用。\n\n解决办法: 请通知管理员到 Firebase 控制台 -> Authentication -> Sign-in method 启用 Google Provider。`);
       } else if (error.code === 'auth/popup-closed-by-user') {
         showToast("登录窗口已关闭");
+      } else if (error.message.includes('域名未授权') || error.code === 'auth/unauthorized-domain') {
+        alert(error.message);
       } else {
         alert(`Google 登录失败: ${error.message}`);
       }
@@ -274,15 +279,39 @@ export function AuthModal({ isOpen, onClose, isDarkMode, showToast, user, onLogo
             </button>
 
             {(isSafari || isIframe) && (
-              <a
-                href={window.location.href}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full mt-4 py-4 bg-orange-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-orange-500/30 active:scale-[0.98] transition-all"
-              >
-                <ExternalLink size={18} />
-                在独立 Safari 中打开 (解决登录无反应)
-              </a>
+              <div className="space-y-3 mt-4">
+                <a
+                  href={window.location.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full py-4 bg-orange-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-orange-500/30 active:scale-[0.98] transition-all"
+                >
+                  <ExternalLink size={18} />
+                  在新窗口中打开 (解决登录无反应)
+                </a>
+                
+                <div className={cn(
+                  "p-3 rounded-xl border text-left",
+                  isDarkMode ? "bg-slate-900 border-slate-800" : "bg-slate-50 border-slate-200"
+                )}>
+                  <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest mb-1 flex justify-between items-center">
+                    <span>当前授权域名 / Current Domain</span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.hostname);
+                        showToast("域名已复制");
+                      }}
+                      className="text-blue-500 hover:underline"
+                    >
+                      复制 (Copy)
+                    </button>
+                  </p>
+                  <code className="text-[10px] break-all font-mono opacity-80">{window.location.hostname}</code>
+                  <p className="text-[9px] text-amber-500 mt-1 font-bold">
+                    ⚠️ 请确保您在 Firebase 控制台添加的是上面这个域名。
+                  </p>
+                </div>
+              </div>
             )}
 
             <div className="mt-8 text-center text-xs">

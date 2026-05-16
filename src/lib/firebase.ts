@@ -78,30 +78,37 @@ export const signInWithGoogle = async () => {
   });
 
   try {
-    // In AI Studio (iframe) or Mobile browsers, Popups often fail or cause unauthorized-domain errors.
-    // We force redirect for better compatibility.
-    // Updated detection to cover modern iPads (which identify as Macintosh)
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 0);
     const isIframe = window.self !== window.top;
     
+    // On iOS Safari, popups are often blocked, and in itrames they are even worse.
+    // If in iframe, we MUST use a separate tab eventually, but we can try to redirect.
+    if (isIframe) {
+      console.log("Environment: Iframe detected. Redirecting might feel like 'no reaction' if blocked.");
+      // We'll proceed but the AuthModal already has a 'standalone' button.
+    }
+
     if (isMobile || isIframe) {
-      console.log("Forcing signInWithRedirect due to environment (Mobile/Touch/Iframe)");
+      console.log("Auth Strategy: signInWithRedirect");
+      // Add a small delay or non-blocking notification for UX
       try {
         await signInWithRedirect(auth, googleProvider);
       } catch (redirectError: any) {
+        console.error("Redirect call failed:", redirectError);
         if (redirectError.code === 'auth/unauthorized-domain') {
-          throw new Error(`域名未授权 (Unauthorized Domain).\n当前域名: ${window.location.hostname}\n请在 Firebase 控制台的 Authorized Domains 中添加此域名。`);
+          throw new Error(`域名未授权 (Unauthorized Domain).\n当前域名: ${window.location.hostname}\n当前 Firebase 项目: ${firebaseConfig.projectId}`);
         }
         throw redirectError;
       }
     } else {
+      console.log("Auth Strategy: signInWithPopup");
       const result = await signInWithPopup(auth, googleProvider);
       return result.user;
     }
   } catch (error: any) {
-    console.error("Sign-in error detail:", error);
+    console.error("Sign-in core error:", error);
     if (error.code === 'auth/unauthorized-domain') {
-       throw new Error(`域名未授权 (Unauthorized Domain).\n当前域名: ${window.location.hostname}\n当前 Firebase 项目: ${firebaseConfig.projectId}\n解决办法: \n1. 确保您在 Firebase 控制台操作的是项目: ${firebaseConfig.projectId}\n2. 复制域名: ${window.location.hostname}\n3. 到 Authentication -> Settings -> Authorized Domains 添加它。`);
+       throw new Error(`域名未授权 (Unauthorized Domain).\n当前域名: ${window.location.hostname}\n当前 Firebase 项目: ${firebaseConfig.projectId}\n\n如果您已在控制台添加此域名，请检查:\n1. 是否添加到了正确的项目: ${firebaseConfig.projectId}\n2. 等待 2-3 分钟生效\n3. 清除 Safari 缓存或在全屏模式下打开。`);
     }
     throw error;
   }
