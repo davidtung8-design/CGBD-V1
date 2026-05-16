@@ -144,22 +144,10 @@ export default function App() {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(new Date());
 
-  // --- Load Data ---
+  // --- Load Data & Real-time Sync ---
   useEffect(() => {
     const savedDarkMode = localStorage.getItem('dt_dark_mode');
     if (savedDarkMode !== null) setIsDarkMode(savedDarkMode === 'true');
-
-    const savedEvents = localStorage.getItem('dt_events');
-    if (savedEvents) setEvents(JSON.parse(savedEvents));
-
-    const savedPerf = localStorage.getItem('dt_perf');
-    if (savedPerf) setPerfData(JSON.parse(savedPerf));
-
-    const savedTodos = localStorage.getItem('dt_todos');
-    if (savedTodos) setTodoItems(JSON.parse(savedTodos));
-
-    const savedDaily = localStorage.getItem('dt_daily');
-    if (savedDaily) setDailyData(JSON.parse(savedDaily));
 
     const savedTheme = localStorage.getItem('dt_theme') as ThemeKey;
     if (savedTheme) setThemeKey(savedTheme);
@@ -172,90 +160,88 @@ export default function App() {
 
     setEncouragement(ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)]);
     
-    // Test connection to Firestore
     testConnection();
 
-    // Log environment info for debugging fetch issues
-    console.log("Environment: ", {
-      isIframe: window.self !== window.top,
-      hasFetch: typeof window.fetch === 'function',
-      fetchDescriptor: Object.getOwnPropertyDescriptor(window, 'fetch')
-    });
-
-    // Handle redirect result (for mobile Safari)
-    handleRedirectResult().then(currentUser => {
-      if (currentUser) {
-        setUser(currentUser);
-        showToast("Redirect Login Success");
-      }
-    });
-
-    // Listen for Firebase Auth changes to auto-sync with email ID
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    // Listen for Firebase Auth changes
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (currentUser && currentUser.email) {
         setSyncId(currentUser.email);
         localStorage.setItem('dt_sync_id', currentUser.email);
-        loadFromCloud(currentUser.email);
-      } else if (!currentUser) {
-        // Option: reset syncId on logout if keeping strictly authenticated
-        // setSyncId(""); 
       }
     });
 
-    // Initial fetch from cloud if syncId exists
-    if (syncId) {
-      loadFromCloud(syncId);
-    }
-
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
-  const loadFromCloud = async (id: string) => {
-    if (!id || !user) return;
+  // Real-time Firestore Listeners
+  useEffect(() => {
+    if (!user) return;
+
     setIsSyncing(true);
-    try {
-      // 1. Load Perf Data
-      const perfPath = `users/${user.uid}/perf/main`;
-      const perfSnap = await getDoc(doc(db, perfPath));
-      if (perfSnap.exists()) {
-        setPerfData(perfSnap.data() as PerfData);
+    const unsubscribes: (() => void)[] = [];
+
+    // 1. Sync Perf Data
+    const perfRef = doc(db, `users/${user.uid}/perf/main`);
+    unsubscribes.push(onSnapshot(perfRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data() as PerfData;
+        setPerfData(prev => {
+          // Deep merge or overwrite if different
+          if (JSON.stringify(prev) !== JSON.stringify(data)) {
+            return data;
+          }
+          return prev;
+        });
       }
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/perf/main`)));
 
-      // 2. Load Events
-      const eventsPath = `users/${user.uid}/events`;
-      const eventsSnap = await getDocs(collection(db, eventsPath));
+    // 2. Sync Events
+    const eventsRef = collection(db, `users/${user.uid}/events`);
+    unsubscribes.push(onSnapshot(eventsRef, (snap) => {
       const loadedEvents: CalendarEvent[] = [];
-      eventsSnap.forEach(doc => loadedEvents.push(doc.data() as CalendarEvent));
-      if (loadedEvents.length > 0) setEvents(loadedEvents);
+      snap.forEach(doc => loadedEvents.push(doc.data() as CalendarEvent));
+      setEvents(prev => {
+        if (JSON.stringify(prev) !== JSON.stringify(loadedEvents)) {
+          return loadedEvents;
+        }
+        return prev;
+      });
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/events`)));
 
-      // 3. Load Todos
-      const todosPath = `users/${user.uid}/todos`;
-      const todosSnap = await getDocs(collection(db, todosPath));
+    // 3. Sync Todos
+    const todosRef = collection(db, `users/${user.uid}/todos`);
+    unsubscribes.push(onSnapshot(todosRef, (snap) => {
       const loadedTodos: Record<string, TodoItem[]> = {};
-      todosSnap.forEach(doc => {
+      snap.forEach(doc => {
         loadedTodos[doc.id] = (doc.data() as { items: TodoItem[] }).items;
       });
-      if (Object.keys(loadedTodos).length > 0) setTodoItems(loadedTodos);
+      setTodoItems(prev => {
+        if (JSON.stringify(prev) !== JSON.stringify(loadedTodos)) {
+          return loadedTodos;
+        }
+        return prev;
+      });
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/todos`)));
 
-      // 4. Load Daily Records
-      const dailyPath = `users/${user.uid}/daily`;
-      const dailySnap = await getDocs(collection(db, dailyPath));
+    // 4. Sync Daily Data
+    const dailyRef = collection(db, `users/${user.uid}/daily`);
+    unsubscribes.push(onSnapshot(dailyRef, (snap) => {
       const loadedDaily: Record<string, DailyData> = {};
-      dailySnap.forEach(doc => {
+      snap.forEach(doc => {
         loadedDaily[doc.id] = doc.data() as DailyData;
       });
-      if (Object.keys(loadedDaily).length > 0) setDailyData(loadedDaily);
+      setDailyData(prev => {
+        if (JSON.stringify(prev) !== JSON.stringify(loadedDaily)) {
+          return loadedDaily;
+        }
+        return prev;
+      });
+      setIsSyncing(false); // Finished initial sync for daily at least
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/daily`)));
 
-      showToast("Matrix Cloud Sync: Success");
-    } catch (e) {
-      console.error("Sync Load Failed", e);
-      handleFirestoreError(e, OperationType.GET, `users/${user?.uid}`);
-      showToast("Cloud Sync Error");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+    return () => unsubscribes.forEach(unsub => unsub());
+  }, [user]);
 
   const saveToCloud = async () => {
     if (!user) return;
