@@ -48,11 +48,11 @@ const DEFAULT_MONTHLY: MonthlyRecord[] = [
   { m: "11月", a: 0 },
   { m: "12月", a: 0 }
 ].map(data => ({
-  month: data.m, target: 50000, actual: data.a, noc: 0, anp: 0, recruitTarget: (data.m === "12月" ? 2 : 1), recruitActual: 0
+  month: data.m, target: 50000, actual: data.a, noc: 0, anp: 0, fyc: 0, recruitTarget: (data.m === "12月" ? 2 : 1), recruitActual: 0
 }));
 
 const INITIAL_PERF: PerfData = {
-  personalQ: 535211, teamQ: 0, recruitCount: 0, totalNOC: 0, totalANP: 0,
+  personalQ: 535211, teamQ: 0, recruitCount: 0, totalNOC: 0, totalANP: 0, totalFYC: 0,
   annualTargetGSPC: 450000,
   annualTargetTeam: 10,
   monthlyRecords: DEFAULT_MONTHLY,
@@ -345,6 +345,7 @@ export default function App() {
     const totalActualQ = perfData.monthlyRecords.reduce((sum, r) => sum + (r.actual || 0), 0);
     const totalNOC = perfData.monthlyRecords.reduce((sum, r) => sum + (r.noc || 0), 0);
     const totalANP = perfData.monthlyRecords.reduce((sum, r) => sum + (r.anp || 0), 0);
+    const totalFYC = perfData.monthlyRecords.reduce((sum, r) => sum + (r.fyc || 0), 0);
     const totalRecruit = perfData.monthlyRecords.reduce((sum, r) => sum + (r.recruitActual || 0), 0);
 
     // Only update if there's a discrepancy to avoid potential update loops
@@ -352,6 +353,7 @@ export default function App() {
       totalActualQ !== perfData.personalQ ||
       totalNOC !== perfData.totalNOC ||
       totalANP !== perfData.totalANP ||
+      totalFYC !== (perfData.totalFYC || 0) ||
       totalRecruit !== perfData.recruitCount
     ) {
       setPerfData(prev => {
@@ -382,6 +384,7 @@ export default function App() {
           personalQ: totalActualQ,
           totalNOC: totalNOC,
           totalANP: totalANP,
+          totalFYC: totalFYC,
           recruitCount: totalRecruit,
           milestones: updatedMilestones
         };

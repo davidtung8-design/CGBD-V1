@@ -15,27 +15,27 @@ interface ContestDefinition {
   name: string;
   chineseName: string;
   description: string;
-  targetMetric: 'anp' | 'noc' | 'qfylp' | 'recruit' | 'qualifier';
+  targetMetric: 'anp' | 'noc' | 'qfylp' | 'recruit' | 'qualifier' | 'fyc';
   targetValue: number;
   period: 'yearly' | 'quarterly' | 'monthly';
   category: 'rookie' | 'sales' | 'recruit' | 'top' | 'management';
   icon: React.ReactNode;
   color: string;
+  specificQuarter?: number;
   quarterlyProgress?: { q1: number; q2: number; q3: number };
 }
 
 const CONTESTS: ContestDefinition[] = [
   // Superbeez Series (Quarterly)
-  { id: '2.1a', name: 'Superbeez Silver', chineseName: '超级蜜蜂 (银奖)', description: '12 NOC in a Quarter (Avg Case RM 3,000)', targetMetric: 'noc', targetValue: 12, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-300 to-slate-500' },
-  { id: '2.1b', name: 'Superbeez Gold', chineseName: '超级蜜蜂 (金奖)', description: '18 NOC in a Quarter (Avg Case RM 3,000)', targetMetric: 'noc', targetValue: 18, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-yellow-400 to-yellow-600' },
-  { id: '2.1c', name: 'Superbeez Platinum', chineseName: '超级蜜蜂 (白金奖)', description: '24 NOC in a Quarter (Avg Case RM 3,000)', targetMetric: 'noc', targetValue: 24, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-cyan-300 to-cyan-500' },
-  { id: '2.1d', name: 'Superbeez Crown', chineseName: '超级蜜蜂 (皇冠奖)', description: '30 NOC in a Quarter (Avg Case RM 3,000)', targetMetric: 'noc', targetValue: 30, period: 'quarterly', category: 'sales', icon: <Crown size={20} />, color: 'from-purple-500 to-indigo-600' },
+  { id: '2.1-Q1', name: 'Superbeez Q1', chineseName: '超级蜜蜂 Q1', description: 'Min 25 NOC in Quarter 1 (Jan-Mar)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 1, category: 'sales', icon: <Medal size={20} />, color: 'from-blue-400 to-indigo-600' },
+  { id: '2.1-Q2', name: 'Superbeez Q2', chineseName: '超级蜜蜂 Q2', description: 'Min 25 NOC in Quarter 2 (Apr-Jun)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 2, category: 'sales', icon: <Medal size={20} />, color: 'from-blue-500 to-indigo-700' },
+  { id: '2.1-Q3', name: 'Superbeez Q3', chineseName: '超级蜜蜂 Q3', description: 'Min 25 NOC in Quarter 3 (Jul-Sep)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 3, category: 'sales', icon: <Medal size={20} />, color: 'from-blue-600 to-indigo-800' },
   
   // Management Awards
   { id: '2.3', name: 'Superbeez Builder', chineseName: '超级蜜蜂增员奖', description: 'Min 2 Superbeez Award Qualifiers in DG (Excl. Personal Sales)', targetMetric: 'qualifier', targetValue: 2, period: 'quarterly', category: 'management', icon: <Users size={20} />, color: 'from-orange-400 to-rose-600' },
 
   // Special Recognition
-  { id: '4.0', name: 'Super Honey Award', chineseName: '超级蜂蜜奖', description: 'Single Case Size > 3,750 FYC', targetMetric: 'anp', targetValue: 3750, period: 'yearly', category: 'sales', icon: <Zap size={20} />, color: 'from-yellow-200 to-amber-500' },
+  { id: '4.0', name: 'Super Honey Award', chineseName: '超级蜂蜜奖', description: 'Total Year FYC > 3,750 (Based on single cases or accumulation)', targetMetric: 'fyc', targetValue: 3750, period: 'yearly', category: 'sales', icon: <Zap size={20} />, color: 'from-yellow-200 to-amber-500' },
 
   // Recruitment
   { id: '11.0a', name: 'Super Recruiter Bronze', chineseName: '超级招募金 (铜)', description: '1 New Recruit (30K QFYLP_C or 18K)', targetMetric: 'recruit', targetValue: 1, period: 'yearly', category: 'recruit', icon: <UserPlus size={20} />, color: 'from-amber-600 to-amber-800' },
@@ -43,11 +43,11 @@ const CONTESTS: ContestDefinition[] = [
   { id: '11.0c', name: 'Super Recruiter Gold', chineseName: '超级招募金 (金)', description: '3 New Recruits (30K QFYLP_C each)', targetMetric: 'recruit', targetValue: 3, period: 'yearly', category: 'recruit', icon: <UserPlus size={20} />, color: 'from-yellow-400 to-yellow-700' },
 
   // Star Producer Series (Progressive)
-  { id: '8.0a', name: 'Star Producer Bronze', chineseName: '超级巨星 (铜)', description: 'Progressive FYC Targets: Q1(18%) Q2(40%) Q3(68%)', targetMetric: 'anp', targetValue: 36000, period: 'yearly', category: 'sales', icon: <Medal size={20} />, color: 'from-amber-700 to-amber-900', quarterlyProgress: { q1: 6480, q2: 14400, q3: 24480 } },
-  { id: '8.0b', name: 'Star Producer Silver', chineseName: '超级巨星 (银)', description: 'Progressive FYC Targets', targetMetric: 'anp', targetValue: 55000, period: 'yearly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-400 to-slate-600', quarterlyProgress: { q1: 9900, q2: 22000, q3: 37400 } },
-  { id: '8.0c', name: 'Star Producer Gold', chineseName: '超级巨星 (金)', description: 'Progressive FYC Targets', targetMetric: 'anp', targetValue: 80000, period: 'yearly', category: 'sales', icon: <Medal size={20} />, color: 'from-yellow-500 to-yellow-700', quarterlyProgress: { q1: 14400, q2: 32000, q3: 54400 } },
-  { id: '8.0d', name: 'Star Producer Platinum', chineseName: '超级巨星 (白金)', description: 'Progressive FYC Targets', targetMetric: 'anp', targetValue: 100000, period: 'yearly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-200 to-slate-400', quarterlyProgress: { q1: 18000, q2: 40000, q3: 68000 } },
-  { id: '8.0e', name: 'Star Producer Diamond', chineseName: '超级巨星 (钻石)', description: 'Progressive FYC Targets', targetMetric: 'anp', targetValue: 150000, period: 'yearly', category: 'top', icon: <Zap size={20} />, color: 'from-blue-400 to-indigo-600', quarterlyProgress: { q1: 27000, q2: 60000, q3: 102000 } },
+  { id: '8.0a', name: 'Star Producer Bronze', chineseName: '超级巨星 (铜)', description: 'Progressive FYC Targets: Q1(18%) Q2(40%) Q3(68%)', targetMetric: 'fyc', targetValue: 36000, period: 'yearly', category: 'sales', icon: <Medal size={20} />, color: 'from-amber-700 to-amber-900', quarterlyProgress: { q1: 6480, q2: 14400, q3: 24480 } },
+  { id: '8.0b', name: 'Star Producer Silver', chineseName: '超级巨星 (银)', description: 'Progressive FYC Targets', targetMetric: 'fyc', targetValue: 55000, period: 'yearly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-400 to-slate-600', quarterlyProgress: { q1: 9900, q2: 22000, q3: 37400 } },
+  { id: '8.0c', name: 'Star Producer Gold', chineseName: '超级巨星 (金)', description: 'Progressive FYC Targets', targetMetric: 'fyc', targetValue: 80000, period: 'yearly', category: 'sales', icon: <Medal size={20} />, color: 'from-yellow-500 to-yellow-700', quarterlyProgress: { q1: 14400, q2: 32000, q3: 54400 } },
+  { id: '8.0d', name: 'Star Producer Platinum', chineseName: '超级巨星 (白金)', description: 'Progressive FYC Targets', targetMetric: 'fyc', targetValue: 100000, period: 'yearly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-200 to-slate-400', quarterlyProgress: { q1: 18000, q2: 40000, q3: 68000 } },
+  { id: '8.0e', name: 'Star Producer Diamond', chineseName: '超级巨星 (钻石)', description: 'Progressive FYC Targets', targetMetric: 'fyc', targetValue: 150000, period: 'yearly', category: 'top', icon: <Zap size={20} />, color: 'from-blue-400 to-indigo-600', quarterlyProgress: { q1: 27000, q2: 60000, q3: 102000 } },
 
   // Management (Group)
   { id: '14.0a', name: 'Super Direct Group Bronze', chineseName: '超级直属组奖 (铜)', description: 'RM 500,000 QFYLP_C (Excl. Personal)', targetMetric: 'qfylp', targetValue: 500000, period: 'yearly', category: 'management', icon: <Trophy size={20} />, color: 'from-amber-600 to-amber-800' },
@@ -72,19 +72,30 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
   const stats = useMemo(() => {
     const totalANP = perfData.monthlyRecords.reduce((acc, curr) => acc + curr.anp, 0);
     const totalNOC = perfData.monthlyRecords.reduce((acc, curr) => acc + curr.noc, 0);
+    const totalFYC = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.fyc || 0), 0);
     const totalQFYLP = totalANP; // Assuming ANP matches QFYLP for these simple aggregations
 
-    // Current Quarter (Rough estimation as month mapping isn't precise in current data)
-    // We'll calculate current quarterly totals based on the most recent month
-    const currentMonthIdx = new Date().getMonth();
-    const currentQuarter = Math.floor(currentMonthIdx / 3);
-    const quarterStarts = [0, 3, 6, 9];
-    const quarterMonths = perfData.monthlyRecords.slice(quarterStarts[currentQuarter], quarterStarts[currentQuarter] + 3);
-    
-    const qANP = quarterMonths.reduce((acc, curr) => acc + curr.anp, 0);
-    const qNOC = quarterMonths.reduce((acc, curr) => acc + curr.noc, 0);
+    // Calculate all quarters for specific tracking
+    const quarters = [0, 1, 2, 3].map(q => {
+      const qMonths = perfData.monthlyRecords.slice(q * 3, q * 3 + 3);
+      return {
+        anp: qMonths.reduce((acc, curr) => acc + curr.anp, 0),
+        noc: qMonths.reduce((acc, curr) => acc + curr.noc, 0),
+        fyc: qMonths.reduce((acc, curr) => acc + (curr.fyc || 0), 0)
+      };
+    });
 
-    return { totalANP, totalNOC, totalQFYLP, qANP, qNOC };
+    // Current Quarter (Rough estimation as month mapping isn't precise in current data)
+    const currentMonthIdx = new Date().getMonth();
+    const currentQuarterIdx = Math.floor(currentMonthIdx / 3);
+    const qStats = quarters[currentQuarterIdx];
+
+    return { 
+      totalANP, totalNOC, totalQFYLP, totalFYC, 
+      qANP: qStats.anp, qNOC: qStats.noc, qFYC: qStats.fyc,
+      allQuarters: quarters,
+      currentQuarterIdx
+    };
   }, [perfData.monthlyRecords]);
 
   return (
@@ -130,10 +141,17 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {CONTESTS.map((contest, i) => {
           let currentVal = 0;
+          
+          // Determine the correct stats bucket
+          const targetQuarterIdx = contest.specificQuarter ? contest.specificQuarter - 1 : stats.currentQuarterIdx;
+          const targetStats = stats.allQuarters[targetQuarterIdx];
+
           if (contest.targetMetric === 'noc') {
-            currentVal = contest.period === 'quarterly' ? stats.qNOC : stats.totalNOC;
+            currentVal = contest.period === 'quarterly' ? targetStats.noc : stats.totalNOC;
           } else if (contest.targetMetric === 'anp' || contest.targetMetric === 'qfylp') {
-            currentVal = contest.period === 'quarterly' ? stats.qANP : stats.totalANP;
+            currentVal = contest.period === 'quarterly' ? targetStats.anp : stats.totalANP;
+          } else if (contest.targetMetric === 'fyc') {
+            currentVal = contest.period === 'quarterly' ? targetStats.fyc : stats.totalFYC;
           } else if (contest.targetMetric === 'recruit') {
             currentVal = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.recruitActual || 0), 0);
           } else if (contest.targetMetric === 'qualifier') {

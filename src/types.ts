@@ -45,6 +45,7 @@ export interface MonthlyRecord {
   actual: number;
   noc: number;
   anp: number;
+  fyc?: number;
   recruitTarget: number;
   recruitActual: number;
 }
@@ -57,20 +58,35 @@ export interface TeamMember {
   active: boolean;
 }
 
+export type ProspectCategory = '跟进中' | '已成交' | '需要服务' | 'KIV' | '拒绝' | '未分类';
+export type RecruitCategory = '跟进中' | '已经考试' | '90 days jumpstart' | 'attend MIP COP' | 'SG trip' | 'KIV' | '未分类';
+
+export interface FollowupLog {
+  id: string;
+  datetime: string;
+  note: string;
+}
+
 export interface Prospect {
+  id: string;
   name: string;
   job: string;
   plan: string;
   note: string;
   isPinned?: boolean;
+  category?: ProspectCategory;
+  followupLogs?: FollowupLog[];
 }
 
 export interface RecruitCandidate {
+  id: string;
   name: string;
   job: string;
   interest: string;
   followup: string;
   isPinned?: boolean;
+  category?: RecruitCategory;
+  followupLogs?: FollowupLog[];
 }
 
 export interface Milestone {
@@ -85,6 +101,7 @@ export interface PerfData {
   recruitCount: number;
   totalNOC: number;
   totalANP: number;
+  totalFYC?: number;
   monthlyRecords: MonthlyRecord[];
   prospectList: Prospect[];
   recruitList: RecruitCandidate[];

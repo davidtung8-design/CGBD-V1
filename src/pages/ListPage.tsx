@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
-import { PerfData } from '../types';
-import { UserPlus, Target, Upload, Search, Plus, Trash2, Star, Database, Filter, ChevronRight, ClipboardPaste, X } from 'lucide-react';
+import React, { useRef, useState, useCallback } from 'react';
+import { PerfData, FollowupLog, Prospect, RecruitCandidate } from '../types';
+import { UserPlus, Target, Upload, Search, Plus, Trash2, Star, Database, Filter, ChevronRight, ClipboardPaste, X, History, Calendar, Clock } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { format } from 'date-fns';
 
 interface ListPageProps {
   perfData: PerfData;
@@ -17,10 +18,73 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'prospect' | 'recruit'>('prospect');
   const [showOnlyPinned, setShowOnlyPinned] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<string>('All');
   const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
+
+  // Reset filter when tab changes
+  React.useEffect(() => {
+    setFilterCategory('All');
+  }, [activeTab]);
   const [pasteValue, setPasteValue] = useState('');
 
+  // Follow-up Logs Modal State
+  const [isFollowupModalOpen, setIsFollowupModalOpen] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [newLogNote, setNewLogNote] = useState('');
+  const [newLogDate, setNewLogDate] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+
   // --- Handlers ---
+  const handleOpenFollowup = (id: string) => {
+    setSelectedNodeId(id);
+    setIsFollowupModalOpen(true);
+    setNewLogNote('');
+    setNewLogDate(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+  };
+
+  const handleAddFollowupLog = () => {
+    if (!selectedNodeId || !newLogNote.trim()) return;
+
+    const listKey = activeTab === 'prospect' ? 'prospectList' : 'recruitList';
+    const newList = [...perfData[listKey]] as any[];
+    const nodeIndex = newList.findIndex(n => n.id === selectedNodeId);
+    
+    if (nodeIndex === -1) return;
+
+    const node = newList[nodeIndex];
+
+    const newLog: FollowupLog = {
+      id: Date.now().toString(),
+      datetime: newLogDate,
+      note: newLogNote.trim()
+    };
+
+    newList[nodeIndex] = {
+      ...node,
+      followupLogs: [newLog, ...(node.followupLogs || [])]
+    };
+
+    setPerfData(prev => ({ ...prev, [listKey]: newList }));
+    setNewLogNote('');
+    alert('跟进记录已成功添加。');
+  };
+
+  const removeFollowupLog = (logId: string) => {
+    if (!selectedNodeId) return;
+    const listKey = activeTab === 'prospect' ? 'prospectList' : 'recruitList';
+    const newList = [...perfData[listKey]] as any[];
+    const nodeIndex = newList.findIndex(n => n.id === selectedNodeId);
+    
+    if (nodeIndex === -1) return;
+
+    const node = newList[nodeIndex];
+    
+    newList[nodeIndex] = {
+      ...node,
+      followupLogs: (node.followupLogs || []).filter((l: any) => l.id !== logId)
+    };
+
+    setPerfData(prev => ({ ...prev, [listKey]: newList }));
+  };
   const handlePasteSync = () => {
     if (!pasteValue.trim()) return;
     
@@ -40,9 +104,12 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
       }
 
       return {
+        id: crypto.randomUUID(),
         name: name || 'Pasted Node',
         job: '',
         isPinned: false,
+        category: '未分类',
+        followupLogs: [],
         ...(activeTab === 'prospect' 
           ? { plan: '', note: note } 
           : { interest: '0', followup: note })
@@ -66,54 +133,109 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log("VCF Import started:", file.name, file.size, "bytes");
+
     const reader = new FileReader();
     reader.onload = (event) => {
-      const content = event.target?.result as string;
-      if (!content) return;
-
-      // Basic vCard parser
-      const contacts: { name: string, tel: string }[] = [];
-      let currentContact: { name?: string, tel?: string } = {};
-      
-      const lines = content.split(/\r?\n/);
-      lines.forEach(line => {
-        if (line.startsWith('BEGIN:VCARD')) currentContact = {};
-        if (line.startsWith('FN:')) currentContact.name = line.substring(3).trim();
-        if (line.startsWith('TEL')) {
-          const parts = line.split(':');
-          if (parts.length > 1) currentContact.tel = parts[1].trim();
+      try {
+        const content = event.target?.result as string;
+        if (!content) {
+          console.error("VCF Content is empty");
+          alert("文件内容为空，请检查文件是否损坏。");
+          return;
         }
-        if (line.startsWith('END:VCARD')) {
-          if (currentContact.name) {
-            contacts.push({ name: currentContact.name, tel: currentContact.tel || '' });
+
+        console.log("VCF Content Length:", content.length);
+
+        // Improved vCard parser
+        const contacts: { name: string, tel: string }[] = [];
+        let currentContact: { name?: string, tel?: string } = {};
+        
+        // Unfold folded lines
+        const rawLines = content.split(/\r?\n/);
+        const lines: string[] = [];
+        rawLines.forEach(line => {
+          if (line.startsWith(' ') || line.startsWith('\t')) {
+            if (lines.length > 0) {
+              lines[lines.length - 1] += line.substring(1);
+            }
+          } else {
+            lines.push(line);
           }
+        });
+
+        lines.forEach(line => {
+          const trimmedLine = line.trim();
+          if (!trimmedLine) return;
+          if (trimmedLine.toUpperCase().startsWith('BEGIN:VCARD')) {
+            currentContact = {};
+          }
+          
+          const colonIdx = trimmedLine.indexOf(':');
+          if (colonIdx === -1) return;
+
+          const keyPart = trimmedLine.substring(0, colonIdx).toUpperCase();
+          const valuePart = trimmedLine.substring(colonIdx + 1).trim();
+
+          // Handle Name
+          if (keyPart === 'FN' || keyPart.endsWith('.FN')) {
+            currentContact.name = valuePart;
+          } else if ((keyPart === 'N' || keyPart.endsWith('.N')) && !currentContact.name) {
+            const nameParts = valuePart.split(';').filter(Boolean);
+            if (nameParts.length >= 2) {
+              currentContact.name = `${nameParts[1]} ${nameParts[0]}`.trim();
+            } else {
+              currentContact.name = nameParts.join(' ').trim();
+            }
+          }
+
+          // Handle Telephone
+          if (keyPart.includes('TEL')) {
+            if (valuePart) currentContact.tel = valuePart;
+          }
+
+          if (trimmedLine.toUpperCase().startsWith('END:VCARD')) {
+            if (currentContact.name) {
+              contacts.push({ 
+                name: currentContact.name, 
+                tel: currentContact.tel || '' 
+              });
+            }
+          }
+        });
+
+        if (contacts.length === 0) {
+          alert('未在文件中检测到有效的联系人信息。请确保文件是标准的 .vcf 格式。');
+          return;
         }
-      });
 
-      if (contacts.length === 0) {
-        alert('未在文件中检测到有效的联系人信息。');
-        return;
+        const newEntries = contacts.map(c => ({
+          id: crypto.randomUUID(),
+          name: c.name,
+          job: '',
+          isPinned: false,
+          category: '未分类' as any,
+          followupLogs: [],
+          ...(type === 'prospect' 
+            ? { plan: '', note: c.tel } 
+            : { interest: '0', followup: c.tel })
+        }));
+
+        setPerfData(prev => ({
+          ...prev,
+          [type === 'prospect' ? 'prospectList' : 'recruitList']: [
+            ...prev[type === 'prospect' ? 'prospectList' : 'recruitList'],
+            ...newEntries
+          ]
+        }));
+        alert(`已成功导入 ${contacts.length} 位联系人到 ${type === 'prospect' ? '准客户' : '准增员'} 列表。`);
+        if (e.target) e.target.value = '';
+      } catch (err) {
+        console.error("VCF Parse Error:", err);
+        alert("解析 VCF 文件时发生错误，请重试。");
       }
-
-      const newEntries = contacts.map(c => ({
-        name: c.name,
-        job: '',
-        isPinned: false,
-        ...(type === 'prospect' 
-          ? { plan: '', note: c.tel } 
-          : { interest: '0', followup: c.tel })
-      }));
-
-      setPerfData(prev => ({
-        ...prev,
-        [type === 'prospect' ? 'prospectList' : 'recruitList']: [
-          ...prev[type === 'prospect' ? 'prospectList' : 'recruitList'],
-          ...newEntries
-        ]
-      }));
-      alert(`已成功导入 ${contacts.length} 位联系人到 ${type === 'prospect' ? '准客户' : '准增员'} 列表。`);
-      if (e.target) e.target.value = '';
     };
+    reader.onerror = () => alert('读取文件失败，请重试。');
     reader.readAsText(file);
   };
 
@@ -144,9 +266,12 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
           else if (Array.isArray(c.tel) && c.tel[0]) tel = c.tel[0];
 
           return {
+            id: crypto.randomUUID(),
             name,
             job: '',
             isPinned: false,
+            category: '未分类' as any,
+            followupLogs: [],
             ...(type === 'prospect' 
               ? { plan: '', note: tel } 
               : { interest: '0', followup: tel })
@@ -169,8 +294,8 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
   };
   const currentList = activeTab === 'prospect' ? perfData.prospectList : perfData.recruitList;
   
-  const pinnedEntries = currentList.filter(x => x.isPinned && x.name);
-  const unpinnedEntries = currentList.filter(x => !x.isPinned && x.name);
+  const pinnedEntries = currentList.filter(x => x.isPinned);
+  const unpinnedEntries = currentList.filter(x => !x.isPinned);
 
   // Combine for search but keep pinned status
   const filteredEntries = [...pinnedEntries, ...unpinnedEntries].filter(item => {
@@ -182,9 +307,14 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
         : (item as any).followup.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesFilter = !showOnlyPinned || item.isPinned;
+    const matchesCategory = filterCategory === 'All' || item.category === filterCategory;
     
-    return matchesSearch && matchesFilter;
+    return matchesSearch && matchesFilter && matchesCategory;
   });
+
+  const prospectCategories = ['跟进中', '已成交', '需要服务', 'KIV', '拒绝', '未分类'];
+  const recruitCategories = ['跟进中', '已经考试', '90 days jumpstart', 'attend MIP COP', 'SG trip', 'KIV', '未分类'];
+  const categories = activeTab === 'prospect' ? prospectCategories : recruitCategories;
 
   // --- Handlers ---
   const handleImportCSV = (type: 'prospect' | 'recruit', e: React.ChangeEvent<HTMLInputElement>) => {
@@ -250,9 +380,12 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
         const logValue = mapping.log !== -1 ? row[mapping.log] : row[3];
 
         return {
+          id: crypto.randomUUID(),
           name: name || '',
           job: job || '',
           isPinned: false,
+          category: '未分类' as any,
+          followupLogs: [],
           ...(type === 'prospect' 
             ? { plan: extraValue || '', note: logValue || '' } 
             : { interest: extraValue || '0', followup: logValue || '' })
@@ -280,33 +413,42 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
 
   const addNew = (type: 'prospect' | 'recruit') => {
     const listKey = type === 'prospect' ? 'prospectList' : 'recruitList';
+    const defaultName = type === 'prospect' ? 'New Prospect' : 'New Recruit';
     const newItem = { 
-      name: '', 
+      id: crypto.randomUUID(),
+      name: defaultName, 
       job: '', 
-      isPinned: true, // Auto-pin new manual entries
+      isPinned: true, // Auto-pin new manual entries to ensure visibility at top
+      category: '跟进中' as any,
+      followupLogs: [],
       ...(type === 'prospect' ? { plan: '', note: '' } : { interest: '0', followup: '' }) 
     };
+    
     setPerfData(prev => ({
       ...prev,
       [listKey]: [newItem, ...prev[listKey]]
     }));
+    
+    // Smooth scroll to top of matrix if possible
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    alert(`成功创建新的 ${type === 'prospect' ? '准客户' : '准增员'} 节点。请在顶部的“战略重点”区域查看。`);
   };
 
-  const togglePin = (type: 'prospect' | 'recruit', indexInOriginal: number) => {
+  const togglePin = (type: 'prospect' | 'recruit', id: string) => {
     setPerfData(prev => {
       const listKey = type === 'prospect' ? 'prospectList' : 'recruitList';
-      const newList = [...prev[listKey]];
-      newList[indexInOriginal] = { ...newList[indexInOriginal], isPinned: !newList[indexInOriginal].isPinned };
+      const newList = (prev[listKey] as any[]).map(item => 
+        item.id === id ? { ...item, isPinned: !item.isPinned } : item
+      );
       return { ...prev, [listKey]: newList };
     });
   };
 
-  const removeEntry = (type: 'prospect' | 'recruit', indexInOriginal: number) => {
+  const removeEntry = (type: 'prospect' | 'recruit', id: string) => {
     if (!confirm('Warning: This will permanently delete this node from the database.')) return;
     setPerfData(prev => {
       const listKey = type === 'prospect' ? 'prospectList' : 'recruitList';
-      const newList = [...prev[listKey]];
-      newList.splice(indexInOriginal, 1);
+      const newList = (prev[listKey] as any[]).filter(item => item.id !== id);
       return { ...prev, [listKey]: newList };
     });
   };
@@ -360,6 +502,34 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
           </div>
 
+          <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
+            <button 
+              onClick={() => setFilterCategory('All')}
+              className={cn(
+                "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                filterCategory === 'All' 
+                  ? "bg-slate-700 text-white" 
+                  : (isDarkMode ? "bg-slate-800/30 text-slate-500 hover:text-slate-300" : "bg-slate-100 text-slate-500 hover:bg-slate-200")
+              )}
+            >
+              All
+            </button>
+            {categories.map(cat => (
+              <button 
+                key={cat}
+                onClick={() => setFilterCategory(cat)}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                  filterCategory === cat 
+                    ? "bg-blue-500 text-white" 
+                    : (isDarkMode ? "bg-slate-800/30 text-slate-500 hover:text-slate-300" : "bg-slate-100 text-slate-500 hover:bg-slate-200")
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
           <div className="flex gap-2">
             <button 
               onClick={() => setShowOnlyPinned(!showOnlyPinned)}
@@ -393,16 +563,17 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
           >
             <div className="flex items-center gap-2 px-6 mb-4">
               <Star size={14} className="text-amber-500 fill-amber-500" />
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500">Strategic Focus Matrix (Top 20+ Focus)</h3>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500">
+                {activeTab === 'prospect' ? "Strategic Focus Matrix (Top 20+ Focus)" : "Recruit Talent Pipeline"}
+              </h3>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {pinnedEntries.map((item, idx) => {
-                const globalIdx = currentList.indexOf(item);
                 return (
                   <motion.div 
                     layout
-                    key={globalIdx}
+                    key={item.id}
                     className={cn(
                       "bento-card p-6 border-l-4 relative group transition-all hover:scale-[1.02]",
                       activeTab === 'prospect' ? "border-l-blue-500" : "border-l-emerald-500",
@@ -410,7 +581,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                     )}
                   >
                     <button 
-                      onClick={() => togglePin(activeTab, globalIdx)}
+                      onClick={() => togglePin(activeTab, item.id)}
                       className="absolute top-4 right-4 text-amber-500 hover:scale-125 transition-transform"
                     >
                       <Star size={16} fill="currentColor" />
@@ -421,8 +592,9 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                           className="bg-transparent border-none outline-none font-bold text-lg text-white w-full"
                           value={item.name}
                           onChange={(e) => {
-                            const newList = [...currentList];
-                            newList[globalIdx].name = e.target.value;
+                            const newList = currentList.map(node => 
+                              node.id === item.id ? { ...node, name: e.target.value } : node
+                            );
                             setPerfData(prev => ({ ...prev, [activeTab === 'prospect' ? 'prospectList' : 'recruitList']: newList }));
                           }}
                         />
@@ -431,8 +603,9 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                           value={item.job}
                           placeholder="Industry / Role"
                           onChange={(e) => {
-                            const newList = [...currentList];
-                            newList[globalIdx].job = e.target.value;
+                            const newList = currentList.map(node => 
+                              node.id === item.id ? { ...node, job: e.target.value } : node
+                            );
                             setPerfData(prev => ({ ...prev, [activeTab === 'prospect' ? 'prospectList' : 'recruitList']: newList }));
                           }}
                         />
@@ -441,7 +614,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                         "p-3 rounded-xl text-[11px] font-mono leading-snug",
                         isDarkMode ? "bg-slate-950/50 text-slate-400" : "bg-slate-50 text-slate-600"
                       )}>
-                        {activeTab === 'prospect' ? (item as any).plan : `Score: ${(item as any).interest}/100`}
+                        {activeTab === 'prospect' ? (item as any).plan : `CFG: ${(item as any).interest}`}
                       </div>
                       <div className="flex justify-between items-center text-[9px] uppercase font-bold tracking-widest text-slate-500">
                         <span># Focus Node {idx + 1}</span>
@@ -463,7 +636,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
       )}>
         <input type="file" ref={prospectInputRef} className="hidden" accept=".csv" onChange={(e) => handleImportCSV('prospect', e)} />
         <input type="file" ref={recruitInputRef} className="hidden" accept=".csv" onChange={(e) => handleImportCSV('recruit', e)} />
-        <input type="file" ref={vcfInputRef} className="hidden" accept=".vcf" onChange={(e) => handleImportVCF(activeTab, e)} />
+        <input type="file" ref={vcfInputRef} className="hidden" accept=".vcf,text/vcard,text/x-vcard" onChange={(e) => handleImportVCF(activeTab, e)} />
 
         <div className="p-8 border-b border-slate-800/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
           <div className="flex items-center gap-4">
@@ -504,6 +677,15 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
               )}
             >
               <UserPlus size={14} /> Phone Sync
+            </button>
+            <button 
+              onClick={() => vcfInputRef.current?.click()}
+              className={cn(
+                "flex items-center gap-2 px-5 py-3 rounded-2xl border text-[10px] font-bold uppercase tracking-widest transition-all",
+                isDarkMode ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-white" : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+              )}
+            >
+              <Upload size={14} /> VCF Import
             </button>
             <button 
               onClick={() => (activeTab === 'prospect' ? prospectInputRef : recruitInputRef).current?.click()}
@@ -581,23 +763,25 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
               )}>
                 <th className="p-5 font-black w-24">Focus</th>
                 <th className="p-5 font-black min-w-[200px]">Node Identity</th>
+                <th className="p-5 font-black min-w-[120px]">Category</th>
                 <th className="p-5 font-black min-w-[180px]">Organization / Role</th>
-                <th className="p-5 font-black min-w-[200px]">{activeTab === 'prospect' ? 'Strategic Plan' : 'Talent Matrix Score'}</th>
+                <th className="p-5 font-black min-w-[200px]">{activeTab === 'prospect' ? 'Strategic Plan' : 'CFG Code'}</th>
+                <th className="p-5 font-black min-w-[120px] text-center bg-blue-500/5">Follow-up History</th>
                 <th className="p-5 font-black min-w-[300px]">Lifecycle Ops Logs</th>
                 <th className="p-5 font-black w-20 text-center">Delete</th>
               </tr>
             </thead>
             <tbody className={cn("divide-y", isDarkMode ? "divide-slate-800/30" : "divide-slate-100")}>
               {filteredEntries.map((item, idx) => {
-                const originalIndex = currentList.indexOf(item);
+                const originalIndex = currentList.findIndex(n => n.id === item.id);
                 return (
-                  <tr key={idx} className={cn(
+                  <tr key={item.id} className={cn(
                     "group transition-all",
                     isDarkMode ? "hover:bg-blue-500/[0.04]" : "hover:bg-blue-500/[0.01]"
                   )}>
                     <td className="p-5 text-center">
                       <button 
-                        onClick={() => togglePin(activeTab, originalIndex)}
+                        onClick={() => togglePin(activeTab, item.id)}
                         className={cn(
                           "p-2 rounded-xl border transition-all",
                           item.isPinned 
@@ -617,11 +801,31 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                         value={item.name}
                         placeholder="Initialize Node..."
                         onChange={(e) => {
-                          const newList = [...currentList];
-                          newList[originalIndex].name = e.target.value;
+                          const newList = currentList.map(node => 
+                            node.id === item.id ? { ...node, name: e.target.value } : node
+                          );
                           setPerfData(prev => ({ ...prev, [activeTab === 'prospect' ? 'prospectList' : 'recruitList']: newList }));
                         }}
                       />
+                    </td>
+                    <td className="p-3">
+                      <select 
+                        className={cn(
+                          "w-full bg-transparent border border-transparent rounded-[1rem] px-4 py-3 outline-none transition-all text-[11px] font-bold appearance-none cursor-pointer",
+                          isDarkMode ? "text-slate-300 focus:bg-slate-800 focus:border-blue-500/50" : "text-slate-600 focus:bg-white focus:border-blue-500/50"
+                        )}
+                        value={item.category || '未分类'}
+                        onChange={(e) => {
+                          const newList = currentList.map(node => 
+                            node.id === item.id ? { ...node, category: e.target.value as any } : node
+                          );
+                          setPerfData(prev => ({ ...prev, [activeTab === 'prospect' ? 'prospectList' : 'recruitList']: newList }));
+                        }}
+                      >
+                        {categories.map(cat => (
+                          <option key={cat} value={cat} className={isDarkMode ? "bg-slate-900 text-white" : "bg-white text-slate-900"}>{cat}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="p-3">
                        <input 
@@ -632,8 +836,9 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                         value={item.job}
                         placeholder="Organization..."
                         onChange={(e) => {
-                          const newList = [...currentList];
-                          newList[originalIndex].job = e.target.value;
+                          const newList = currentList.map(node => 
+                            node.id === item.id ? { ...node, job: e.target.value } : node
+                          );
                           setPerfData(prev => ({ ...prev, [activeTab === 'prospect' ? 'prospectList' : 'recruitList']: newList }));
                         }}
                       />
@@ -646,14 +851,32 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                           "focus:bg-slate-800 focus:border-blue-500/50"
                         )}
                         value={activeTab === 'prospect' ? (item as any).plan : (item as any).interest}
-                        placeholder={activeTab === 'prospect' ? "Strategic Plan..." : "0-100"}
+                        placeholder={activeTab === 'prospect' ? "Strategic Plan..." : "CFG Code"}
                         onChange={(e) => {
-                          const newList = [...currentList];
-                          if (activeTab === 'prospect') (newList[originalIndex] as any).plan = e.target.value;
-                          else (newList[originalIndex] as any).interest = e.target.value;
+                          const newList = currentList.map(node => {
+                            if (node.id === item.id) {
+                              if (activeTab === 'prospect') return { ...node, plan: e.target.value };
+                              else return { ...node, interest: e.target.value };
+                            }
+                            return node;
+                          });
                           setPerfData(prev => ({ ...prev, [activeTab === 'prospect' ? 'prospectList' : 'recruitList']: newList }));
                         }}
                       />
+                    </td>
+                    <td className="p-3 text-center bg-blue-500/[0.02]">
+                      <button 
+                        onClick={() => handleOpenFollowup(item.id)}
+                        className={cn(
+                          "px-4 py-2 rounded-xl flex items-center gap-2 mx-auto text-[10px] font-black uppercase tracking-widest transition-all",
+                          item.followupLogs && item.followupLogs.length > 0
+                            ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20"
+                            : "bg-slate-800/10 text-slate-500 border border-slate-800/10 hover:border-blue-500/30 hover:text-blue-500 hover:bg-blue-500/5"
+                        )}
+                      >
+                        <History size={12} />
+                        {item.followupLogs?.length ? `${item.followupLogs.length} LOGS` : 'HISTORY'}
+                      </button>
                     </td>
                     <td className="p-3">
                        <input 
@@ -664,16 +887,20 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                         value={activeTab === 'prospect' ? (item as any).note : (item as any).followup}
                         placeholder="Operational Logs / History Tracking..."
                         onChange={(e) => {
-                          const newList = [...currentList];
-                          if (activeTab === 'prospect') (newList[originalIndex] as any).note = e.target.value;
-                          else (newList[originalIndex] as any).followup = e.target.value;
+                          const newList = currentList.map(node => {
+                            if (node.id === item.id) {
+                              if (activeTab === 'prospect') return { ...node, note: e.target.value };
+                              else return { ...node, followup: e.target.value };
+                            }
+                            return node;
+                          });
                           setPerfData(prev => ({ ...prev, [activeTab === 'prospect' ? 'prospectList' : 'recruitList']: newList }));
                         }}
                       />
                     </td>
                     <td className="p-3 text-center">
                       <button 
-                        onClick={() => removeEntry(activeTab, originalIndex)}
+                        onClick={() => removeEntry(activeTab, item.id)}
                         className="p-4 text-slate-800 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all"
                         title="Destroy Node"
                       >
@@ -704,6 +931,185 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
           )}
         </div>
       </div>
+
+      {/* Follow-up Logs Modal */}
+      <AnimatePresence>
+        {isFollowupModalOpen && selectedNodeId && (
+          <div 
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm bg-black/60 cursor-pointer"
+            onClick={() => {
+              setIsFollowupModalOpen(false);
+              setSelectedNodeId(null);
+            }}
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+              className={cn(
+                "w-full max-w-2xl max-h-[90vh] p-8 rounded-[2.5rem] shadow-2xl space-y-8 border relative overflow-hidden flex flex-col cursor-default",
+                isDarkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"
+              )}
+            >
+              {(() => {
+                const node = currentList.find(n => n.id === selectedNodeId);
+                if (!node) return null;
+
+                return (
+                  <>
+                    {/* Header */}
+                    <div className="flex justify-between items-start flex-shrink-0">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-blue-500">
+                          <History size={18} />
+                          <h3 className="text-sm font-black uppercase tracking-[0.2em]">Follow-up Operational History</h3>
+                        </div>
+                        <h2 className="text-2xl font-bold tracking-tight">
+                          {node.name || 'Unknown Node'}
+                        </h2>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-mono">
+                          Node ID: {node.id.substring(0, 8)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => {
+                            setIsFollowupModalOpen(false);
+                            setSelectedNodeId(null);
+                          }}
+                          className={cn(
+                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                            isDarkMode ? "hover:bg-slate-800/50 border-slate-800 text-slate-400" : "hover:bg-slate-100 border-slate-200 text-slate-600"
+                          )}
+                        >
+                          Close
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setIsFollowupModalOpen(false);
+                            setSelectedNodeId(null);
+                          }}
+                          className="p-3 hover:bg-slate-800/10 rounded-full transition-colors"
+                        >
+                          <X size={24} className="text-slate-500" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-8 pr-2">
+                      {/* Add New Log Section */}
+                      <div className={cn(
+                        "p-6 rounded-[2rem] space-y-4 border flex-shrink-0",
+                        isDarkMode ? "bg-slate-900/50 border-slate-800" : "bg-slate-50 border-slate-200"
+                      )}>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="flex-1 space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                              <Clock size={12} /> Appointment Datetime
+                            </label>
+                            <input 
+                              type="datetime-local"
+                              className={cn(
+                                "w-full h-12 px-4 rounded-xl border outline-none font-medium transition-all",
+                                isDarkMode ? "bg-slate-950 border-slate-800 text-white focus:border-blue-500" : "bg-white border-slate-200 text-slate-900 focus:border-blue-500"
+                              )}
+                              value={newLogDate}
+                              onChange={(e) => setNewLogDate(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                            <ClipboardPaste size={12} /> Follow-up Summary Note
+                          </label>
+                          <textarea 
+                            className={cn(
+                              "w-full h-32 p-4 rounded-2xl border outline-none font-medium transition-all resize-none",
+                              isDarkMode ? "bg-slate-950 border-slate-800 text-white focus:border-blue-500" : "bg-white border-slate-200 text-slate-900 focus:border-blue-500"
+                            )}
+                            placeholder="Enter strategic follow-up details, decisions, or next steps..."
+                            value={newLogNote}
+                            onChange={(e) => setNewLogNote(e.target.value)}
+                          />
+                        </div>
+                        <button 
+                          onClick={handleAddFollowupLog}
+                          disabled={!newLogNote.trim()}
+                          className="w-full h-12 bg-blue-500 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                          <Plus size={16} /> Record Follow-up Session
+                        </button>
+                      </div>
+
+                      {/* Logs List */}
+                      <div className="space-y-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">History Records ({node.followupLogs?.length || 0})</h4>
+                        <div className="space-y-3">
+                          {node.followupLogs?.map((log: any) => (
+                            <motion.div 
+                              key={log.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              className={cn(
+                                "p-5 rounded-2xl border relative group",
+                                isDarkMode ? "bg-slate-900/30 border-slate-800" : "bg-white border-slate-100 shadow-sm"
+                              )}
+                            >
+                              <button 
+                                onClick={() => removeFollowupLog(log.id)}
+                                className="absolute top-4 right-4 p-2 text-slate-500 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                <span className="text-[10px] font-bold text-blue-500 font-mono tracking-widest">
+                                  {format(new Date(log.datetime), 'yyyy.MM.dd HH:mm')}
+                                </span>
+                              </div>
+                              <p className={cn(
+                                "text-sm font-medium leading-relaxed",
+                                isDarkMode ? "text-slate-300" : "text-slate-700"
+                              )}>
+                                {log.note}
+                              </p>
+                            </motion.div>
+                          ))}
+                          {(!node.followupLogs || node.followupLogs?.length === 0) && (
+                            <div className="text-center py-12 opacity-30">
+                              <History size={40} className="mx-auto mb-3" />
+                              <p className="text-[10px] uppercase font-black tracking-widest">No history logs recorded yet</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex gap-4 pt-4 border-t border-slate-800/10 flex-shrink-0">
+                      <button 
+                        onClick={() => {
+                          setIsFollowupModalOpen(false);
+                          setSelectedNodeId(null);
+                        }}
+                        className={cn(
+                          "flex-1 h-16 rounded-2xl border font-black text-[12px] uppercase tracking-widest active:scale-[0.98] transition-all",
+                          isDarkMode 
+                            ? "bg-slate-900 border-slate-800 text-white hover:bg-slate-800 shadow-xl" 
+                            : "bg-slate-50 border-slate-200 text-slate-900 hover:bg-slate-100 shadow-md"
+                        )}
+                      >
+                        Exit Operational History
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

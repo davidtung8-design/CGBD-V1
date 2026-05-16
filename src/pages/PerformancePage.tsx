@@ -129,6 +129,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                 <th className="p-4 font-bold text-center">Actual Q</th>
                 <th className="p-4 font-bold text-center">NOC Nodes</th>
                 <th className="p-4 font-bold text-center">ANP Fluidity</th>
+                <th className="p-4 font-bold text-center">FYC Commission</th>
                 <th className="p-4 font-bold text-center">Recruit Target</th>
                 <th className="p-4 font-bold text-center">Recruit Act</th>
               </tr>
@@ -194,6 +195,19 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                     <td className="p-4 text-center">
                       <input 
                         type="number" 
+                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-blue-400 font-mono focus:border-blue-500 outline-none"
+                        value={m.fyc || 0}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          const newRecords = [...perfData.monthlyRecords];
+                          newRecords[i].fyc = val;
+                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                        }}
+                      />
+                    </td>
+                    <td className="p-4 text-center">
+                      <input 
+                        type="number" 
                         className="w-16 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-slate-500 font-mono focus:border-white outline-none"
                         value={m.recruitTarget}
                         onChange={(e) => {
@@ -227,6 +241,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                   const qActual = quarterRecords.reduce((acc, curr) => acc + curr.actual, 0);
                   const qNoc = quarterRecords.reduce((acc, curr) => acc + curr.noc, 0);
                   const qAnp = quarterRecords.reduce((acc, curr) => acc + curr.anp, 0);
+                  const qFyc = quarterRecords.reduce((acc, curr) => acc + (curr.fyc || 0), 0);
                   const qRecruitTarget = quarterRecords.reduce((acc, curr) => acc + curr.recruitTarget, 0);
                   const qRecruitActual = quarterRecords.reduce((acc, curr) => acc + curr.recruitActual, 0);
                   const qNum = Math.floor((i + 1) / 3);
@@ -238,6 +253,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ perfData, setP
                       <td className="p-4 text-center font-mono text-blue-400">{formatNumber(qActual)}</td>
                       <td className="p-4 text-center font-mono text-emerald-400">{qNoc}</td>
                       <td className="p-4 text-center font-mono text-white/50">{formatNumber(qAnp)}</td>
+                      <td className="p-4 text-center font-mono text-blue-400">{formatNumber(qFyc)}</td>
                       <td className="p-4 text-center font-mono text-slate-500">{qRecruitTarget}</td>
                       <td className="p-4 text-center font-mono text-amber-500">{qRecruitActual}</td>
                     </tr>
