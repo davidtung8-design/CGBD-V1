@@ -10,6 +10,21 @@
     <link rel="apple-touch-icon" href="/icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <title>David Tung 时间管理大师 2026</title>
+    <script>
+      // Fix for "Cannot set property fetch of #<Window> which has only a getter"
+      // This happens in some sandbox environments like AI Studio when libraries try to proxy fetch.
+      try {
+        const originalFetch = window.fetch;
+        Object.defineProperty(window, 'fetch', {
+          configurable: true,
+          enumerable: true,
+          get: function() { return originalFetch; },
+          set: function(v) { console.warn('Attempted to override fetch, ignoring for stability.'); }
+        });
+      } catch (e) {
+        console.warn('Could not redefine fetch descriptor:', e);
+      }
+    </script>
   </head>
   <body>
     <div id="root">

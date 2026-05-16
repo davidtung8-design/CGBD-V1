@@ -72,11 +72,13 @@ const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
   try {
-    // For iOS Safari, popups often fail. We can try popup first, 
-    // but redirect is often more reliable on mobile.
+    // In AI Studio (iframe) or Mobile browsers, Popups often fail or cause unauthorized-domain errors.
+    // We force redirect for better compatibility.
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isIframe = window.self !== window.top;
     
-    if (isMobile) {
+    if (isMobile || isIframe) {
+      console.log("Forcing signInWithRedirect due to environment (Mobile/Iframe)");
       await signInWithRedirect(auth, googleProvider);
     } else {
       const result = await signInWithPopup(auth, googleProvider);
