@@ -5,5 +5,6 @@
   "authDomain": "ddtcgbd.firebaseapp.com",
   "firestoreDatabaseId": "(default)",
   "storageBucket": "ddtcgbd.firebasestorage.app",
-  "messagingSenderId": "326585179405"
+  "messagingSenderId": "326585179405",
+  "measurementId": "G-4FLGFXTEZ5"
 }

@@ -258,6 +258,20 @@ export function AuthModal({ isOpen, onClose, isDarkMode, showToast, user, onLogo
                   </>
                 )}
               </button>
+              
+              {isLogin && (
+                <div className="flex justify-center">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      alert(`调试信息 (Debugging Info):\n1. 域名: ${window.location.hostname}\n2. 浏览器: ${navigator.userAgent}\n3. Iframe: ${isIframe}\n4. 登录状态: ${!!user}`);
+                    }}
+                    className="text-[9px] text-slate-500 uppercase tracking-tighter hover:underline"
+                  >
+                    无法登录？查看诊断信息 (Auth Help)
+                  </button>
+                </div>
+              )}
             </form>
 
             <div className="mt-6 flex items-center gap-4 py-2">
@@ -278,18 +292,22 @@ export function AuthModal({ isOpen, onClose, isDarkMode, showToast, user, onLogo
               使用 Google 登录
             </button>
 
-            {(isSafari || isIframe) && (
-              <div className="space-y-3 mt-4">
+            {(isSafari || isIframe || /iPhone|iPad|Android/i.test(navigator.userAgent)) && (
+              <div className="space-y-3 mt-4 animate-pulse-slow">
                 <a
                   href={window.location.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full py-4 bg-orange-500 text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-orange-500/30 active:scale-[0.98] transition-all"
+                  className="w-full py-4 bg-orange-600 text-white rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg shadow-orange-500/40 active:scale-[0.98] transition-all border-2 border-white/20"
                 >
                   <ExternalLink size={18} />
-                  在新窗口中打开 (解决登录无反应)
+                  在新窗口打开 (解决登录无反应)
                 </a>
                 
+                <p className="text-[10px] text-center text-orange-500 font-bold px-4">
+                  💡 如果点击上方“Google 登录”无反应，请务必点击这个橙色按钮。
+                </p>
+
                 <div className={cn(
                   "p-3 rounded-xl border text-left",
                   isDarkMode ? "bg-slate-900 border-slate-800" : "bg-slate-50 border-slate-200"

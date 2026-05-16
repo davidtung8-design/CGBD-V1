@@ -132,6 +132,43 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
         </div>
 
+        {/* FAQ & Manuals */}
+        <div className="bento-card p-10 bg-slate-950">
+           <div className="flex items-center gap-3 mb-8">
+              <History size={16} className="text-blue-500" />
+              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Survival & Manual Matrix</h3>
+           </div>
+           
+           <div className="space-y-8">
+             <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                <h4 className="text-[11px] font-bold text-white uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> 手机登录无反应？
+                </h4>
+                <p className="text-[10px] text-slate-500 leading-relaxed uppercase">
+                  由于移动端浏览器的各种限制，请在登录界面点击橙色按钮 “在新窗口打开”。这将帮助绕过 iframe 或弹出窗拦截。
+                </p>
+             </div>
+
+             <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                <h4 className="text-[11px] font-bold text-white uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 关于 Firebase Hosting
+                </h4>
+                <p className="text-[10px] text-slate-500 leading-relaxed uppercase">
+                  不是必须的。但如果您希望使用极速解析和更简洁的 Auth 域名，可以在 Firebase Console 开启它。
+                </p>
+             </div>
+
+             <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                <h4 className="text-[11px] font-bold text-white uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span> OFFLINE / 离线报错？
+                </h4>
+                <p className="text-[10px] text-slate-500 leading-relaxed uppercase">
+                  请确认您已在 Firebase 控制台的 "Firestore Database" 栏目中点击了 "Create Database" 按钮。
+                </p>
+             </div>
+           </div>
+        </div>
+
         {/* Global Configs */}
         <div className="bento-card p-2 flex flex-col justify-center divide-y divide-slate-800/50">
            <div 

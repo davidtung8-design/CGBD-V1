@@ -71,44 +71,34 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
-  console.log("Current Domain Identification:", {
-    origin: window.location.origin,
-    hostname: window.location.hostname,
-    href: window.location.href
-  });
-
+  const hostname = window.location.hostname;
+  
   try {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 0);
     const isIframe = window.self !== window.top;
     
-    // On iOS Safari, popups are often blocked, and in itrames they are even worse.
-    // If in iframe, we MUST use a separate tab eventually, but we can try to redirect.
-    if (isIframe) {
-      console.log("Environment: Iframe detected. Redirecting might feel like 'no reaction' if blocked.");
-      // We'll proceed but the AuthModal already has a 'standalone' button.
+    // Attempt Popup first (except in iframe where it's always blocked)
+    if (!isIframe) {
+      try {
+        console.log("Attempting signInWithPopup");
+        const result = await signInWithPopup(auth, googleProvider);
+        return result.user;
+      } catch (popupError: any) {
+        console.log("Popup failed/blocked, falling back to redirect:", popupError.code);
+        if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/cancelled-popup-request') {
+          // Fall through to redirect
+        } else if (popupError.code === 'auth/unauthorized-domain') {
+          throw new Error(`域名未授权 (Unauthorized Domain): ${hostname}`);
+        } else {
+          throw popupError;
+        }
+      }
     }
 
-    if (isMobile || isIframe) {
-      console.log("Auth Strategy: signInWithRedirect");
-      // Add a small delay or non-blocking notification for UX
-      try {
-        await signInWithRedirect(auth, googleProvider);
-      } catch (redirectError: any) {
-        console.error("Redirect call failed:", redirectError);
-        if (redirectError.code === 'auth/unauthorized-domain') {
-          throw new Error(`域名未授权 (Unauthorized Domain).\n当前域名: ${window.location.hostname}\n当前 Firebase 项目: ${firebaseConfig.projectId}`);
-        }
-        throw redirectError;
-      }
-    } else {
-      console.log("Auth Strategy: signInWithPopup");
-      const result = await signInWithPopup(auth, googleProvider);
-      return result.user;
-    }
+    console.log("Executing signInWithRedirect");
+    await signInWithRedirect(auth, googleProvider);
   } catch (error: any) {
-    console.error("Sign-in core error:", error);
     if (error.code === 'auth/unauthorized-domain') {
-       throw new Error(`域名未授权 (Unauthorized Domain).\n当前域名: ${window.location.hostname}\n当前 Firebase 项目: ${firebaseConfig.projectId}\n\n如果您已在控制台添加此域名，请检查:\n1. 是否添加到了正确的项目: ${firebaseConfig.projectId}\n2. 等待 2-3 分钟生效\n3. 清除 Safari 缓存或在全屏模式下打开。`);
+       throw new Error(`域名未授权 (Unauthorized Domain): ${hostname}`);
     }
     throw error;
   }
@@ -158,10 +148,19 @@ export async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
     console.log("Firestore Connection: OK");
+    return { success: true };
   } catch (error: any) {
     console.error("Firestore connection attempt failed:", error);
-    if (error.message && (error.message.includes('the client is offline') || error.message.includes('permission-denied'))) {
-       console.error("Please check your Firebase configuration and Security Rules.");
+    let reason = "Unknown error";
+    if (error.message && error.message.includes('the client is offline')) {
+      reason = "网络离线或无法连接 Firebase 服务器 (Client is offline or Firebase unreachable)";
+    } else if (error.code === 'permission-denied') {
+      reason = "权限被拒绝 (Permission Denied). 请检查 Firestore 规则";
+    } else if (error.message && error.message.includes('failed-precondition')) {
+      reason = "项目未初始化 (Project not initialized). 请在控制台点击 'Create Database'";
+    } else {
+      reason = error.message;
     }
+    return { success: false, reason, code: error.code };
   }
 }

@@ -113,6 +113,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [ambientSound, setAmbientSound] = useState(false);
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: "", visible: false });
+  const [connectionError, setConnectionError] = useState<{ reason: string; code?: string } | null>(null);
 
   const showToast = useCallback((message: string) => {
     setToast({ message, visible: true });
@@ -160,7 +161,11 @@ export default function App() {
 
     setEncouragement(ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)]);
     
-    testConnection();
+    testConnection().then(res => {
+      if (!res.success) {
+        setConnectionError({ reason: res.reason || "Unknown", code: res.code });
+      }
+    });
 
     // Handle redirect result (for mobile Safari)
     import('./lib/firebase').then(({ handleRedirectResult }) => {
@@ -680,6 +685,30 @@ export default function App() {
       )}>
         <p className="text-xs font-bold uppercase tracking-widest">{toast.message}</p>
       </div>
+
+      {/* Connection Error Banner */}
+      <AnimatePresence>
+        {connectionError && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-0 left-0 right-0 z-[1100] bg-red-600 text-white px-6 py-4 flex flex-col sm:flex-row items-center justify-center gap-4 text-center shadow-xl"
+          >
+            <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
+              <RefreshCw size={16} className="animate-spin-slow" />
+              <span>数据库连接异常 / Firestore Offline</span>
+            </div>
+            <p className="text-xs font-medium opacity-90 max-w-2xl">{connectionError.reason}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-1.5 bg-white text-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-colors"
+            >
+              Retry / 重试
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className={cn(
         "mx-auto max-w-7xl px-4 sm:px-6 mb-24 transition-all duration-700",

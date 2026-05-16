@@ -58,34 +58,15 @@ service cloud.firestore {
 
     // --- Rules ---
 
+    match /test/connection {
+      allow read: if true;
+    }
+
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow read, write: if isOwner(userId);
       
-      match /perf/main {
-        allow get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidUserPerf(incoming());
-        allow update: if isOwner(userId) && isValidUserPerf(incoming());
-      }
-      
-      match /events/{eventId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidId(eventId) && isValidCalendarEvent(incoming());
-        allow update: if isOwner(userId) && isValidCalendarEvent(incoming());
-        allow delete: if isOwner(userId);
-      }
-      
-      match /todos/{date} {
-        allow get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidId(date) && isValidDailyTodo(incoming());
-        allow update: if isOwner(userId) && isValidDailyTodo(incoming());
-        allow delete: if isOwner(userId);
-      }
-      
-      match /daily/{date} {
-        allow get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidId(date) && isValidDailyRecord(incoming());
-        allow update: if isOwner(userId) && isValidDailyRecord(incoming());
-        allow delete: if isOwner(userId);
+      match /{allPaths=**} {
+        allow read, write: if isOwner(userId);
       }
     }
   }
