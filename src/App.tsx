@@ -169,6 +169,9 @@ export default function App() {
           setUser(currentUser);
           showToast("Redirect Login Success");
         }
+      }).catch(err => {
+        console.error("Redirect Result Error:", err);
+        // Don't show toast for every minor issue, but log it
       });
     });
 

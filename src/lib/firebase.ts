@@ -71,21 +71,38 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
+  console.log("Current Domain Identification:", {
+    origin: window.location.origin,
+    hostname: window.location.hostname,
+    href: window.location.href
+  });
+
   try {
     // In AI Studio (iframe) or Mobile browsers, Popups often fail or cause unauthorized-domain errors.
     // We force redirect for better compatibility.
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // Updated detection to cover modern iPads (which identify as Macintosh)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 0);
     const isIframe = window.self !== window.top;
     
     if (isMobile || isIframe) {
-      console.log("Forcing signInWithRedirect due to environment (Mobile/Iframe)");
-      await signInWithRedirect(auth, googleProvider);
+      console.log("Forcing signInWithRedirect due to environment (Mobile/Touch/Iframe)");
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (redirectError: any) {
+        if (redirectError.code === 'auth/unauthorized-domain') {
+          throw new Error(`域名未授权 (Unauthorized Domain).\n当前域名: ${window.location.hostname}\n请在 Firebase 控制台的 Authorized Domains 中添加此域名。`);
+        }
+        throw redirectError;
+      }
     } else {
       const result = await signInWithPopup(auth, googleProvider);
       return result.user;
     }
-  } catch (error) {
-    console.error("Error signing in with Google:", error);
+  } catch (error: any) {
+    console.error("Sign-in error detail:", error);
+    if (error.code === 'auth/unauthorized-domain') {
+       throw new Error(`域名未授权 (Unauthorized Domain).\n当前域名: ${window.location.hostname}\n解决办法: \n1. 复制此域名: ${window.location.hostname}\n2. 到 Firebase -> Authentication -> Settings -> Authorized Domains\n3. 点击 [Add domain] 并粘贴。`);
+    }
     throw error;
   }
 };
