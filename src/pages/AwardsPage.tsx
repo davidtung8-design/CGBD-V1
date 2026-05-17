@@ -26,10 +26,12 @@ interface ContestDefinition {
 }
 
 const CONTESTS: ContestDefinition[] = [
-  // Superbeez Series (Quarterly)
-  { id: '2.1-Q1', name: 'Superbeez Q1', chineseName: '超级蜜蜂 Q1', description: 'Min 25 NOC in Quarter 1 (Jan-Mar)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 1, category: 'sales', icon: <Medal size={20} />, color: 'from-white to-slate-400' },
-  { id: '2.1-Q2', name: 'Superbeez Q2', chineseName: '超级蜜蜂 Q2', description: 'Min 25 NOC in Quarter 2 (Apr-Jun)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 2, category: 'sales', icon: <Medal size={20} />, color: 'from-white to-slate-500' },
-  { id: '2.1-Q3', name: 'Superbeez Q3', chineseName: '超级蜜蜂 Q3', description: 'Min 25 NOC in Quarter 3 (Jul-Sep)', targetMetric: 'noc', targetValue: 25, period: 'quarterly', specificQuarter: 3, category: 'sales', icon: <Medal size={20} />, color: 'from-white to-slate-600' },
+  // Superbeez Series (Quarterly Tiers)
+  { id: '2.0', name: 'Superbeez Bronze', chineseName: '超级蜜蜂 (铜)', description: '6 NOC in a quarter with Avg Case Size RM 2,400', targetMetric: 'noc', targetValue: 6, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-amber-700 to-amber-900' },
+  { id: '2.1s', name: 'Superbeez Silver', chineseName: '超级蜜蜂 (银)', description: '12 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 12, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-400 to-slate-600' },
+  { id: '2.1g', name: 'Superbeez Gold', chineseName: '超级蜜蜂 (金)', description: '18 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 18, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-yellow-400 to-yellow-600' },
+  { id: '2.1p', name: 'Superbeez Platinum', chineseName: '超级蜜蜂 (白金)', description: '24 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 24, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-200 to-slate-400' },
+  { id: '2.1c', name: 'Superbeez Crown', chineseName: '超级蜜蜂 (皇冠)', description: '30 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 30, period: 'quarterly', category: 'sales', icon: <Crown size={20} />, color: 'from-rose-400 to-orange-500' },
   
   // Management Awards
   { id: '2.3', name: 'Superbeez Builder', chineseName: '超级蜜蜂增员奖', description: 'Min 2 Superbeez Award Qualifiers in DG (Excl. Personal Sales)', targetMetric: 'qualifier', targetValue: 2, period: 'quarterly', category: 'management', icon: <Users size={20} />, color: 'from-orange-400 to-rose-600' },
@@ -123,7 +125,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-12">
               <div className="space-y-1">
                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total ANP Captured</div>
-                 <div className="text-3xl font-mono font-bold text-white">${formatNumber(stats.totalANP)}</div>
+                 <div className="text-3xl font-mono font-bold text-white">RM {formatNumber(stats.totalANP)}</div>
               </div>
               <div className="space-y-1">
                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Aggregate NOC Nodes</div>
@@ -162,7 +164,19 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
           
           const progress = Math.min(100, (currentVal / contest.targetValue) * 100);
           const deficit = Math.max(0, contest.targetValue - currentVal);
-          const isAchieved = currentVal >= contest.targetValue;
+          
+          // Special logic for Superbeez Average Case Size
+          let avgCaseSizeOk = true;
+          if (contest.id.startsWith('2.')) {
+            const currentANP = contest.period === 'quarterly' ? targetStats.anp : stats.totalANP;
+            const currentNOC = currentVal; // currentVal is NOC for these
+            const requiredAvg = contest.id === '2.0' ? 2400 : 3000;
+            if (currentNOC > 0 && (currentANP / currentNOC) < requiredAvg) {
+              avgCaseSizeOk = false;
+            }
+          }
+
+          const isAchieved = currentVal >= contest.targetValue && avgCaseSizeOk;
 
           return (
             <motion.div 
@@ -212,15 +226,15 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
                   <div className="flex justify-between text-[8px] font-bold text-slate-600 uppercase mb-2 px-1">
                     <div className="flex flex-col items-center">
                       <span>Q1</span>
-                      <span className={cn(currentVal >= contest.quarterlyProgress.q1 ? "text-emerald-500" : "")}>${formatNumber(contest.quarterlyProgress.q1)}</span>
+                      <span className={cn(currentVal >= contest.quarterlyProgress.q1 ? "text-emerald-500" : "")}>RM {formatNumber(contest.quarterlyProgress.q1)}</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <span>Q2</span>
-                      <span className={cn(currentVal >= contest.quarterlyProgress.q2 ? "text-emerald-500" : "")}>${formatNumber(contest.quarterlyProgress.q2)}</span>
+                      <span className={cn(currentVal >= contest.quarterlyProgress.q2 ? "text-emerald-500" : "")}>RM {formatNumber(contest.quarterlyProgress.q2)}</span>
                     </div>
                     <div className="flex flex-col items-center">
                       <span>Q3</span>
-                      <span className={cn(currentVal >= contest.quarterlyProgress.q3 ? "text-emerald-500" : "")}>${formatNumber(contest.quarterlyProgress.q3)}</span>
+                      <span className={cn(currentVal >= contest.quarterlyProgress.q3 ? "text-emerald-500" : "")}>RM {formatNumber(contest.quarterlyProgress.q3)}</span>
                     </div>
                   </div>
                 )}
@@ -231,12 +245,12 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
                      <div className="text-2xl font-mono font-black text-white">
                        {['noc', 'recruit', 'qualifier'].includes(contest.targetMetric)
                          ? currentVal 
-                         : `$${formatNumber(currentVal)}`
+                         : `RM ${formatNumber(currentVal)}`
                        }
                        <span className="text-slate-600 text-xs font-normal ml-2">
                          / {['noc', 'recruit', 'qualifier'].includes(contest.targetMetric)
                            ? contest.targetValue 
-                           : `$${formatNumber(contest.targetValue)}`
+                           : `RM ${formatNumber(contest.targetValue)}`
                          }
                        </span>
                      </div>
@@ -267,9 +281,16 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
                           <CheckCircleIcon size={10} /> Qualification Met
                         </span>
                      ) : (
-                        `Gap: ${['noc', 'recruit', 'qualifier'].includes(contest.targetMetric)
-                          ? deficit 
-                          : `$${formatNumber(deficit)}`}`
+                        <div className="flex flex-col gap-0.5">
+                          <span>
+                            {['noc', 'recruit', 'qualifier'].includes(contest.targetMetric)
+                              ? `Gap: ${deficit}` 
+                              : `Gap: RM ${formatNumber(deficit)}`}
+                          </span>
+                          {!avgCaseSizeOk && currentVal > 0 && (
+                            <span className="text-rose-500 text-[7px] lowercase italic">Avg case size below threshold</span>
+                          )}
+                        </div>
                      )}
                    </div>
                    <div className="p-1 px-2 rounded-md bg-slate-800/20 text-[8px] font-bold text-slate-500 uppercase">

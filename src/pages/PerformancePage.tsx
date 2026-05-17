@@ -18,6 +18,7 @@ interface PerformancePageProps {
   setAmbientSound: (on: boolean) => void;
   selectedSound: 'rain' | 'zen' | 'ocean' | 'lofi';
   setSelectedSound: (sound: 'rain' | 'zen' | 'ocean' | 'lofi') => void;
+  setHasInteracted: (interacted: boolean) => void;
 }
 
 export const PerformancePage: React.FC<PerformancePageProps> = ({ 
@@ -33,7 +34,8 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
   ambientSound,
   setAmbientSound,
   selectedSound,
-  setSelectedSound
+  setSelectedSound,
+  setHasInteracted
 }) => {
   const formatFocusTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -79,6 +81,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                 onClick={() => {
                   setSelectedSound(snd.id as any);
                   setAmbientSound(true);
+                  setHasInteracted(true);
                 }}
                 className={cn(
                   "w-10 h-10 flex items-center justify-center rounded-lg transition-all",

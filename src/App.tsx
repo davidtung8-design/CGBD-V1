@@ -109,11 +109,18 @@ export default function App() {
     const hasChinese = /[\u4e00-\u9fa5]/.test(text);
     if (hasChinese) {
         utterance.lang = 'zh-CN';
-        utterance.rate = 1.6; // Faster as requested
-        utterance.pitch = 1.1; 
+        utterance.rate = 1.0; // Reduced from 1.6 to avoid "too fast" on iOS
+        utterance.pitch = 1.0; 
+        
+        // Try to find a specific Mandarin voice to avoid Cantonese fallback on iOS
+        const voices = window.speechSynthesis.getVoices();
+        const mandarinVoice = voices.find(v => v.lang.includes('zh-CN') || v.lang.includes('zh-SG'));
+        if (mandarinVoice) {
+            utterance.voice = mandarinVoice;
+        }
     } else {
         utterance.lang = 'en-US';
-        utterance.rate = 1.3;
+        utterance.rate = 1.0;
     }
 
     utterance.onend = () => setIsSpeaking(false);
@@ -2096,6 +2103,7 @@ export default function App() {
             setAmbientSound={setAmbientSound}
             selectedSound={selectedSound}
             setSelectedSound={setSelectedSound}
+            setHasInteracted={setHasInteracted}
           />
         )}
         {currentPage === 'list' && (
@@ -2130,6 +2138,7 @@ export default function App() {
           backups={backups}
           onCreateBackup={handleCreateBackup}
           onRestoreBackup={handleRestoreBackup}
+          setHasInteracted={setHasInteracted}
           onClearData={() => {
             localStorage.clear();
             window.location.reload();

@@ -29,6 +29,7 @@ interface SettingsPageProps {
   onCreateBackup: () => void;
   onRestoreBackup: (id: string) => void;
   onClearData: () => void;
+  setHasInteracted: (val: boolean) => void;
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ 
@@ -38,7 +39,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   onStartFocusTimer, isFocusTimerRunning, focusTime, formatFocusTime,
   targetMins, setTargetMins, onToggleTimer, onOpenLargeTimer,
   backups, onCreateBackup, onRestoreBackup,
-  onClearData 
+  onClearData,
+  setHasInteracted
 }) => {
   return (
     <div className="animate-fadeIn space-y-6">
@@ -93,7 +95,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               return (
                 <button 
                   key={key}
-                  onClick={() => setThemeKey(key)}
+                  onClick={() => {
+                    setThemeKey(key);
+                    setHasInteracted(true);
+                  }}
                   className={cn(
                     "group relative aspect-square rounded-2xl border-2 transition-all hover:scale-105 active:scale-95",
                     themeKey === key ? "border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]" : "border-slate-800"
@@ -200,7 +205,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         ] as const).map((s) => (
                           <button
                             key={s.id}
-                            onClick={() => setSelectedSound(s.id)}
+                            onClick={() => {
+                              setSelectedSound(s.id);
+                              setAmbientSound(true);
+                              setHasInteracted(true);
+                            }}
                             className={cn(
                               "px-3 py-2 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all",
                               selectedSound === s.id 
