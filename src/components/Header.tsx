@@ -52,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-3">
           <DTIcon theme={theme} size={32} />
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center">
-            时间管理大师 
+            时间管理<span style={{ color: theme.accent }}>大师</span> 
             {isLoggedIn && (
               <span className="ml-3 px-2 py-0.5 bg-emerald-500 text-white text-[9px] font-black rounded-lg shadow-lg shadow-emerald-500/20 animate-pulse uppercase tracking-tighter">
                 Online Sync

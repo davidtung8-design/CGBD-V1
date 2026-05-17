@@ -33,18 +33,12 @@ export const GROUP_CONFIG = {
 };
 
 export const THEMES: Record<ThemeKey, ThemeConfig> = {
-  default: { name: "经典森林", bg: "#1b4332", accent: "#ff8c42", text: "#ffffff", headerBg: "rgba(255,255,250,0.95)", border: "#ff8c42" },
-  ocean: { name: "深海蓝", bg: "#0d3b66", accent: "#48c9b0", text: "#ffffff", headerBg: "rgba(255,255,250,0.95)", border: "#48c9b0" },
-  sunset: { name: "热情红橙", bg: "#9a031e", accent: "#f4d03f", text: "#ffffff", headerBg: "rgba(255,255,250,0.95)", border: "#f4d03f" },
-  purple: { name: "紫罗兰", bg: "#4a148c", accent: "#f7dc6f", text: "#ffffff", headerBg: "rgba(255,255,250,0.95)", border: "#f7dc6f" },
-  midnight: { name: "暗夜黑", bg: "#0a0a0c", accent: "#e94560", text: "#ffffff", headerBg: "#0a0a0c", border: "#e94560" },
-  cherry: { name: "樱花粉", bg: "#8a1c43", accent: "#f8c291", text: "#ffffff", headerBg: "rgba(255,255,250,0.95)", border: "#f8c291" },
-  sunny: { name: "阳光黄", bg: "#946b00", accent: "#f39c12", text: "#ffffff", headerBg: "rgba(255,255,250,0.95)", border: "#f39c12" },
-  gold: { name: "冠军金", bg: "#5c4d00", accent: "#f9e79f", text: "#ffffff", headerBg: "rgba(255,255,250,0.95)", border: "#f9e79f" },
-  mint: { name: "薄荷绿", bg: "#006d5b", accent: "#e74c3c", text: "#ffffff", headerBg: "rgba(255,255,250,0.95)", border: "#e74c3c" },
-  autumn: { name: "秋日橙", bg: "#873600", accent: "#f39c12", text: "#ffffff", headerBg: "rgba(255,255,250,0.95)", border: "#f39c12" },
-  sapphire: { name: "宝石蓝", bg: "#1a5276", accent: "#f1c40f", text: "#ffffff", headerBg: "rgba(255,255,250,0.95)", border: "#f1c40f" },
-  forest: { name: "松石绿", bg: "#0b5345", accent: "#eb984e", text: "#ffffff", headerBg: "rgba(255,255,250,0.95)", border: "#eb984e" }
+  default: { name: "Slate Core", bg: "#0f172a", accent: "#38bdf8", text: "#ffffff", headerBg: "rgba(15,23,42,0.9)", border: "#38bdf8" },
+  neon: { name: "Neon Cyber", bg: "#050505", accent: "#ccff00", text: "#ffffff", headerBg: "rgba(5,5,5,0.9)", border: "#ccff00" },
+  rose: { name: "Rose Berry", bg: "#1e1b4b", accent: "#f472b6", text: "#ffffff", headerBg: "rgba(30,27,75,0.9)", border: "#f472b6" },
+  emerald: { name: "Emerald Glade", bg: "#064e3b", accent: "#34d399", text: "#ffffff", headerBg: "rgba(6,78,59,0.9)", border: "#34d399" },
+  amber: { name: "Amber Sands", bg: "#422006", accent: "#fbbf24", text: "#ffffff", headerBg: "rgba(66,32,6,0.9)", border: "#fbbf24" },
+  midnight: { name: "Noir Crimson", bg: "#000000", accent: "#ff4d4d", text: "#ffffff", headerBg: "rgba(0,0,0,0.9)", border: "#ff4d4d" }
 };
 
 export const ENCOURAGEMENTS = INSPIRATIONAL_QUOTES;

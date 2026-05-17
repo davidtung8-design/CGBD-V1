@@ -14,11 +14,6 @@ interface PerformancePageProps {
   setTargetMins: React.Dispatch<React.SetStateAction<number>>;
   toggleFocusedTimer: () => void;
   setIsLargeTimerOpen: (open: boolean) => void;
-  ambientSound: boolean;
-  setAmbientSound: (on: boolean) => void;
-  selectedSound: 'rain' | 'zen' | 'ocean' | 'lofi';
-  setSelectedSound: (sound: 'rain' | 'zen' | 'ocean' | 'lofi') => void;
-  setHasInteracted: (interacted: boolean) => void;
 }
 
 export const PerformancePage: React.FC<PerformancePageProps> = ({ 
@@ -30,12 +25,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
   targetMins,
   setTargetMins,
   toggleFocusedTimer,
-  setIsLargeTimerOpen,
-  ambientSound,
-  setAmbientSound,
-  selectedSound,
-  setSelectedSound,
-  setHasInteracted
+  setIsLargeTimerOpen
 }) => {
   const formatFocusTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -66,43 +56,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
         <div className="flex flex-col gap-4 w-full md:w-auto">
           <div className="flex items-center gap-3">
             <Zap size={18} className="text-white" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">Tactical Focus & Ambient</h3>
-          </div>
-          
-          <div className="flex items-center gap-1 bg-slate-800/20 rounded-xl p-1.5 border border-slate-800/40 w-fit">
-            {[
-              { id: 'rain', icon: CloudRain, label: 'Atmospheric Rain' },
-              { id: 'zen', icon: Moon, label: 'Zen Resonance' },
-              { id: 'ocean', icon: Waves, label: 'Oceanic Drift' },
-              { id: 'lofi', icon: Coffee, label: 'Flux Mind Lofi' }
-            ].map(snd => (
-              <button
-                key={snd.id}
-                onClick={() => {
-                  setSelectedSound(snd.id as any);
-                  setAmbientSound(true);
-                  setHasInteracted(true);
-                }}
-                className={cn(
-                  "w-10 h-10 flex items-center justify-center rounded-lg transition-all",
-                  selectedSound === snd.id && ambientSound
-                    ? "bg-white text-slate-950 shadow-lg shadow-white/20"
-                    : "text-slate-500 hover:text-slate-200 hover:bg-slate-800/50"
-                )}
-                title={snd.label}
-              >
-                <snd.icon size={16} />
-              </button>
-            ))}
-            {ambientSound && (
-              <button 
-                onClick={() => setAmbientSound(false)}
-                className="ml-1 w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                title="Turn off sound"
-              >
-                <VolumeX size={16} />
-              </button>
-            )}
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">Tactical Focus Protocol</h3>
           </div>
         </div>
 
@@ -222,22 +176,23 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
           
           <div className="space-y-8">
             {[
-              { label: 'Core ANP Achievement', current: personalPct, color: 'bg-white' },
-              { label: 'FYC Commission Flow', current: fycPct, color: 'bg-slate-400' },
-              { label: 'Team Coverage Matrix', current: teamPct, color: 'bg-slate-500' },
-              { label: 'Recruitment Flow Velocity', current: recruitPct, color: 'bg-slate-600' }
+              { label: 'Core ANP Achievement', current: personalPct },
+              { label: 'FYC Commission Flow', current: fycPct },
+              { label: 'Team Coverage Matrix', current: teamPct },
+              { label: 'Recruitment Flow Velocity', current: recruitPct }
             ].map((p, idx) => (
               <div key={idx} className="space-y-3">
                 <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-slate-500">
                   <span>{p.label}</span>
-                  <span className={cn("font-mono", idx === 0 ? "text-white" : idx === 1 ? "text-slate-400" : "text-slate-500")}>{p.current}%</span>
+                  <span className="font-mono text-white">{p.current}%</span>
                 </div>
-                <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${p.current}%` }}
                     transition={{ duration: 1, delay: 0.2 + idx * 0.1 }}
-                    className={cn("h-full rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(255,255,255,0.2)]", p.color)} 
+                    className="h-full rounded-full transition-all duration-1000 shadow-[0_0_20px_var(--accent-color)]"
+                    style={{ backgroundColor: theme.accent, opacity: 1 - (idx * 0.2) }}
                   />
                 </div>
               </div>

@@ -13,10 +13,6 @@ interface SettingsPageProps {
   setIsDarkMode: (val: boolean) => void;
   isFocusMode: boolean;
   setIsFocusMode: (val: boolean) => void;
-  ambientSound: boolean;
-  setAmbientSound: (val: boolean) => void;
-  selectedSound: 'rain' | 'zen' | 'ocean' | 'lofi';
-  setSelectedSound: (val: 'rain' | 'zen' | 'ocean' | 'lofi') => void;
   onStartFocusTimer: (mins: number) => void;
   isFocusTimerRunning: boolean;
   focusTime: number;
@@ -29,25 +25,24 @@ interface SettingsPageProps {
   onCreateBackup: () => void;
   onRestoreBackup: (id: string) => void;
   onClearData: () => void;
-  setHasInteracted: (val: boolean) => void;
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ 
   themeKey, setThemeKey, isDarkMode, setIsDarkMode, 
-  isFocusMode, setIsFocusMode, ambientSound, setAmbientSound,
-  selectedSound, setSelectedSound,
+  isFocusMode, setIsFocusMode,
   onStartFocusTimer, isFocusTimerRunning, focusTime, formatFocusTime,
   targetMins, setTargetMins, onToggleTimer, onOpenLargeTimer,
   backups, onCreateBackup, onRestoreBackup,
-  onClearData,
-  setHasInteracted
+  onClearData
 }) => {
+  const currentTheme = THEMES[themeKey] || THEMES.default;
+
   return (
     <div className="animate-fadeIn space-y-6">
       {/* Profile Bento Card */}
       <div className="bento-card p-10 overflow-hidden relative group">
         <div className="absolute -bottom-10 -right-10 opacity-5 group-hover:scale-110 transition-transform duration-700">
-          <DTIcon theme={THEMES[themeKey]} size={300} />
+          <DTIcon theme={currentTheme} size={300} />
         </div>
         
         <div className="relative z-10 flex flex-col items-center text-center">
@@ -83,34 +78,47 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Theme Matrix */}
-        <div className="bento-card p-8">
+        <div className="bento-card p-8 group">
           <div className="flex items-center gap-2 mb-8">
-            <Award size={16} className="text-slate-500" />
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Atmosphere Modules</h3>
+            <Award size={16} style={{ color: currentTheme.accent }} />
+            <h3 className="text-xs font-bold uppercase tracking-widest transition-colors" style={{ color: currentTheme.accent }}>Atmosphere Modules</h3>
           </div>
           
           <div className="grid grid-cols-4 gap-4">
             {(Object.keys(THEMES) as ThemeKey[]).map((key) => {
               const t = THEMES[key];
+              const isSelected = themeKey === key;
               return (
-                <button 
-                  key={key}
-                  onClick={() => {
-                    setThemeKey(key);
-                    setHasInteracted(true);
-                  }}
-                  className={cn(
-                    "group relative aspect-square rounded-2xl border-2 transition-all hover:scale-105 active:scale-95",
-                    themeKey === key ? "border-white shadow-[0_0_20px_rgba(255,255,255,0.3)]" : "border-slate-800"
-                  )}
-                  style={{ background: `linear-gradient(135deg, ${t.bg}, ${t.accent})` }}
-                >
-                  {themeKey === key && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-[2px] rounded-xl">
-                      <div className="w-2 h-2 bg-white rounded-full animate-ping" />
-                    </div>
-                  )}
-                </button>
+                <div key={key} className="flex flex-col items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      setThemeKey(key);
+                    }}
+                    className={cn(
+                      "group relative w-full aspect-square rounded-2xl border-2 transition-all hover:scale-105 active:scale-95 overflow-hidden",
+                      isSelected ? "border-white shadow-[0_0_30px_var(--accent-color)]" : "border-slate-800"
+                    )}
+                    style={{ background: t.bg }}
+                  >
+                    {/* Theme Accent Preview Split */}
+                    <div 
+                      className="absolute bottom-0 right-0 w-2/3 h-2/3 rounded-tl-[3rem] transition-transform duration-500 group-hover:scale-110 shadow-[-10px_-10px_30px_rgba(0,0,0,0.5)]"
+                      style={{ backgroundColor: t.accent }}
+                    />
+                    
+                    {isSelected && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/10 backdrop-blur-[1px]">
+                        <div className="w-2 h-2 bg-white rounded-full shadow-[0_0_15px_white] animate-ping" />
+                      </div>
+                    )}
+                  </button>
+                  <span className={cn(
+                    "text-[8px] uppercase tracking-tighter transition-colors",
+                    isSelected ? "text-white font-black" : "text-slate-600"
+                  )}>
+                    {t.name}
+                  </span>
+                </div>
               );
             })}
           </div>
@@ -174,56 +182,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   </div>
                 </div>
               </div>
-
-              <div className="p-4 bg-slate-900/50 rounded-[1.5rem] border border-slate-800">
-                <div className="flex flex-col gap-4">
-                   <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                         <div className={cn("p-2 rounded-xl transition-colors", ambientSound ? "bg-emerald-500 text-white" : "bg-slate-800 text-slate-500")}>
-                            <Phone size={14} />
-                         </div>
-                         <div>
-                            <span className="block text-[10px] font-bold text-white uppercase tracking-widest">Ambient Sound Node</span>
-                            <span className="block text-[8px] text-slate-500 uppercase">Strategic audio mask</span>
-                         </div>
-                      </div>
-                      <button 
-                        onClick={() => setAmbientSound(!ambientSound)}
-                        className={cn("w-8 h-4 rounded-full relative transition-colors", ambientSound ? "bg-emerald-600" : "bg-slate-700")}
-                      >
-                        <div className={cn("absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all", ambientSound ? "right-0.5" : "left-0.5")} />
-                      </button>
-                   </div>
-                   
-                   {ambientSound && (
-                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/50">
-                        {([
-                          { id: 'zen', label: 'Zen Resonance' },
-                          { id: 'rain', label: 'Atmospheric Rain' },
-                          { id: 'ocean', label: 'Oceanic Drift' },
-                          { id: 'lofi', label: 'Flux Mind Lofi' }
-                        ] as const).map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => {
-                              setSelectedSound(s.id);
-                              setAmbientSound(true);
-                              setHasInteracted(true);
-                            }}
-                            className={cn(
-                              "px-3 py-2 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all",
-                              selectedSound === s.id 
-                                ? "bg-emerald-500/20 border border-emerald-500/50 text-emerald-400" 
-                                : "bg-slate-800 border border-transparent text-slate-500 hover:text-slate-300"
-                            )}
-                          >
-                            {s.label}
-                          </button>
-                        ))}
-                     </div>
-                   )}
-                </div>
-             </div>
           </div>
         </div>
 

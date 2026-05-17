@@ -134,7 +134,7 @@ export interface PerfData {
   }>;
 }
 
-export type ThemeKey = 'default' | 'ocean' | 'sunset' | 'purple' | 'midnight' | 'cherry' | 'sunny' | 'gold' | 'mint' | 'autumn' | 'sapphire' | 'forest';
+export type ThemeKey = 'default' | 'neon' | 'rose' | 'emerald' | 'amber' | 'midnight';
 
 export interface ThemeConfig {
   name: string;

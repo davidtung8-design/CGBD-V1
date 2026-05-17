@@ -52,12 +52,7 @@ const DEFAULT_MONTHLY: MonthlyRecord[] = [
   month: data.m, target: 50000, actual: data.a, noc: 0, anp: 0, fyc: 0, recruitTarget: (data.m === "12月" ? 2 : 1), recruitActual: 0
 }));
 
-export const ambientSounds = {
-  rain: 'https://cdn.pixabay.com/audio/2021/09/06/audio_91993427f3.mp3', // High quality rain
-  zen: 'https://cdn.pixabay.com/audio/2022/01/18/audio_82e88a3818.mp3', // Crickets/Night (Countryside vibe)
-  ocean: 'https://cdn.pixabay.com/audio/2022/03/15/audio_7a0011a681.mp3', // Soft ocean waves
-  lofi: 'https://cdn.pixabay.com/audio/2022/05/27/audio_18087374a9.mp3' // Lofi beats
-};
+export const ambientSounds = {};
 
 const INITIAL_PERF: PerfData = {
   personalQ: 535211, teamQ: 0, recruitCount: 0, totalNOC: 0, totalANP: 0, totalFYC: 0,
@@ -165,14 +160,16 @@ export default function App() {
   const [isReflectionArchiveOpen, setIsReflectionArchiveOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [ambientSound, setAmbientSound] = useState(false);
-  const [selectedSound, setSelectedSound] = useState<'rain' | 'zen' | 'ocean' | 'lofi'>('zen');
-  const [hasInteracted, setHasInteracted] = useState(false);
   const [focusTime, setFocusTime] = useState(0); // in seconds
   const [targetMins, setTargetMins] = useState(30);
   const [isFocusTimerRunning, setIsFocusTimerRunning] = useState(false);
   const [isLargeTimerOpen, setIsLargeTimerOpen] = useState(false);
   const focusTimerRef = useRef<any>(null);
+  const chimeRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    chimeRef.current = new Audio('https://cdn.pixabay.com/audio/2022/03/10/audio_c35278d357.mp3');
+  }, []);
 
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: "", visible: false });
   const showToast = useCallback((message: string) => {
@@ -193,6 +190,9 @@ export default function App() {
             if (focusTimerRef.current) clearInterval(focusTimerRef.current);
             setIsFocusTimerRunning(false);
             showToast("Focus session complete!");
+            if (chimeRef.current) {
+              chimeRef.current.play().catch(e => console.warn("Chime failed:", e));
+            }
             return 0;
           }
           return prev - 1;
@@ -221,59 +221,6 @@ export default function App() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
   const [connectionError, setConnectionError] = useState<{ reason: string; code?: string } | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    // Initialize audio node
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.loop = true;
-      audioRef.current.volume = 0.3; // Default moderate volume
-      
-      audioRef.current.onerror = (e) => {
-        const error = audioRef.current?.error;
-        if (error && error.code !== 4) {
-          console.error("Audio system error:", error.code, error.message);
-          setAmbientSound(false);
-        }
-      };
-    }
-
-    const currentUrl = ambientSounds[selectedSound];
-    
-    // Ensure we have a valid URL before setting src
-    if (currentUrl && audioRef.current.src !== currentUrl) {
-      try {
-        audioRef.current.pause();
-        audioRef.current.src = currentUrl;
-        audioRef.current.load();
-      } catch (err) {
-        // Safe to ignore load errors here
-      }
-    }
-
-    const startPlayback = async () => {
-      if (ambientSound && hasInteracted && currentUrl && audioRef.current) {
-        try {
-          await audioRef.current.play();
-        } catch (error: any) {
-          if (error.name === "NotAllowedError") {
-            // Autoplay blocked by browser
-          } else if (error.name === "AbortError" || error.name === "NotSupportedError") {
-            setAmbientSound(false);
-          }
-        }
-      } else if (audioRef.current) {
-        audioRef.current.pause();
-      }
-    };
-
-    startPlayback();
-
-    return () => {
-      audioRef.current?.pause();
-    };
-  }, [ambientSound, selectedSound, hasInteracted]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(new Date());
 
@@ -283,16 +230,11 @@ export default function App() {
     if (savedDarkMode !== null) setIsDarkMode(savedDarkMode === 'true');
 
     const savedTheme = localStorage.getItem('dt_theme') as ThemeKey;
-    if (savedTheme) setThemeKey(savedTheme);
+    if (savedTheme && THEMES[savedTheme]) setThemeKey(savedTheme);
+    else setThemeKey('default');
 
     const savedFocus = localStorage.getItem('dt_focus');
     if (savedFocus) setIsFocusMode(savedFocus === 'true');
-
-    const savedSound = localStorage.getItem('dt_sound');
-    if (savedSound) setAmbientSound(savedSound === 'true');
-
-    const savedSelectedSound = localStorage.getItem('dt_selected_sound') as any;
-    if (savedSelectedSound) setSelectedSound(savedSelectedSound);
 
     setEncouragement(ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)]);
     
@@ -480,11 +422,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('dt_focus', isFocusMode.toString());
   }, [isFocusMode]);
-
-  useEffect(() => {
-    localStorage.setItem('dt_sound', ambientSound.toString());
-    localStorage.setItem('dt_selected_sound', selectedSound);
-  }, [ambientSound, selectedSound]);
 
   // --- Data Synchronization ---
   // Sync total performance figures from monthly records
@@ -868,23 +805,27 @@ export default function App() {
     }
   }, [events, baseDate, viewOffset, showToast]);
 
-  const handleInteraction = useCallback(() => {
-    if (!hasInteracted) {
-      setHasInteracted(true);
-      if (ambientSound && audioRef.current && audioRef.current.paused) {
-        audioRef.current.play().catch(e => console.warn("Failed to play audio on interaction:", e));
-      }
-    }
-  }, [hasInteracted, ambientSound]);
-
   // --- Rendering ---
   return (
-    <div className={cn("min-h-screen pb-24 transition-all duration-500", isDarkMode ? "dark" : "light-mode")} 
-      onClick={handleInteraction}
-      onKeyDown={handleInteraction}
+    <div className={cn("min-h-screen pb-24 transition-all duration-700", isDarkMode ? "dark" : "light-mode")} 
       style={{ 
-        fontFamily: '-apple-system, sans-serif' 
+        fontFamily: '-apple-system, sans-serif',
+        '--bg-color': isDarkMode ? theme.bg : '#f8fafc',
+        '--accent-color': theme.accent,
+        '--card-bg': isDarkMode ? `${theme.bg}cc` : '#ffffff',
+        '--border-color': isDarkMode ? `${theme.accent}33` : '#e2e8f0',
       } as React.CSSProperties}>
+      
+      {/* Deep Atmosphere Glow */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-1000"
+        style={{ 
+          background: `radial-gradient(circle at 50% -10%, ${theme.accent}22 0%, transparent 60%), 
+                     radial-gradient(circle at 0% 100%, ${theme.accent}11 0%, transparent 40%),
+                     radial-gradient(circle at 100% 100%, ${theme.accent}05 0%, transparent 30%)`,
+          backgroundColor: isDarkMode ? theme.bg : '#f8fafc'
+        }}
+      />
       
       {/* Toast Notification */}
       <div className={cn(
@@ -1006,11 +947,11 @@ export default function App() {
                       key={formatFocusTime(focusTime).split(':')[0]}
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
-                      className="text-[20rem] sm:text-[30rem] md:text-[42rem] font-black leading-none tracking-tighter tabular-nums text-transparent bg-clip-text bg-gradient-to-br from-orange-400 via-rose-500 to-indigo-600 drop-shadow-[0_0_80px_rgba(244,63,94,0.3)]"
+                      className="text-[12rem] xs:text-[15rem] sm:text-[20rem] md:text-[28rem] font-black leading-none tracking-tighter tabular-nums text-transparent bg-clip-text bg-gradient-to-br from-orange-400 via-rose-500 to-indigo-600 drop-shadow-[0_0_80px_rgba(244,63,94,0.3)]"
                     >
                       {formatFocusTime(focusTime).split(':')[0]}
                     </motion.span>
-                    <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-rose-500/20 mb-[4rem] sm:mb-[6rem] md:mb-[8rem] ml-10 tabular-nums">
+                    <span className="text-[3rem] xs:text-[4rem] sm:text-[6rem] md:text-[8rem] font-black text-rose-500/20 mb-[2rem] sm:mb-[4rem] md:mb-[5rem] ml-4 sm:ml-10 tabular-nums">
                       {formatFocusTime(focusTime).split(':')[1]}
                     </span>
                   </div>
@@ -2126,11 +2067,6 @@ export default function App() {
             setTargetMins={setTargetMins}
             toggleFocusedTimer={toggleFocusedTimer}
             setIsLargeTimerOpen={setIsLargeTimerOpen}
-            ambientSound={ambientSound}
-            setAmbientSound={setAmbientSound}
-            selectedSound={selectedSound}
-            setSelectedSound={setSelectedSound}
-            setHasInteracted={setHasInteracted}
           />
         )}
         {currentPage === 'list' && (
@@ -2150,10 +2086,6 @@ export default function App() {
           setIsDarkMode={setIsDarkMode} 
           isFocusMode={isFocusMode}
           setIsFocusMode={setIsFocusMode}
-          ambientSound={ambientSound}
-          setAmbientSound={setAmbientSound}
-          selectedSound={selectedSound}
-          setSelectedSound={setSelectedSound}
           onStartFocusTimer={startFocusTimer}
           isFocusTimerRunning={isFocusTimerRunning}
           focusTime={focusTime}
@@ -2165,7 +2097,6 @@ export default function App() {
           backups={backups}
           onCreateBackup={handleCreateBackup}
           onRestoreBackup={handleRestoreBackup}
-          setHasInteracted={setHasInteracted}
           onClearData={() => {
             localStorage.clear();
             window.location.reload();
@@ -2202,25 +2133,28 @@ export default function App() {
             { id: '3v6r', icon: <Zap size={20} />, label: 'Pulse' },
             { id: 'awards', icon: <Trophy size={18} />, label: 'Contest' },
             { id: 'settings', icon: <Settings size={20} />, label: 'Configs' }
-          ].map(item => (
-            <button 
-              key={item.id}
-              onClick={() => setCurrentPage(item.id as any)}
-              className={cn(
-                "flex flex-col items-center gap-1 rounded-[1.5rem] px-2.5 sm:px-5 py-2 sm:py-3 transition-all active:scale-95 flex-1 sm:flex-initial min-w-0",
-                currentPage === item.id 
-                  ? (isDarkMode ? "bg-white text-black shadow-lg" : "bg-slate-900 text-white shadow-lg")
-                  : (isDarkMode ? "text-slate-500 hover:text-slate-300" : "text-slate-400 hover:text-slate-600")
-              )}
-            >
-              <div className="flex flex-col items-center">
-                {item.icon}
-                <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-tighter leading-none mt-1 whitespace-nowrap">
-                  {item.label}
-                </span>
-              </div>
-            </button>
-          ))}
+          ].map(item => {
+            const isActive = currentPage === item.id;
+            return (
+              <button 
+                key={item.id}
+                onClick={() => setCurrentPage(item.id as any)}
+                className={cn(
+                  "flex flex-col items-center gap-1 rounded-[1.5rem] px-2.5 sm:px-5 py-2 sm:py-3 transition-all active:scale-95 flex-1 sm:flex-initial min-w-0 border-2",
+                  isActive 
+                    ? "bg-white shadow-[0_0_20px_rgba(255,255,255,0.3)] border-white"
+                    : (isDarkMode ? "bg-transparent border-transparent text-slate-500 hover:text-slate-300" : "bg-transparent border-transparent text-slate-400 hover:text-slate-600")
+                )}
+              >
+                <div className="flex flex-col items-center" style={isActive ? { color: theme.accent } : {}}>
+                  {item.icon}
+                  <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-tighter leading-none mt-1 whitespace-nowrap">
+                    {item.label}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
       

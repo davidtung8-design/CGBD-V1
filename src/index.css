@@ -16,7 +16,7 @@
   }
 
   body {
-    @apply antialiased transition-all duration-500 font-sans;
+    @apply antialiased transition-all duration-1000 font-sans;
     background-color: var(--bg-color);
     color: #f8fafc;
   }
@@ -109,7 +109,15 @@
 }
 
 .bento-card {
-  @apply bg-bento-card border border-bento-border rounded-[2rem] transition-all duration-300;
+  @apply rounded-[2rem] transition-all duration-700 backdrop-blur-3xl;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.bento-card:hover {
+  border-color: color-mix(in srgb, var(--accent-color) 40%, transparent);
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.7);
 }
 
 .bento-grid {
