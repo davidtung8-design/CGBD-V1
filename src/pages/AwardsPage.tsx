@@ -75,7 +75,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
     const totalANP = perfData.monthlyRecords.reduce((acc, curr) => acc + curr.anp, 0);
     const totalNOC = perfData.monthlyRecords.reduce((acc, curr) => acc + curr.noc, 0);
     const totalFYC = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.fyc || 0), 0);
-    const totalQFYLP = totalANP; // Assuming ANP matches QFYLP for these simple aggregations
+    const totalQFYLP = perfData.monthlyRecords.reduce((acc, curr) => acc + curr.actual, 0);
 
     // Calculate all quarters for specific tracking
     const quarters = [0, 1, 2, 3].map(q => {
@@ -83,7 +83,8 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
       return {
         anp: qMonths.reduce((acc, curr) => acc + curr.anp, 0),
         noc: qMonths.reduce((acc, curr) => acc + curr.noc, 0),
-        fyc: qMonths.reduce((acc, curr) => acc + (curr.fyc || 0), 0)
+        fyc: qMonths.reduce((acc, curr) => acc + (curr.fyc || 0), 0),
+        qfylp: qMonths.reduce((acc, curr) => acc + curr.actual, 0)
       };
     });
 
@@ -94,7 +95,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
 
     return { 
       totalANP, totalNOC, totalQFYLP, totalFYC, 
-      qANP: qStats.anp, qNOC: qStats.noc, qFYC: qStats.fyc,
+      qANP: qStats.anp, qNOC: qStats.noc, qFYC: qStats.fyc, qQFYLP: qStats.qfylp,
       allQuarters: quarters,
       currentQuarterIdx
     };
@@ -150,8 +151,10 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
 
           if (contest.targetMetric === 'noc') {
             currentVal = contest.period === 'quarterly' ? targetStats.noc : stats.totalNOC;
-          } else if (contest.targetMetric === 'anp' || contest.targetMetric === 'qfylp') {
+          } else if (contest.targetMetric === 'anp') {
             currentVal = contest.period === 'quarterly' ? targetStats.anp : stats.totalANP;
+          } else if (contest.targetMetric === 'qfylp') {
+            currentVal = contest.period === 'quarterly' ? targetStats.qfylp : stats.totalQFYLP;
           } else if (contest.targetMetric === 'fyc') {
             currentVal = contest.period === 'quarterly' ? targetStats.fyc : stats.totalFYC;
           } else if (contest.targetMetric === 'recruit') {

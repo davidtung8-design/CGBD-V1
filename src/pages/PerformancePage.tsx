@@ -1,6 +1,7 @@
 import React from 'react';
 import { PerfData, ThemeConfig } from '../types';
 import { formatNumber, cn } from '../lib/utils';
+import { format } from 'date-fns';
 import { Target, Users, Zap, Shield, Award, Edit3, Trash2, History, CloudRain, Moon, Waves, Coffee, VolumeX, X, Minus, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -135,11 +136,38 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                     value={stat.value}
                     onChange={(e) => {
                       const val = parseFloat(e.target.value) || 0;
-                      if (stat.label.includes('ANP')) setPerfData(prev => ({ ...prev, totalANP: val }));
-                      if (stat.label.includes('团队')) setPerfData(prev => ({ ...prev, teamQ: val }));
-                      if (stat.label.includes('招募')) setPerfData(prev => ({ ...prev, recruitCount: val }));
-                      if (stat.label.includes('NOC')) setPerfData(prev => ({ ...prev, totalNOC: val }));
-                      if (stat.label.includes('FYC')) setPerfData(prev => ({ ...prev, totalFYC: val }));
+                      const currentMonthName = format(new Date(), 'M月', { locale: undefined });
+                      
+                      // For Team Q, we still update it directly as it's not in the monthly records
+                      if (stat.label.includes('团队')) {
+                        setPerfData(prev => ({ ...prev, teamQ: val }));
+                        return;
+                      }
+
+                      setPerfData(prev => {
+                        const newMonthly = prev.monthlyRecords.map(m => {
+                          if (m.month === currentMonthName) {
+                            if (stat.label.includes('ANP')) {
+                              const otherSum = prev.monthlyRecords.filter(om => om.month !== currentMonthName).reduce((s, om) => s + (om.anp || 0), 0);
+                              return { ...m, anp: val - otherSum };
+                            }
+                            if (stat.label.includes('招募')) {
+                              const otherSum = prev.monthlyRecords.filter(om => om.month !== currentMonthName).reduce((s, om) => s + (om.recruitActual || 0), 0);
+                              return { ...m, recruitActual: Math.floor(val - otherSum) };
+                            }
+                            if (stat.label.includes('NOC')) {
+                              const otherSum = prev.monthlyRecords.filter(om => om.month !== currentMonthName).reduce((s, om) => s + (om.noc || 0), 0);
+                              return { ...m, noc: Math.floor(val - otherSum) };
+                            }
+                            if (stat.label.includes('FYC')) {
+                              const otherSum = prev.monthlyRecords.filter(om => om.month !== currentMonthName).reduce((s, om) => s + (om.fyc || 0), 0);
+                              return { ...m, fyc: val - otherSum };
+                            }
+                          }
+                          return m;
+                        });
+                        return { ...prev, monthlyRecords: newMonthly };
+                      });
                     }}
                   />
                   {stat.total && (

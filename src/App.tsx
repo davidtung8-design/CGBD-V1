@@ -1504,7 +1504,7 @@ export default function App() {
                                 }
                                 return m;
                               });
-                              return { ...prev, monthlyRecords: newMonthly, totalANP: newVal };
+                              return { ...prev, monthlyRecords: newMonthly };
                             });
                           }}
                         />
@@ -1544,7 +1544,7 @@ export default function App() {
                                 }
                                 return m;
                               });
-                              return { ...prev, monthlyRecords: newMonthly, totalNOC: newVal };
+                              return { ...prev, monthlyRecords: newMonthly };
                             });
                           }}
                         />
@@ -1591,7 +1591,7 @@ export default function App() {
                                 }
                                 return m;
                               });
-                              return { ...prev, monthlyRecords: newMonthly, recruitCount: newVal };
+                              return { ...prev, monthlyRecords: newMonthly };
                             });
                           }}
                         />
