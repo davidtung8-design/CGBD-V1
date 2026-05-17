@@ -13,6 +13,7 @@ import { Header } from './components/Header';
 import { Home, Target, ClipboardList, Zap, Settings, Plus, Minus, Trash2, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw, Edit3, Award, Trophy, Calendar, CalendarPlus, History, X, BookOpen, PieChart as PieChartIcon, ListTodo, Volume2, VolumeX, CloudRain, Moon, Waves, Coffee } from 'lucide-react';
 import { THEMES, ACTIVITIES, ENCOURAGEMENTS, GROUP_CONFIG } from './constants';
 import { formatNumber, cn, getLunarDate, formatHour, formatTimeRange } from './lib/utils';
+import * as XLSX from 'xlsx';
 import { 
   format, startOfWeek, endOfWeek, addDays, subWeeks, addWeeks, 
   isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, 
@@ -682,99 +683,86 @@ export default function App() {
   };
 
   const handleExportReport = () => {
-    // 1. Core Performance Totals
-    const csvRows = ['=== STRATEGIC PERFORMANCE SUMMARY ==='];
-    csvRows.push(`Report Generated,${format(new Date(), 'yyyy-MM-dd HH:mm')}`);
-    csvRows.push(`Total QFYLP,${perfData.personalQ}`);
-    csvRows.push(`Total ANP,${perfData.totalANP}`);
-    csvRows.push(`Total NOC,${perfData.totalNOC}`);
-    csvRows.push(`Recruitment Count,${perfData.recruitCount}`);
-    csvRows.push('');
+    // We will use SheetJS (xlsx) for a better export
+    const workbook = XLSX.utils.book_new();
 
-    // 2. Monthly Aggregate (Summary of monthly logs)
-    csvRows.push('=== MONTHLY LOG SUMMARY (CY 2026) ===');
-    csvRows.push('Month,Target Q,Actual Q,NOC,ANP,Recruit Target,Recruit Actual');
-    perfData.monthlyRecords.forEach(m => {
-      csvRows.push(`${m.month},${m.target},${m.actual},${m.noc},${m.anp},${m.recruitTarget},${m.recruitActual}`);
-    });
-    csvRows.push('');
+    // 1. Performance Summary Sheet
+    const summaryData = [
+        ['STRATEGIC PERFORMANCE SUMMARY'],
+        ['Report Generated', format(new Date(), 'yyyy-MM-dd HH:mm')],
+        ['Total QFYLP', perfData.personalQ],
+        ['Total ANP', perfData.totalANP],
+        ['Total NOC', perfData.totalNOC],
+        ['Recruitment Count', perfData.recruitCount],
+        []
+    ];
+    const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(workbook, summaryWS, 'Summary');
 
-    // 3. Weekly Detailed Activity (3V6R Stats)
+    // 2. Weekly Matrix Grid Sheet
     const currentMonday = startOfWeek(addWeeks(baseDate, viewOffset), { weekStartsOn: 1 });
     const weekEvents = events.filter(e => e.weekOffset === viewOffset);
+    const matrixGridData = [
+        [`WEEKLY TIME MATRIX GRID (${format(currentMonday, 'd/M')} - ${format(addDays(currentMonday, 6), 'd/M')})`],
+        ['Hour', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    ];
+
+    for (let h = 5; h <= 23; h++) {
+        const timeLabel = formatHour(h);
+        const row = [timeLabel];
+        [1, 2, 3, 4, 5, 6, 0].forEach(wd => {
+            const eventsAtHour = weekEvents.filter(e => e.weekday === wd && h >= e.startHour && h < e.endHour);
+            if (eventsAtHour.length > 0) {
+                const cellContent = eventsAtHour.map(e => {
+                    const act = ACTIVITIES.find(a => a.id === e.activityId);
+                    const group = act ? (GROUP_CONFIG[act.group as keyof typeof GROUP_CONFIG]?.name || 'Other') : 'Other';
+                    const color = act ? (GROUP_CONFIG[act.group as keyof typeof GROUP_CONFIG]?.color || '#000') : '#000';
+                    return `${e.title || act?.name || 'Untitled'} [${group}] (${color})`;
+                }).join(' | ');
+                row.push(cellContent);
+            } else {
+                row.push('');
+            }
+        });
+        matrixGridData.push(row);
+    }
+    const matrixWS = XLSX.utils.aoa_to_sheet(matrixGridData);
     
-    // Activity Breakdown by Category
-    const reportData: Record<string, { duration: number, items: string[] }> = {};
-    weekEvents.forEach(e => {
-      const act = ACTIVITIES.find(a => a.id === e.activityId);
-      const groupName = act ? (GROUP_CONFIG[act.group as keyof typeof GROUP_CONFIG]?.name || 'Other') : 'Other';
-      const duration = e.endHour - e.startHour;
-      
-      if (!reportData[groupName]) {
-        reportData[groupName] = { duration: 0, items: [] };
-      }
-      reportData[groupName].duration += duration;
-      reportData[groupName].items.push(`"${e.title || act?.name || 'Untitled'}" (${duration}h)`);
-    });
+    // Auto-width logic for better visibility
+    const colWidths = matrixGridData[1].map(() => ({ wch: 25 })); // Default width 25
+    colWidths[0] = { wch: 10 }; // Hour column smaller
+    matrixWS['!cols'] = colWidths;
 
-    csvRows.push(`=== WEEKLY TIME MATRIX (${format(currentMonday, 'd/M')} - ${format(addDays(currentMonday, 6), 'd/M')}) ===`);
-    csvRows.push('Category,Total Hours,Color Group,Detailed Logs');
-    Object.entries(reportData).forEach(([cat, data]) => {
-      const config = Object.values(GROUP_CONFIG).find(c => c.name === cat);
-      csvRows.push(`${cat},${data.duration},${config?.color || '#333'},"${data.items.join('; ')}"`);
-    });
-    csvRows.push('');
+    XLSX.utils.book_append_sheet(workbook, matrixWS, 'Weekly Matrix');
 
-    // 3.1 Time Allocation Breakdown (Chart logic exported)
-    csvRows.push('=== WEEKLY TIME ALLOCATION (CHART DATA) ===');
-    csvRows.push('Group Name,Hours,Percentage');
-    const totalWeeklyHours = Object.values(reportData).reduce((sum, d) => sum + d.duration, 0);
-    timeAllocationData.forEach(d => {
-      const pct = totalWeeklyHours > 0 ? ((d.value / totalWeeklyHours) * 100).toFixed(1) : '0';
-      csvRows.push(`${d.name},${d.value},${pct}%`);
-    });
-    csvRows.push('');
-
-    // 4. Detailed 3V6R Activity Counts (OPFR & Recruitment)
-    csvRows.push('=== 3V6R DETAILED ACTIVITY (DAILY LOGS) ===');
-    csvRows.push('Date,OPEN (OF),PRESE (P),FOLLOW (F),CLOSE (C),R-OP,R-PR,R-FO,R-SU,Total Sales Ops,Total Recruit Ops,Day QFYLP,Day ANP');
-    
-    // Get keys for this month or recently logged
+    // 3. Detailed Logs & List Sheets
+    const logsData = [
+        ['Date', 'OPEN (OF)', 'PRESE (P)', 'FOLLOW (F)', 'CLOSE (C)', 'R-OP', 'R-PR', 'R-FO', 'R-SU', 'Total Sales Ops', 'Total Recruit Ops', 'Day QFYLP', 'Day ANP']
+    ];
     const allLogKeys = Object.keys(perfData.dailyActivitiesLog || {}).sort().reverse();
-    allLogKeys.slice(0, 31).forEach(key => { // Export last 31 days of logs
-      const log = perfData.dailyActivitiesLog![key];
-      const salesTotal = (log.of || 0) + (log.p || 0) + (log.f || 0) + (log.c || 0);
-      const recruitTotal = (log.ro || 0) + (log.rp || 0) + (log.rf || 0) + (log.rs || 0);
-      csvRows.push(`${key},${log.of || 0},${log.p || 0},${log.f || 0},${log.c || 0},${log.ro || 0},${log.rp || 0},${log.rf || 0},${log.rs || 0},${salesTotal},${recruitTotal},${log.q || 0},${log.anp || 0}`);
+    allLogKeys.slice(0, 60).forEach(key => { // Last 60 days
+        const log = perfData.dailyActivitiesLog![key];
+        const salesTotal = (log.of || 0) + (log.p || 0) + (log.f || 0) + (log.c || 0);
+        const recruitTotal = (log.ro || 0) + (log.rp || 0) + (log.rf || 0) + (log.rs || 0);
+        logsData.push([key, log.of || 0, log.p || 0, log.f || 0, log.c || 0, log.ro || 0, log.rp || 0, log.rf || 0, log.rs || 0, salesTotal, recruitTotal, log.q || 0, log.anp || 0]);
     });
-    csvRows.push('');
+    const logsWS = XLSX.utils.aoa_to_sheet(logsData);
+    XLSX.utils.book_append_sheet(workbook, logsWS, 'Daily Logs');
 
-    // 5. Prospect List (名单页 - 潜在客户)
-    csvRows.push('=== PROSPECT LIST (潜在客户名单) ===');
-    csvRows.push('Name,Occupation,Plan/Target,Notes');
-    perfData.prospectList.forEach(p => {
-      csvRows.push(`"${p.name}","${p.job}","${p.plan}","${p.note}"`);
-    });
-    csvRows.push('');
+    // 4. Prospect & Recruit Sheets
+    const prospectsData = [['Name', 'Occupation', 'Plan/Target', 'Notes']];
+    perfData.prospectList.forEach(p => prospectsData.push([p.name, p.job, p.plan, p.note]));
+    const prospectsWS = XLSX.utils.aoa_to_sheet(prospectsData);
+    XLSX.utils.book_append_sheet(workbook, prospectsWS, 'Prospects');
 
-    // 6. Recruitment Pipeline (名单页 - 增员名单)
-    csvRows.push('=== RECRUITMENT PIPELINE (增员名单) ===');
-    csvRows.push('Name,Occupation,Interest Level,Follow-up Note');
-    perfData.recruitList.forEach(r => {
-      csvRows.push(`"${r.name}","${r.job}","${r.interest}","${r.followup}"`);
-    });
+    const recruitData = [['Name', 'Occupation', 'Interest Level', 'Follow-up Note']];
+    perfData.recruitList.forEach(r => recruitData.push([r.name, r.job, r.interest, r.followup]));
+    const recruitWS = XLSX.utils.aoa_to_sheet(recruitData);
+    XLSX.utils.book_append_sheet(workbook, recruitWS, 'Recruitment');
 
-    // Force download
-    const csvContent = "\ufeff" + csvRows.join('\n'); // Add BOM for Excel UTF-8 support
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
+    // Write file
     const dateStr = format(new Date(), 'yyyyMMdd');
-    link.setAttribute('download', `tactical_report_full_${dateStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    XLSX.writeFile(workbook, `Tactical_Performance_Report_${dateStr}.xlsx`);
   };
 
   const handleSyncAppleCalendar = useCallback(() => {
@@ -1244,10 +1232,11 @@ export default function App() {
                 </div>
                 <textarea 
                   className={cn(
-                    "w-full bg-transparent text-2xl font-black leading-relaxed italic border-none outline-none resize-none custom-scrollbar min-h-[120px] text-center mb-8",
-                    isDarkMode ? "text-white placeholder:text-slate-800" : "text-slate-900 placeholder:text-slate-200"
+                    "w-full bg-transparent text-2xl font-black leading-relaxed italic border-none outline-none resize-none custom-scrollbar min-h-[400px] text-center mb-8 p-6",
+                    isDarkMode ? "text-white placeholder:text-slate-800" : "text-slate-900 placeholder:text-slate-200 bg-slate-50/50 rounded-3xl"
                   )}
                   placeholder="在此写下您的许愿文 (Define your vision here...)"
+                  rows={12}
                   value={perfData.wishingStatement || ""}
                   onChange={(e) => setPerfData(prev => ({ ...prev, wishingStatement: e.target.value }))}
                 />
