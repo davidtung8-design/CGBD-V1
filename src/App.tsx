@@ -84,6 +84,8 @@ const INITIAL_PERF: PerfData = {
     { name: "🛡️ 团队活跃4人组", achieved: false, category: "recruit" as const }
   ].map(m => ({ ...m })),
   wishingStatement: "",
+  strategicFocus: "",
+  sixTasks: ["", "", "", "", "", ""],
   personalEnergy: 100,
   personalFocus: 100,
   dailyActivitiesLog: {}
@@ -776,6 +778,16 @@ export default function App() {
     const recruitWS = XLSX.utils.aoa_to_sheet(recruitData);
     XLSX.utils.book_append_sheet(workbook, recruitWS, 'Recruitment');
 
+    // 5. Time Allocation Sheet
+    const allocationData = [['Category', 'Hours', 'Percentage (%)']];
+    const totalHours = timeAllocationData.reduce((sum, d) => sum + d.value, 0);
+    timeAllocationData.forEach(d => {
+        const percentage = totalHours > 0 ? ((d.value / totalHours) * 100).toFixed(1) : 0;
+        allocationData.push([d.name, d.value, percentage]);
+    });
+    const allocationWS = XLSX.utils.aoa_to_sheet(allocationData);
+    XLSX.utils.book_append_sheet(workbook, allocationWS, 'Time Allocation');
+
     // Write file
     const dateStr = format(new Date(), 'yyyyMMdd');
     XLSX.writeFile(workbook, `Tactical_Performance_Report_${dateStr}.xlsx`);
@@ -1288,6 +1300,35 @@ export default function App() {
               </div>
             </div>
 
+            {/* 6 Most Important Things (6大要事) - MOVED UNDER INSPIRATION NODE */}
+            <div className={cn("bento-card p-8 mb-6", !isDarkMode && "bg-white border-slate-200")}>
+              <div className="flex items-center gap-2 mb-6">
+                <ListTodo size={16} className="text-white" />
+                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">6大要事 · Critical 6</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {(perfData.sixTasks || ["", "", "", "", "", ""]).map((task, idx) => (
+                  <div key={idx} className="flex items-center gap-3 group">
+                    <span className="text-[10px] font-mono text-slate-500 w-4">{idx + 1}.</span>
+                    <input 
+                      type="text"
+                      className={cn(
+                        "flex-1 bg-transparent border-b text-sm py-1 outline-none transition-colors",
+                        isDarkMode ? "border-slate-800 focus:border-white text-slate-200" : "border-slate-200 focus:border-white text-slate-900"
+                      )}
+                      placeholder={`Important task ${idx + 1}...`}
+                      value={task}
+                      onChange={(e) => {
+                        const newTasks = [...(perfData.sixTasks || ["", "", "", "", "", ""])];
+                        newTasks[idx] = e.target.value;
+                        setPerfData(prev => ({ ...prev, sixTasks: newTasks }));
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className={cn(
               "bento-grid transition-all duration-700",
               isFocusMode && "gap-10 scale-[0.99] opacity-90"
@@ -1432,44 +1473,28 @@ export default function App() {
               </div>
             </div>
 
-            {/* 6 Most Important Things (6大要事) */}
-            <div className={cn("bento-card md:col-span-5 p-8", !isDarkMode && "bg-white border-slate-200")}>
-              <div className="flex items-center gap-2 mb-6">
-                <ListTodo size={16} className="text-white" />
-                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">6大要事 · Critical 6</h3>
-              </div>
-              <div className="grid gap-3">
-                {safeSixTasks.map((task, idx) => (
-                  <div key={idx} className="flex items-center gap-3 group">
-                    <span className="text-[10px] font-mono text-slate-500 w-4">{idx + 1}.</span>
-                    <input 
-                      type="text"
-                      className={cn(
-                        "flex-1 bg-transparent border-b text-sm py-1 outline-none transition-colors",
-                        isDarkMode ? "border-slate-800 focus:border-white text-slate-200" : "border-slate-200 focus:border-white text-slate-900"
-                      )}
-                      placeholder={`Important task ${idx + 1}...`}
-                      value={task}
-                      onChange={(e) => {
-                        const newTasks = [...safeSixTasks];
-                        newTasks[idx] = e.target.value;
-                        setDailyData(prev => ({ ...prev, [todayKey]: { ...currentDaily, sixTasks: newTasks } }));
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Goal Tracking - Large Bento Card */}
-            <div className="bento-card md:col-span-8 p-8 overflow-hidden relative group">
+            <div className="bento-card md:col-span-12 p-8 overflow-hidden relative group">
               <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                 <Target size={200} />
               </div>
               <div className="relative z-10">
-                <span className="px-3 py-1 bg-white/10 text-white text-[10px] font-bold uppercase tracking-wider rounded-full border border-white/20">Annual Strategic Focus</span>
+                <div className="flex items-center justify-between mb-8">
+                  <span className="px-3 py-1 bg-white/10 text-white text-[10px] font-bold uppercase tracking-wider rounded-full border border-white/20">Annual Strategic Focus</span>
+                </div>
                 
-                <div className="mt-8 grid gap-10 sm:grid-cols-3">
+                <input 
+                  type="text"
+                  className={cn(
+                    "w-full bg-transparent text-xl font-bold italic outline-none border-b mb-10 pb-2 transition-all",
+                    isDarkMode ? "border-slate-800 focus:border-amber-500 text-white placeholder:text-slate-700" : "border-slate-200 focus:border-amber-500 text-slate-900"
+                  )}
+                  placeholder="Define your main annual strategic focus here..."
+                  value={perfData.strategicFocus || ""}
+                  onChange={(e) => setPerfData(prev => ({ ...prev, strategicFocus: e.target.value }))}
+                />
+
+                <div className="grid gap-10 sm:grid-cols-3">
                   <div>
                     <div className="group/metric cursor-pointer" onClick={(e) => {
                       const input = e.currentTarget.querySelector('input[type="number"]');
@@ -2023,57 +2048,59 @@ export default function App() {
                                 key={dayIdx} 
                                 rowSpan={maxSpan}
                                 className={cn(
-                                  "group relative min-h-[64px] h-[1px] cursor-pointer bg-transparent p-0 transition-colors border-r",
+                                  "group relative cursor-pointer bg-transparent p-0 transition-colors border-r align-top",
                                   isDarkMode ? "hover:bg-white/5 border-slate-800/20" : "hover:bg-white/5 border-slate-100"
                                 )}
+                                style={{ height: maxSpan > 1 ? `${maxSpan * 64}px` : '64px' }}
                                 onClick={() => {
                                   setSelectedSlot({ day: weekday, hour, offset: viewOffset });
                                   setIsEventModalOpen(true);
                                 }}>
-                                {cellEvents.map(ev => {
-                                  const act = ACTIVITIES.find(a => a.id === ev.activityId);
-                                  const duration = (ev.endHour - ev.startHour + 24) % 24 || 24;
-                                  return (
-                                    <div 
-                                      key={ev.id}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingEvent(ev);
-                                        setIsEventModalOpen(true);
-                                      }}
-                                      className={cn(
-                                        "h-full w-full flex flex-col items-center justify-center text-center gap-2 p-3 text-[10px] font-semibold border transition-all hover:scale-[1.01] relative overflow-hidden group/ev",
-                                        duration > 1 && "min-h-[120px]"
-                                      )}
-                                      style={{ 
-                                        backgroundColor: `${GROUP_CONFIG[act?.group as keyof typeof GROUP_CONFIG]?.color || '#333'}20`, 
-                                        color: GROUP_CONFIG[act?.group as keyof typeof GROUP_CONFIG]?.color || '#fff',
-                                        borderColor: `${GROUP_CONFIG[act?.group as keyof typeof GROUP_CONFIG]?.color || '#333'}40`
-                                      }}
-                                    >
-                                      <div className="flex flex-col items-center gap-1 w-full overflow-hidden">
-                                        <span className="text-xl mb-1">{act?.icon}</span>
-                                        <span className="leading-tight px-1 line-clamp-3 w-full break-words">{ev.title || act?.name}</span>
-                                      </div>
-                                      
-                                      {duration > 1 && (
-                                        <div className="absolute bottom-2 left-0 right-0 text-[8px] opacity-60 font-mono tracking-tighter">
-                                          {formatTimeRange(ev.startHour, ev.endHour)}
-                                        </div>
-                                      )}
-
-                                      <button 
+                                <div className="h-full w-full flex flex-col">
+                                  {cellEvents.map(ev => {
+                                    const act = ACTIVITIES.find(a => a.id === ev.activityId);
+                                    const duration = (ev.endHour - ev.startHour + 24) % 24 || 24;
+                                    return (
+                                      <div 
+                                        key={ev.id}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleDeleteEvent(ev.id);
+                                          setEditingEvent(ev);
+                                          setIsEventModalOpen(true);
                                         }}
-                                        className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-lg bg-black/10 hover:bg-red-500 hover:text-white transition-all opacity-40 group-hover/ev:opacity-100"
+                                        className={cn(
+                                          "flex-1 w-full flex flex-col items-center justify-center text-center gap-2 p-3 text-[10px] font-semibold border-b last:border-b-0 border-white/10 transition-all hover:scale-[1.01] relative overflow-hidden group/ev"
+                                        )}
+                                        style={{ 
+                                          backgroundColor: `${GROUP_CONFIG[act?.group as keyof typeof GROUP_CONFIG]?.color || '#333'}20`, 
+                                          color: GROUP_CONFIG[act?.group as keyof typeof GROUP_CONFIG]?.color || '#fff',
+                                          borderColor: `${GROUP_CONFIG[act?.group as keyof typeof GROUP_CONFIG]?.color || '#333'}40`
+                                        }}
                                       >
-                                        <X size={12} />
-                                      </button>
-                                    </div>
-                                  );
-                                })}
+                                        <div className="flex flex-col items-center gap-1 w-full overflow-hidden">
+                                          <span className="text-xl mb-1">{act?.icon}</span>
+                                          <span className="leading-tight px-1 line-clamp-3 w-full break-words">{ev.title || act?.name}</span>
+                                        </div>
+                                        
+                                        {duration > 1 && (
+                                          <div className="absolute bottom-2 left-0 right-0 text-[8px] opacity-60 font-mono tracking-tighter">
+                                            {formatTimeRange(ev.startHour, ev.endHour)}
+                                          </div>
+                                        )}
+  
+                                        <button 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteEvent(ev.id);
+                                          }}
+                                          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-lg bg-black/10 hover:bg-red-500 hover:text-white transition-all opacity-40 group-hover/ev:opacity-100"
+                                        >
+                                          <X size={12} />
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </td>
                             );
                           })}

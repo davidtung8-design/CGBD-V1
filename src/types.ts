@@ -123,6 +123,8 @@ export interface PerfData {
   nightMessage: string;
   milestones: Milestone[];
   wishingStatement: string;
+  strategicFocus?: string;
+  sixTasks?: string[];
   personalEnergy: number;
   personalFocus: number;
   dailyActivitiesLog: Record<string, {
