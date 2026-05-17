@@ -1216,43 +1216,43 @@ export default function App() {
           <div className="space-y-6">
             {/* Wishing Statement (许愿文) AT THE VERY TOP */}
             <div className={cn(
-              "bento-card p-10 flex flex-col justify-between overflow-hidden relative transition-all duration-500 shadow-2xl mb-6",
+              "bento-card p-6 flex flex-col justify-between overflow-hidden relative transition-all duration-500 shadow-2xl mb-6",
               isDarkMode ? "bg-slate-900 border-amber-500/20 shadow-amber-500/5" : "bg-white border-slate-200 shadow-slate-200"
             )}>
               <div className="absolute -bottom-10 -right-10 opacity-10">
-                <Target size={250} className="text-amber-500" />
+                <Target size={150} className="text-amber-500" />
               </div>
               <div className="relative z-10">
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex justify-between items-center mb-6">
                   <div>
-                    <h3 className="text-lg font-black text-amber-500 uppercase tracking-[0.4em]">Strategic Manifestation · 许愿文</h3>
-                    <p className="text-[10px] text-slate-500 mt-2 uppercase font-mono tracking-widest">Personal Intelligence & Performance Dashboard Protocol</p>
+                    <h3 className="text-sm font-black text-amber-500 uppercase tracking-[0.4em]">Strategic Manifestation · 许愿文</h3>
+                    <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono tracking-widest">Personal Intelligence & Performance Dashboard Protocol</p>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <button 
                       onClick={() => handleSpeak(perfData.wishingStatement || "")}
                       className={cn(
-                        "p-4 rounded-[2rem] shadow-xl transition-all active:scale-95",
+                        "p-3 rounded-2xl shadow-xl transition-all active:scale-95",
                         isSpeaking 
                           ? "bg-red-500 text-white shadow-red-500/30 animate-pulse" 
                           : "bg-white/10 text-white shadow-sm border border-white/20 hover:bg-white/20"
                       )}
                       title={isSpeaking ? "Stop Reading" : "Read Aloud"}
                     >
-                      {isSpeaking ? <VolumeX size={24} /> : <Volume2 size={24} />}
+                      {isSpeaking ? <VolumeX size={18} /> : <Volume2 size={18} />}
                     </button>
-                    <div className="p-4 bg-amber-500 text-white rounded-[2rem] shadow-xl shadow-amber-500/30">
-                      <Target size={24} />
+                    <div className="p-3 bg-amber-500 text-white rounded-2xl shadow-xl shadow-amber-500/30">
+                      <Target size={18} />
                     </div>
                   </div>
                 </div>
                 <textarea 
                   className={cn(
-                    "w-full bg-transparent text-2xl font-black leading-relaxed italic border-none outline-none resize-none custom-scrollbar min-h-[400px] text-center mb-8 p-6",
-                    isDarkMode ? "text-white placeholder:text-slate-800" : "text-slate-900 placeholder:text-slate-200 bg-slate-50/50 rounded-3xl"
+                    "w-full bg-transparent text-lg font-black leading-relaxed italic border-none outline-none resize-none custom-scrollbar min-h-[200px] text-center mb-4 p-4",
+                    isDarkMode ? "text-white placeholder:text-slate-800" : "text-slate-900 placeholder:text-slate-200 bg-slate-50/50 rounded-2xl"
                   )}
                   placeholder="在此写下您的许愿文 (Define your vision here...)"
-                  rows={12}
+                  rows={6}
                   value={perfData.wishingStatement || ""}
                   onChange={(e) => setPerfData(prev => ({ ...prev, wishingStatement: e.target.value }))}
                 />
@@ -1956,16 +1956,16 @@ export default function App() {
             </div>
 
             <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full min-w-[800px] border-collapse text-[10px]">
+                <table className="w-full min-w-[1000px] border-collapse text-[10px] table-fixed">
                   <thead>
                     <tr>
                       <th className={cn(
-                        "sticky left-0 z-10 w-24 border-r p-4 font-bold text-slate-500 uppercase tracking-tighter transition-colors",
+                        "sticky left-0 z-10 w-20 border-r p-4 font-bold text-slate-500 uppercase tracking-tighter transition-colors",
                         isDarkMode ? "border-slate-800 bg-slate-900" : "border-slate-200 bg-slate-50"
                       )}>Timeline</th>
                       {weekDays.map((day, i) => (
                         <th key={i} className={cn(
-                          "p-4 border-b font-medium transition-colors text-center",
+                          "p-4 border-b font-medium transition-colors text-center w-[13.5%]",
                           isDarkMode ? "text-slate-400 border-slate-800" : "text-slate-500 border-slate-200"
                         )}>
                           <div className="flex flex-col items-center">
@@ -2051,9 +2051,9 @@ export default function App() {
                                         borderColor: `${GROUP_CONFIG[act?.group as keyof typeof GROUP_CONFIG]?.color || '#333'}40`
                                       }}
                                     >
-                                      <div className="flex flex-col items-center gap-1">
+                                      <div className="flex flex-col items-center gap-1 w-full overflow-hidden">
                                         <span className="text-xl mb-1">{act?.icon}</span>
-                                        <span className="leading-tight px-1">{ev.title || act?.name}</span>
+                                        <span className="leading-tight px-1 line-clamp-3 w-full break-words">{ev.title || act?.name}</span>
                                       </div>
                                       
                                       {duration > 1 && (
