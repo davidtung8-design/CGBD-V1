@@ -212,10 +212,10 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
             <thead>
               <tr className="text-slate-500 uppercase tracking-tighter border-b border-slate-800">
                 <th className="p-4 font-bold">Month Unit</th>
-                <th className="p-4 font-bold text-center">Target Q</th>
-                <th className="p-4 font-bold text-center">Actual Q</th>
-                <th className="p-4 font-bold text-center">NOC Nodes</th>
-                <th className="p-4 font-bold text-center">ANP Fluidity</th>
+                <th className="p-4 font-bold text-center">TARGET QFYLP</th>
+                <th className="p-4 font-bold text-center">ACTUAL QFYLP</th>
+                <th className="p-4 font-bold text-center">NOC</th>
+                <th className="p-4 font-bold text-center">ANP</th>
                 <th className="p-4 font-bold text-center">FYC Commission</th>
                 <th className="p-4 font-bold text-center">Recruit Target</th>
                 <th className="p-4 font-bold text-center">Recruit Act</th>

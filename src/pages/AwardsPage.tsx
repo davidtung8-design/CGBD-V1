@@ -27,11 +27,11 @@ interface ContestDefinition {
 
 const CONTESTS: ContestDefinition[] = [
   // Superbeez Series (Quarterly Tiers)
-  { id: '2.0', name: 'Superbeez Bronze', chineseName: '超级蜜蜂 (铜)', description: '6 NOC in a quarter with Avg Case Size RM 2,400', targetMetric: 'noc', targetValue: 6, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-amber-700 to-amber-900' },
-  { id: '2.1s', name: 'Superbeez Silver', chineseName: '超级蜜蜂 (银)', description: '12 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 12, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-400 to-slate-600' },
-  { id: '2.1g', name: 'Superbeez Gold', chineseName: '超级蜜蜂 (金)', description: '18 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 18, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-yellow-400 to-yellow-600' },
-  { id: '2.1p', name: 'Superbeez Platinum', chineseName: '超级蜜蜂 (白金)', description: '24 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 24, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-200 to-slate-400' },
-  { id: '2.1c', name: 'Superbeez Crown', chineseName: '超级蜜蜂 (皇冠)', description: '30 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 30, period: 'quarterly', category: 'sales', icon: <Crown size={20} />, color: 'from-rose-400 to-orange-500' },
+  { id: '2.0', name: 'Superbeez Bronze', chineseName: '超级蜜蜂 (铜)', description: '6 NOC in a quarter with Avg Case Size RM 2,400', targetMetric: 'noc', targetValue: 6, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-amber-700 to-amber-900', quarterlyProgress: { q1: 6, q2: 6, q3: 6 } },
+  { id: '2.1s', name: 'Superbeez Silver', chineseName: '超级蜜蜂 (银)', description: '12 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 12, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-400 to-slate-600', quarterlyProgress: { q1: 12, q2: 12, q3: 12 } },
+  { id: '2.1g', name: 'Superbeez Gold', chineseName: '超级蜜蜂 (金)', description: '18 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 18, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-yellow-400 to-yellow-600', quarterlyProgress: { q1: 18, q2: 18, q3: 18 } },
+  { id: '2.1p', name: 'Superbeez Platinum', chineseName: '超级蜜蜂 (白金)', description: '24 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 24, period: 'quarterly', category: 'sales', icon: <Medal size={20} />, color: 'from-slate-200 to-slate-400', quarterlyProgress: { q1: 24, q2: 24, q3: 24 } },
+  { id: '2.1c', name: 'Superbeez Crown', chineseName: '超级蜜蜂 (皇冠)', description: '30 NOC in a quarter with Avg Case Size RM 3,000', targetMetric: 'noc', targetValue: 30, period: 'quarterly', category: 'sales', icon: <Crown size={20} />, color: 'from-rose-400 to-orange-500', quarterlyProgress: { q1: 30, q2: 30, q3: 30 } },
   
   // Management Awards
   { id: '2.3', name: 'Superbeez Builder', chineseName: '超级蜜蜂增员奖', description: 'Min 2 Superbeez Award Qualifiers in DG (Excl. Personal Sales)', targetMetric: 'qualifier', targetValue: 2, period: 'quarterly', category: 'management', icon: <Users size={20} />, color: 'from-orange-400 to-rose-600' },
@@ -221,21 +221,34 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
               </div>
 
               <div className="mt-8 space-y-4">
-                {/* Quarterly Markers for Star Producer */}
+                {/* Quarterly Markers */}
                 {contest.quarterlyProgress && (
                   <div className="flex justify-between text-[8px] font-bold text-slate-600 uppercase mb-2 px-1">
-                    <div className="flex flex-col items-center">
-                      <span>Q1</span>
-                      <span className={cn(currentVal >= contest.quarterlyProgress.q1 ? "text-emerald-500" : "")}>RM {formatNumber(contest.quarterlyProgress.q1)}</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span>Q2</span>
-                      <span className={cn(currentVal >= contest.quarterlyProgress.q2 ? "text-emerald-500" : "")}>RM {formatNumber(contest.quarterlyProgress.q2)}</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span>Q3</span>
-                      <span className={cn(currentVal >= contest.quarterlyProgress.q3 ? "text-emerald-500" : "")}>RM {formatNumber(contest.quarterlyProgress.q3)}</span>
-                    </div>
+                    {[0, 1, 2].map((idx) => {
+                      const qKey = `q${idx + 1}` as keyof typeof contest.quarterlyProgress;
+                      const qTarget = contest.quarterlyProgress![qKey];
+                      const qStat = stats.allQuarters[idx];
+                      let isHit = false;
+                      
+                      if (contest.period === 'yearly') {
+                        isHit = currentVal >= qTarget;
+                      } else {
+                        // For quarterly awards, we track each quarter's merit separately
+                        const metricVal = contest.targetMetric === 'noc' ? qStat.noc : 
+                                        contest.targetMetric === 'fyc' ? qStat.fyc : 
+                                        qStat.anp;
+                        isHit = metricVal >= qTarget;
+                      }
+
+                      return (
+                        <div key={idx} className="flex flex-col items-center">
+                          <span>Q{idx + 1}</span>
+                          <span className={cn(isHit ? "text-emerald-400" : "")}>
+                            {contest.targetMetric === 'noc' ? qTarget : `RM ${formatNumber(qTarget)}`}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 

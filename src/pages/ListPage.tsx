@@ -277,6 +277,17 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
     showToast("节点已成功从数据库中移除。 (Node deleted)");
   };
 
+  const handleClearMatrix = () => {
+    if (window.confirm('警告：此操作将永久删除 Matrix 中的所有联系人数据（包括 Prospects 和 Recruits），且不可撤销。\n\n确定要清空吗？ (Warning: This will permanently delete ALL Matrix data. Are you sure?)')) {
+      setPerfData(prev => ({
+        ...prev,
+        prospectList: [],
+        recruitList: []
+      }));
+      showToast('Matrix 数据已成功清空。');
+    }
+  };
+
   const pinnedEntries = filteredEntries.filter(x => x.isPinned);
 
   return (
@@ -382,11 +393,11 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
              </div>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => handleImportContacts(activeTab)} className={cn("flex items-center gap-2 px-5 py-3 rounded-2xl border text-[10px] font-bold uppercase tracking-widest transition-all", isDarkMode ? "bg-slate-900 border-slate-800 text-slate-400" : "bg-white border-slate-200 text-slate-500 shadow-sm")}>
-              <UserPlus size={14} /> Phone Sync
-            </button>
             <button onClick={() => vcfInputRef.current?.click()} className={cn("flex items-center gap-2 px-5 py-3 rounded-2xl border text-[10px] font-bold uppercase tracking-widest transition-all", isDarkMode ? "bg-slate-900 border-slate-800 text-slate-400" : "bg-white border-slate-200 text-slate-500 shadow-sm")}>
               <Upload size={14} /> VCF Import
+            </button>
+            <button onClick={handleClearMatrix} className={cn("flex items-center gap-2 px-5 py-3 rounded-2xl border text-[10px] font-bold uppercase tracking-widest transition-all border-rose-500/20 text-rose-500 bg-rose-500/5 hover:bg-rose-500 hover:text-white")}>
+              <Trash2 size={14} /> 清空矩阵 (Clear All)
             </button>
           </div>
         </div>
