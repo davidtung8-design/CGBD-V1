@@ -53,10 +53,10 @@ const DEFAULT_MONTHLY: MonthlyRecord[] = [
 }));
 
 export const ambientSounds = {
-  rain: 'https://cdn.pixabay.com/audio/2022/03/24/audio_3d1a3c7a3a.mp3',
-  zen: 'https://cdn.pixabay.com/audio/2022/07/04/audio_e6e22e2303.mp3',
-  ocean: 'https://cdn.pixabay.com/audio/2022/03/10/audio_c1c4f44538.mp3',
-  lofi: 'https://cdn.pixabay.com/audio/2022/05/27/audio_18087374a9.mp3'
+  rain: 'https://cdn.pixabay.com/audio/2021/09/06/audio_91993427f3.mp3', // High quality rain
+  zen: 'https://cdn.pixabay.com/audio/2022/01/18/audio_82e88a3818.mp3', // Crickets/Night (Countryside vibe)
+  ocean: 'https://cdn.pixabay.com/audio/2022/03/15/audio_7a0011a681.mp3', // Soft ocean waves
+  lofi: 'https://cdn.pixabay.com/audio/2022/05/27/audio_18087374a9.mp3' // Lofi beats
 };
 
 const INITIAL_PERF: PerfData = {
@@ -219,43 +219,52 @@ export default function App() {
     if (!audioRef.current) {
       audioRef.current = new Audio();
       audioRef.current.loop = true;
-      audioRef.current.volume = 0.4;
+      audioRef.current.volume = 0.3; // Default moderate volume
       
       audioRef.current.onerror = (e) => {
         const error = audioRef.current?.error;
-        console.error("Audio error event:", error?.code, error?.message);
-        showToast("Audio source unavailable. Switching off.");
-        setAmbientSound(false);
+        if (error && error.code !== 4) {
+          console.error("Audio system error:", error.code, error.message);
+          setAmbientSound(false);
+        }
       };
     }
 
     const currentUrl = ambientSounds[selectedSound];
-    if (audioRef.current.src !== currentUrl) {
-      audioRef.current.pause();
-      audioRef.current.src = currentUrl;
-      audioRef.current.load();
+    
+    // Ensure we have a valid URL before setting src
+    if (currentUrl && audioRef.current.src !== currentUrl) {
+      try {
+        audioRef.current.pause();
+        audioRef.current.src = currentUrl;
+        audioRef.current.load();
+      } catch (err) {
+        // Safe to ignore load errors here
+      }
     }
 
-    if (ambientSound && hasInteracted) {
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
+    const startPlayback = async () => {
+      if (ambientSound && hasInteracted && currentUrl && audioRef.current) {
+        try {
+          await audioRef.current.play();
+        } catch (error: any) {
           if (error.name === "NotAllowedError") {
-            console.warn("Autoplay blocked. Audio will start on next interaction.");
-          } else {
-            console.error("Audio play promise failed:", error.message);
+            // Autoplay blocked by browser
+          } else if (error.name === "AbortError" || error.name === "NotSupportedError") {
             setAmbientSound(false);
           }
-        });
+        }
+      } else if (audioRef.current) {
+        audioRef.current.pause();
       }
-    } else {
-      audioRef.current.pause();
-    }
+    };
+
+    startPlayback();
 
     return () => {
       audioRef.current?.pause();
     };
-  }, [ambientSound, selectedSound, showToast, hasInteracted]);
+  }, [ambientSound, selectedSound, hasInteracted]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(new Date());
 
