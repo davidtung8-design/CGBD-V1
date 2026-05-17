@@ -163,11 +163,14 @@ export default function App() {
   const [focusTime, setFocusTime] = useState(0); // in seconds
   const [targetMins, setTargetMins] = useState(30);
   const [isFocusTimerRunning, setIsFocusTimerRunning] = useState(false);
+  const [isAlarmActive, setIsAlarmActive] = useState(false);
   const focusTimerRef = useRef<any>(null);
   const chimeRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    chimeRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'); // Soft melodic bell
+    audio.preload = 'auto';
+    chimeRef.current = audio;
   }, []);
 
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: "", visible: false });
@@ -185,18 +188,7 @@ export default function App() {
     if (isFocusTimerRunning && focusTime > 0) {
       focusTimerRef.current = setInterval(() => {
         setFocusTime(prev => {
-          if (prev <= 1) {
-            if (focusTimerRef.current) clearInterval(focusTimerRef.current);
-            setIsFocusTimerRunning(false);
-            showToast("Focus session complete!");
-            if (chimeRef.current) {
-              chimeRef.current.currentTime = 0;
-              chimeRef.current.play().catch(e => console.warn("Alarm failed:", e));
-              // Play it for a bit longer or loop a few times if possible, 
-              // but for now just replacing the sound to an alarm one is the main request.
-            }
-            return 0;
-          }
+          if (prev <= 1) return 0;
           return prev - 1;
         });
       }, 1000);
@@ -204,24 +196,56 @@ export default function App() {
       if (focusTimerRef.current) clearInterval(focusTimerRef.current);
     }
     return () => { if (focusTimerRef.current) clearInterval(focusTimerRef.current); };
-  }, [isFocusTimerRunning, focusTime, showToast]);
+  }, [isFocusTimerRunning]);
+
+  // Handle timer completion
+  useEffect(() => {
+    if (focusTime === 0 && isFocusTimerRunning) {
+      setIsFocusTimerRunning(false);
+      setIsAlarmActive(true);
+      showToast("Focus session complete!");
+      if (chimeRef.current) {
+        chimeRef.current.loop = true;
+        chimeRef.current.currentTime = 0;
+        chimeRef.current.play().catch(e => {
+          console.warn("Alarm failed to play. Browsers require user interaction.", e);
+          const playOnGesture = () => {
+            chimeRef.current?.play();
+            document.removeEventListener('click', playOnGesture);
+          };
+          document.addEventListener('click', playOnGesture);
+        });
+      }
+    }
+  }, [focusTime, isFocusTimerRunning, showToast]);
 
   const toggleFocusedTimer = () => {
-    if (isFocusTimerRunning) {
+    if (isFocusTimerRunning || isAlarmActive) {
       if (focusTimerRef.current) clearInterval(focusTimerRef.current);
       setIsFocusTimerRunning(false);
+      setIsAlarmActive(false);
       if (chimeRef.current) {
         chimeRef.current.pause();
         chimeRef.current.currentTime = 0;
+        chimeRef.current.loop = false;
       }
+      setIsLargeTimerOpen(false);
     } else {
+      setIsAlarmActive(false);
+      if (chimeRef.current) {
+        chimeRef.current.pause();
+        chimeRef.current.currentTime = 0;
+        const playPromise = chimeRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            chimeRef.current?.pause();
+          }).catch(() => {});
+        }
+      }
+      
       setFocusTime(targetMins * 60);
       setIsFocusTimerRunning(true);
       setIsLargeTimerOpen(true);
-      if (chimeRef.current) {
-        chimeRef.current.pause();
-        chimeRef.current.currentTime = 0;
-      }
     }
   };
 
@@ -872,7 +896,7 @@ export default function App() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {isLargeTimerOpen && isFocusTimerRunning && (
+        {isLargeTimerOpen && (isFocusTimerRunning || isAlarmActive) && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -921,7 +945,7 @@ export default function App() {
             </div>
 
             <button 
-              onClick={() => setIsLargeTimerOpen(false)}
+              onClick={toggleFocusedTimer}
               className="absolute top-10 right-10 z-50 p-6 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all text-white/20 hover:text-white backdrop-blur-xl group"
             >
               <X size={40} className="group-active:scale-90 transition-transform" />
@@ -980,7 +1004,12 @@ export default function App() {
                  </div>
                  <div className="flex flex-col items-center gap-2 p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-2xl group transition-all hover:bg-white/10">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Status Mode</span>
-                    <span className="text-3xl font-mono font-black text-white tracking-widest">ACTIVE</span>
+                    <span className={cn(
+                      "text-3xl font-mono font-black tracking-widest transition-colors",
+                      isAlarmActive ? "text-rose-500 animate-pulse" : "text-white"
+                    )}>
+                      {isAlarmActive ? "COMPLETE" : "ACTIVE"}
+                    </span>
                  </div>
               </div>
 
@@ -992,7 +1021,10 @@ export default function App() {
                    <X size={40} className="text-white group-hover:rotate-90 transition-transform duration-500" />
                  </button>
                  <button 
-                  onClick={() => setIsLargeTimerOpen(false)}
+                  onClick={() => {
+                    if (isAlarmActive) toggleFocusedTimer();
+                    else setIsLargeTimerOpen(false);
+                  }}
                   className="px-16 py-8 bg-white text-slate-950 font-black text-[12px] uppercase tracking-[0.5em] rounded-[2.5rem] shadow-[0_0_50px_rgba(255,255,255,0.2)] transition-all active:scale-95 hover:bg-slate-100"
                  >
                    Return to Matrix
