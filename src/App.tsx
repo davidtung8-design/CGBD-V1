@@ -1245,10 +1245,13 @@ export default function App() {
             </div>
 
             {/* Encouragement Card (Inspiration Node) - MOVED HERE */}
-            <div className={cn(
-              "bento-card p-10 flex flex-col justify-center items-center text-center relative overflow-hidden group transition-all duration-700",
-              isDarkMode ? "bg-slate-900/60 border-white/5 shadow-2xl shadow-blue-500/5" : "bg-white border-slate-200"
-            )}>
+            <div 
+              onClick={() => setEncouragement(ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)])}
+              className={cn(
+                "bento-card p-10 flex flex-col justify-center items-center text-center relative overflow-hidden group transition-all duration-700 cursor-pointer hover:bg-white/5",
+                isDarkMode ? "bg-slate-900/60 border-white/5 shadow-2xl shadow-blue-500/5" : "bg-white border-slate-200"
+              )}
+            >
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent opacity-30" />
               <div className="relative z-10 flex flex-col items-center max-w-2xl">
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
