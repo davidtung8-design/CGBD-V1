@@ -2,7 +2,7 @@ import { Activity, ThemeKey, ThemeConfig } from './types';
 import { INSPIRATIONAL_QUOTES } from './quotes';
 
 export const ACTIVITIES: Activity[] = [
-  { id: 1, group: 'green', icon: '💰', bg: '#E8F5E8', name: 'Set Appointments' },
+  { id: 1, group: 'green', icon: '💰', bg: '#E8F5E8', name: 'Close Case' },
   { id: 2, group: 'green', icon: '💼', bg: '#E8F5E8', name: 'Sales Activities' },
   { id: 3, group: 'green', icon: '🔍', bg: '#E8F5E8', name: 'Fact Finding' },
   { id: 4, group: 'green', icon: '🌱', bg: '#E8F5E8', name: 'Prospecting' },
