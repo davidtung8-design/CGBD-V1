@@ -34,16 +34,21 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const personalPct = Math.min(100, Math.floor((perfData.totalANP / (perfData.annualTargetGSPC || 1)) * 100));
-  const fycPct = Math.min(100, Math.floor(((perfData.totalFYC || 0) / (perfData.annualTargetFYC || 1)) * 100));
+  const totalActualQFYLP = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.actual || 0), 0);
+  const totalNOC = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.noc || 0), 0);
+  const totalRecruit = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.recruitActual || 0), 0);
+  const totalFYC = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.fyc || 0), 0);
+
+  const personalPct = Math.min(100, Math.floor((totalActualQFYLP / (perfData.annualTargetGSPC || 1)) * 100));
+  const fycPct = Math.min(100, Math.floor((totalFYC / (perfData.annualTargetFYC || 1)) * 100));
   const teamPct = Math.min(100, Math.floor((perfData.teamQ / 300000) * 100));
-  const recruitPct = Math.min(100, Math.floor((perfData.recruitCount / (perfData.annualTargetTeam || 1)) * 100));
+  const recruitPct = Math.min(100, Math.floor((totalRecruit / (perfData.annualTargetTeam || 1)) * 100));
 
   const stats = [
-    { label: '核心 ANP (QFYLP)', value: perfData.totalANP, total: perfData.annualTargetGSPC, icon: <Target size={18} /> },
-    { label: '成交件数 (NOC Nodes)', value: perfData.totalNOC, icon: <Shield size={18} /> },
-    { label: '招募战将 (Recruits)', value: perfData.recruitCount, total: perfData.annualTargetTeam, icon: <Zap size={18} /> },
-    { label: 'FYC Commission', value: perfData.totalFYC || 0, total: perfData.annualTargetFYC, icon: <Award size={18} /> },
+    { label: '核心 ANP (QFYLP)', value: totalActualQFYLP, total: perfData.annualTargetGSPC, icon: <Target size={18} /> },
+    { label: '成交件数 (NOC Nodes)', value: totalNOC, icon: <Shield size={18} /> },
+    { label: '招募战将 (Recruits)', value: totalRecruit, total: perfData.annualTargetTeam, icon: <Zap size={18} /> },
+    { label: 'FYC Commission', value: totalFYC, total: perfData.annualTargetFYC, icon: <Award size={18} /> },
     { label: '团队整体业绩', value: perfData.teamQ, total: 300000, icon: <Users size={18} /> },
   ];
 
@@ -373,6 +378,29 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                       <td className="p-4 text-center font-mono text-amber-500">{qRecruitActual}</td>
                     </tr>
                   );
+
+                  if (i === 11) {
+                    const yTarget = perfData.monthlyRecords.reduce((acc, curr) => acc + curr.target, 0);
+                    const yActual = perfData.monthlyRecords.reduce((acc, curr) => acc + curr.actual, 0);
+                    const yNoc = perfData.monthlyRecords.reduce((acc, curr) => acc + curr.noc, 0);
+                    const yAnp = perfData.monthlyRecords.reduce((acc, curr) => acc + curr.anp, 0);
+                    const yFyc = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.fyc || 0), 0);
+                    const yRecruitTarget = perfData.monthlyRecords.reduce((acc, curr) => acc + curr.recruitTarget, 0);
+                    const yRecruitActual = perfData.monthlyRecords.reduce((acc, curr) => acc + curr.recruitActual, 0);
+
+                    rows.push(
+                      <tr key="annual-summary" className="bg-emerald-400/10 font-black border-y-2 border-emerald-400/30">
+                        <td className="p-4 text-emerald-400 uppercase tracking-[0.2em] text-[10px]">TOTAL WHOLE YEAR SUMMARY</td>
+                        <td className="p-4 text-center font-mono text-slate-400">{formatNumber(yTarget)}</td>
+                        <td className="p-4 text-center font-mono text-emerald-400">{formatNumber(yActual)}</td>
+                        <td className="p-4 text-center font-mono text-emerald-400">{yNoc}</td>
+                        <td className="p-4 text-center font-mono text-emerald-400">{formatNumber(yAnp)}</td>
+                        <td className="p-4 text-center font-mono text-white">{formatNumber(yFyc)}</td>
+                        <td className="p-4 text-center font-mono text-slate-500">{yRecruitTarget}</td>
+                        <td className="p-4 text-center font-mono text-amber-500">{yRecruitActual}</td>
+                      </tr>
+                    );
+                  }
                 }
                 return rows;
               })}
