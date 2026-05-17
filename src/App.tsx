@@ -2023,7 +2023,7 @@ export default function App() {
                                 key={dayIdx} 
                                 rowSpan={maxSpan}
                                 className={cn(
-                                  "group relative min-h-[64px] cursor-pointer bg-transparent p-1 transition-colors border-r",
+                                  "group relative min-h-[64px] cursor-pointer bg-transparent p-0 transition-colors border-r",
                                   isDarkMode ? "hover:bg-white/5 border-slate-800/20" : "hover:bg-white/5 border-slate-100"
                                 )}
                                 onClick={() => {
@@ -2042,7 +2042,7 @@ export default function App() {
                                         setIsEventModalOpen(true);
                                       }}
                                       className={cn(
-                                        "h-full flex flex-col items-center justify-center text-center gap-2 rounded-xl p-3 text-[10px] font-semibold border transition-all hover:scale-[1.01] relative overflow-hidden group/ev",
+                                        "h-full w-full flex flex-col items-center justify-center text-center gap-2 p-3 text-[10px] font-semibold border-y border-transparent transition-all hover:scale-[1.01] relative overflow-hidden group/ev",
                                         duration > 1 && "min-h-[120px]"
                                       )}
                                       style={{ 
