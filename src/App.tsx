@@ -104,12 +104,15 @@ export default function App() {
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Explicit Language Detection
+    // Explicit Language Detection & Speech Rate Optimization
     const hasChinese = /[\u4e00-\u9fa5]/.test(text);
     if (hasChinese) {
         utterance.lang = 'zh-CN';
+        utterance.rate = 1.6; // Faster as requested
+        utterance.pitch = 1.1; 
     } else {
         utterance.lang = 'en-US';
+        utterance.rate = 1.3;
     }
 
     utterance.onend = () => setIsSpeaking(false);
@@ -714,10 +717,11 @@ export default function App() {
       reportData[groupName].items.push(`"${e.title || act?.name || 'Untitled'}" (${duration}h)`);
     });
 
-    csvRows.push(`=== WEEKLY TIME MATRIX (${format(currentMonday, 'MM/dd')} - ${format(addDays(currentMonday, 6), 'MM/dd')}) ===`);
-    csvRows.push('Category,Total Hours,Detailed Logs');
+    csvRows.push(`=== WEEKLY TIME MATRIX (${format(currentMonday, 'd/M')} - ${format(addDays(currentMonday, 6), 'd/M')}) ===`);
+    csvRows.push('Category,Total Hours,Color Group,Detailed Logs');
     Object.entries(reportData).forEach(([cat, data]) => {
-      csvRows.push(`${cat},${data.duration},"${data.items.join('; ')}"`);
+      const config = Object.values(GROUP_CONFIG).find(c => c.name === cat);
+      csvRows.push(`${cat},${data.duration},${config?.color || '#333'},"${data.items.join('; ')}"`);
     });
     csvRows.push('');
 
@@ -1251,6 +1255,31 @@ export default function App() {
               </div>
             </div>
 
+            {/* Encouragement Card (Inspiration Node) - MOVED HERE */}
+            <div className={cn(
+              "bento-card p-10 flex flex-col justify-center items-center text-center relative overflow-hidden group transition-all duration-700",
+              isDarkMode ? "bg-slate-900/60 border-white/5 shadow-2xl shadow-blue-500/5" : "bg-white border-slate-200"
+            )}>
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent opacity-30" />
+              <div className="relative z-10 flex flex-col items-center max-w-2xl">
+                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/10 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
+                  <Zap size={24} className="text-amber-500" />
+                </div>
+                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Inspiration Node</span>
+                <p className={cn(
+                  "text-3xl font-black italic mt-6 leading-tight transition-colors duration-500",
+                  isDarkMode ? "text-white group-hover:text-amber-400" : "text-slate-900"
+                )}>
+                  "{encouragement}"
+                </p>
+                <div className="flex items-center gap-4 mt-8 opacity-40">
+                  <div className="h-px w-8 bg-slate-700" />
+                  <span className="text-[9px] font-mono uppercase tracking-[0.4em]">Operational Clarity Protocol</span>
+                  <div className="h-px w-8 bg-slate-700" />
+                </div>
+              </div>
+            </div>
+
             <div className={cn(
               "bento-grid transition-all duration-700",
               isFocusMode && "gap-10 scale-[0.99] opacity-90"
@@ -1629,7 +1658,13 @@ export default function App() {
                             : (isTodayLocal ? "text-white font-black border border-white/30" : "text-slate-400 hover:bg-white/5"),
                         )}
                       >
-                        {format(day, 'd')}
+                        <div className="flex flex-col items-center">
+                          <span>{format(day, 'd')}</span>
+                          <span className={cn(
+                            "text-[6px] font-bold mt-0.5",
+                            isSelected ? (isDarkMode ? "text-black/60" : "text-white/60") : "text-slate-600"
+                          )}>{getLunarDate(day)}</span>
+                        </div>
                         {hasEvents && !isSelected && (
                           <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white" />
                         )}
@@ -1678,26 +1713,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Encouragement Card (Inspiration Node) */}
-            <div 
-              onClick={() => setEncouragement(ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)])}
-              className={cn(
-                "bento-card md:col-span-8 p-6 flex flex-col justify-between cursor-pointer transition-all duration-300 group",
-                isDarkMode ? "hover:bg-slate-800/30" : "bg-white border-slate-200 hover:bg-slate-50 shadow-sm"
-              )}
-            >
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Inspiration Node</span>
-                <RefreshCw size={14} className="text-slate-500 group-hover:rotate-180 transition-transform duration-500" />
-              </div>
-              <div className="mt-4">
-                <p className={cn(
-                  "text-xl font-medium leading-relaxed italic transition-colors",
-                  isDarkMode ? "text-slate-100 group-hover:text-white" : "text-slate-800 group-hover:text-slate-950"
-                )}>"{encouragement || 'Preparing insight...'}"</p>
-                <p className="text-[10px] text-slate-500 mt-4 uppercase font-mono">Status: {isFocusMode ? 'Matrix Resonance High' : 'Awaiting Operations'}</p>
-              </div>
-            </div>
 
             {/* Time Allocation Chart */}
             <div className={cn(
@@ -1847,7 +1862,7 @@ export default function App() {
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Time Matrix</h3>
                   <div className="flex items-center gap-2 text-slate-400 text-sm">
                     <Calendar size={14} />
-                    <span>{format(currentMonday, 'MMM dd')} — {format(addDays(currentMonday, 6), 'MMM dd, yyyy')}</span>
+                    <span>{format(currentMonday, 'd/M')} — {format(addDays(currentMonday, 6), 'd/M/yyyy')}</span>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-4">
@@ -1950,7 +1965,7 @@ export default function App() {
                             <span className={cn(
                               "text-sm font-light mb-1",
                               isDarkMode ? "text-white" : "text-slate-900"
-                            )}>{format(day, 'MM/dd')}</span>
+                            )}>{format(day, 'd/M')}</span>
                             <span className="text-[9px] text-white/60 font-medium">{getLunarDate(day)}</span>
                           </div>
                         </th>
