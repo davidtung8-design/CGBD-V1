@@ -22,7 +22,13 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
   // Reset filter when tab changes
   React.useEffect(() => {
     setFilterCategory('All');
+    setDisplayCount(100);
   }, [activeTab]);
+
+  // Reset display count when search or filter changes
+  React.useEffect(() => {
+    setDisplayCount(100);
+  }, [searchTerm, showOnlyPinned, filterCategory]);
 
   // Follow-up Logs Modal State
   const [isFollowupModalOpen, setIsFollowupModalOpen] = useState(false);
@@ -115,15 +121,21 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
           const colonIdx = trimmedLine.indexOf(':');
           if (colonIdx === -1) return;
 
-          const keyPart = trimmedLine.substring(0, colonIdx).toUpperCase();
+          const fullKey = trimmedLine.substring(0, colonIdx).toUpperCase();
           const valuePart = trimmedLine.substring(colonIdx + 1).trim();
+          
+          // Handle keys with parameters like FN;CHARSET=UTF-8
+          const keyPart = fullKey.split(';')[0];
 
           if (keyPart === 'FN' || keyPart.endsWith('.FN')) {
             currentContact.name = valuePart;
           } else if ((keyPart === 'N' || keyPart.endsWith('.N')) && !currentContact.name) {
-            const nameParts = valuePart.split(';').filter(Boolean);
-            if (nameParts.length >= 2) currentContact.name = `${nameParts[1]} ${nameParts[0]}`.trim();
-            else currentContact.name = nameParts.join(' ').trim();
+            const nameParts = valuePart.split(';');
+            // Standard N: Last;First;Middle;Prefix;Suffix
+            const last = nameParts[0] || '';
+            const first = nameParts[1] || '';
+            if (first || last) currentContact.name = `${first} ${last}`.trim();
+            else currentContact.name = nameParts.filter(Boolean).join(' ').trim();
           }
 
           if (keyPart.includes('TEL')) {
@@ -131,8 +143,11 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
           }
 
           if (trimmedLine.toUpperCase().startsWith('END:VCARD')) {
-            if (currentContact.name) {
-              contacts.push({ name: currentContact.name, tel: currentContact.tel || '' });
+            if (currentContact.name || currentContact.tel) {
+              contacts.push({ 
+                name: currentContact.name || currentContact.tel || 'Unknown', 
+                tel: currentContact.tel || '' 
+              });
             }
           }
         });
@@ -159,7 +174,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
             ...newEntries
           ]
         }));
-        showToast(`已导入 ${contacts.length} 位联系人。`);
+        showToast(`成功导入 ${contacts.length} 位联系人。 (Imported ${contacts.length} contacts)`);
         if (e.target) e.target.value = '';
       } catch (err) {
         console.error("VCF Parse Error:", err);
@@ -182,7 +197,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
       if (contacts?.length > 0) {
         const newEntries = contacts.map((c: any) => ({
           id: crypto.randomUUID(),
-          name: Array.isArray(c.name) ? c.name[0] : (typeof c.name === 'string' ? c.name : 'Unknown'),
+          name: Array.isArray(c.name) && c.name[0] ? c.name[0] : (typeof c.name === 'string' ? c.name : 'Unknown'),
           job: '',
           isPinned: false,
           category: '未分类' as any,
@@ -199,7 +214,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
             ...newEntries
           ]
         }));
-        showToast(`已同步 ${newEntries.length} 位联系人。`);
+        showToast(`成功同步 ${newEntries.length} 位联系人。`);
       }
     } catch (err) { console.error('Contact select error:', err); }
   };
@@ -218,6 +233,13 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
     
     return matchesSearch && matchesFilter && matchesCategory;
   });
+
+  // Pagination for large lists
+  const [displayCount, setDisplayCount] = useState(100);
+  const visibleEntries = filteredEntries.slice(0, displayCount);
+  const hasMore = filteredEntries.length > displayCount;
+
+  const loadMore = () => setDisplayCount(prev => prev + 100);
 
   const prospectCategories = ['跟进中', '已成交', '需要服务', 'KIV', '拒绝', '未分类'];
   const recruitCategories = ['跟进中', '已经考试', '90 days jumpstart', 'attend MIP COP', 'SG trip', 'KIV', '未分类'];
@@ -384,7 +406,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
               </tr>
             </thead>
             <tbody className={cn("divide-y", isDarkMode ? "divide-slate-800/30" : "divide-slate-100")}>
-              {filteredEntries.map((item) => (
+              {visibleEntries.map((item) => (
                 <tr key={item.id} className="hover:bg-white/[0.02]">
                   <td className="p-5 text-center">
                     <button onClick={() => togglePin(activeTab, item.id)} className={cn("p-2 rounded-xl border", item.isPinned ? "text-amber-500 border-amber-500/30" : "text-slate-400 border-slate-800/10")}>
@@ -441,6 +463,20 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
             </tbody>
           </table>
         </div>
+
+        {hasMore && (
+          <div className="p-8 flex justify-center border-t border-slate-800/10">
+            <button 
+              onClick={loadMore}
+              className={cn(
+                "px-10 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-[0.3em] transition-all active:scale-95 shadow-xl",
+                isDarkMode ? "bg-white text-slate-950 hover:bg-slate-100" : "bg-slate-900 text-white hover:bg-slate-800"
+              )}
+            >
+              Load More Operational Nodes ({filteredEntries.length - displayCount} Remaining)
+            </button>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
