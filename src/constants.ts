@@ -38,7 +38,9 @@ export const THEMES: Record<ThemeKey, ThemeConfig> = {
   rose: { name: "Rose Berry", bg: "#1e1b4b", accent: "#f472b6", text: "#ffffff", headerBg: "rgba(30,27,75,0.9)", border: "#f472b6" },
   emerald: { name: "Emerald Glade", bg: "#064e3b", accent: "#34d399", text: "#ffffff", headerBg: "rgba(6,78,59,0.9)", border: "#34d399" },
   amber: { name: "Amber Sands", bg: "#422006", accent: "#fbbf24", text: "#ffffff", headerBg: "rgba(66,32,6,0.9)", border: "#fbbf24" },
-  midnight: { name: "Noir Crimson", bg: "#000000", accent: "#ff4d4d", text: "#ffffff", headerBg: "rgba(0,0,0,0.9)", border: "#ff4d4d" }
+  midnight: { name: "Noir Crimson", bg: "#000000", accent: "#ff4d4d", text: "#ffffff", headerBg: "rgba(0,0,0,0.9)", border: "#ff4d4d" },
+  violet: { name: "Violet Orbit", bg: "#2e1065", accent: "#a855f7", text: "#ffffff", headerBg: "rgba(46,16,101,0.9)", border: "#a855f7" },
+  ocean: { name: "Deep Oceanic", bg: "#083344", accent: "#22d3ee", text: "#ffffff", headerBg: "rgba(8,51,68,0.9)", border: "#22d3ee" }
 };
 
 export const ENCOURAGEMENTS = INSPIRATIONAL_QUOTES;

@@ -11,8 +11,6 @@ interface SettingsPageProps {
   setThemeKey: (key: ThemeKey) => void;
   isDarkMode: boolean;
   setIsDarkMode: (val: boolean) => void;
-  isFocusMode: boolean;
-  setIsFocusMode: (val: boolean) => void;
   onStartFocusTimer: (mins: number) => void;
   isFocusTimerRunning: boolean;
   focusTime: number;
@@ -29,7 +27,6 @@ interface SettingsPageProps {
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ 
   themeKey, setThemeKey, isDarkMode, setIsDarkMode, 
-  isFocusMode, setIsFocusMode,
   onStartFocusTimer, isFocusTimerRunning, focusTime, formatFocusTime,
   targetMins, setTargetMins, onToggleTimer, onOpenLargeTimer,
   backups, onCreateBackup, onRestoreBackup,
@@ -124,24 +121,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
 
           <div className="mt-8 space-y-4 pt-8 border-t border-slate-800/50">
-              <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-[1.5rem] border border-slate-800">
-                <div className="flex items-center gap-3">
-                   <div className={cn("p-2 rounded-xl transition-colors", isFocusMode ? "bg-white text-slate-950" : "bg-slate-800 text-slate-500")}>
-                      <Zap size={14} />
-                   </div>
-                   <div>
-                      <span className="block text-[10px] font-bold text-white uppercase tracking-widest">Focus Protocol</span>
-                      <span className="block text-[8px] text-slate-500 uppercase">Visual noise reduction</span>
-                   </div>
-                </div>
-                <button 
-                  onClick={() => setIsFocusMode(!isFocusMode)}
-                  className={cn("w-8 h-4 rounded-full relative transition-colors", isFocusMode ? "bg-white" : "bg-slate-700")}
-                >
-                  <div className={cn("absolute top-0.5 w-3 h-3 bg-slate-900 rounded-full transition-all", isFocusMode ? "right-0.5" : "left-0.5")} />
-                </button>
-              </div>
-
               <div className="p-4 bg-slate-900/50 rounded-[1.5rem] border border-slate-800">
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">

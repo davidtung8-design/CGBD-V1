@@ -156,19 +156,18 @@ export default function App() {
   const [isProtocolModalOpen, setIsProtocolModalOpen] = useState(false);
   const [activeProtocolId, setActiveProtocolId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [isLargeTimerOpen, setIsLargeTimerOpen] = useState(false);
   const [isReflectionArchiveOpen, setIsReflectionArchiveOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [focusTime, setFocusTime] = useState(0); // in seconds
   const [targetMins, setTargetMins] = useState(30);
   const [isFocusTimerRunning, setIsFocusTimerRunning] = useState(false);
-  const [isLargeTimerOpen, setIsLargeTimerOpen] = useState(false);
   const focusTimerRef = useRef<any>(null);
   const chimeRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    chimeRef.current = new Audio('https://cdn.pixabay.com/audio/2022/03/10/audio_c35278d357.mp3');
+    chimeRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
   }, []);
 
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: "", visible: false });
@@ -191,7 +190,10 @@ export default function App() {
             setIsFocusTimerRunning(false);
             showToast("Focus session complete!");
             if (chimeRef.current) {
-              chimeRef.current.play().catch(e => console.warn("Chime failed:", e));
+              chimeRef.current.currentTime = 0;
+              chimeRef.current.play().catch(e => console.warn("Alarm failed:", e));
+              // Play it for a bit longer or loop a few times if possible, 
+              // but for now just replacing the sound to an alarm one is the main request.
             }
             return 0;
           }
@@ -208,10 +210,18 @@ export default function App() {
     if (isFocusTimerRunning) {
       if (focusTimerRef.current) clearInterval(focusTimerRef.current);
       setIsFocusTimerRunning(false);
+      if (chimeRef.current) {
+        chimeRef.current.pause();
+        chimeRef.current.currentTime = 0;
+      }
     } else {
       setFocusTime(targetMins * 60);
       setIsFocusTimerRunning(true);
       setIsLargeTimerOpen(true);
+      if (chimeRef.current) {
+        chimeRef.current.pause();
+        chimeRef.current.currentTime = 0;
+      }
     }
   };
 
@@ -232,9 +242,6 @@ export default function App() {
     const savedTheme = localStorage.getItem('dt_theme') as ThemeKey;
     if (savedTheme && THEMES[savedTheme]) setThemeKey(savedTheme);
     else setThemeKey('default');
-
-    const savedFocus = localStorage.getItem('dt_focus');
-    if (savedFocus) setIsFocusMode(savedFocus === 'true');
 
     setEncouragement(ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)]);
     
@@ -418,10 +425,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('dt_theme', themeKey);
   }, [themeKey]);
-
-  useEffect(() => {
-    localStorage.setItem('dt_focus', isFocusMode.toString());
-  }, [isFocusMode]);
 
   // --- Data Synchronization ---
   // Sync total performance figures from monthly records
@@ -1003,8 +1006,7 @@ export default function App() {
       </AnimatePresence>
 
       <div className={cn(
-        "mx-auto max-w-7xl px-4 sm:px-6 mb-24 transition-all duration-700",
-        isFocusMode && "saturate-[0.5] brightness-[0.8] blur-[0.2px]"
+        "mx-auto max-w-7xl px-4 sm:px-6 mb-24 transition-all duration-700"
       )}>
         <Header 
           theme={theme}
@@ -1272,7 +1274,7 @@ export default function App() {
 
             <div className={cn(
               "bento-grid transition-all duration-700",
-              isFocusMode && "gap-10 scale-[0.99] opacity-90"
+              "gap-10 scale-[0.99] opacity-90"
             )}>
               {/* Other home elements follow... */}
               {/* Removed wishing statement from inside bento-grid */}
@@ -2084,8 +2086,6 @@ export default function App() {
           setThemeKey={setThemeKey} 
           isDarkMode={isDarkMode} 
           setIsDarkMode={setIsDarkMode} 
-          isFocusMode={isFocusMode}
-          setIsFocusMode={setIsFocusMode}
           onStartFocusTimer={startFocusTimer}
           isFocusTimerRunning={isFocusTimerRunning}
           focusTime={focusTime}
@@ -2107,8 +2107,7 @@ export default function App() {
       {/* Footer System Status Bar */}
       <footer className={cn(
         "fixed bottom-0 left-0 right-0 backdrop-blur-md px-12 py-3 flex justify-between items-center text-[9px] uppercase tracking-[0.2em] border-t z-[60] transition-all duration-500",
-        isDarkMode ? "bg-slate-950/80 text-slate-600 border-slate-800" : "bg-white/80 text-slate-400 border-slate-200",
-        isFocusMode && "opacity-0 translate-y-full pointer-events-none"
+        isDarkMode ? "bg-slate-950/80 text-slate-600 border-slate-800" : "bg-white/80 text-slate-400 border-slate-200"
       )}>
         <div className="flex items-center gap-2">
           System status: <span className="text-emerald-500 font-bold flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Nominal</span>

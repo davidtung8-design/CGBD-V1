@@ -56,7 +56,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
         <div className="flex flex-col gap-4 w-full md:w-auto">
           <div className="flex items-center gap-3">
             <Zap size={18} className="text-white" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">Tactical Focus Protocol</h3>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">Focus Timer</h3>
           </div>
         </div>
 

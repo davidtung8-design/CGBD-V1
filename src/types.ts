@@ -134,7 +134,7 @@ export interface PerfData {
   }>;
 }
 
-export type ThemeKey = 'default' | 'neon' | 'rose' | 'emerald' | 'amber' | 'midnight';
+export type ThemeKey = 'default' | 'neon' | 'rose' | 'emerald' | 'amber' | 'midnight' | 'violet' | 'ocean';
 
 export interface ThemeConfig {
   name: string;
