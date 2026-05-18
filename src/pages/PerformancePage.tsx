@@ -28,6 +28,8 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
   toggleFocusedTimer,
   setIsLargeTimerOpen
 }) => {
+  const [editingBigCasesIdx, setEditingBigCasesIdx] = React.useState<number | null>(null);
+
   const formatFocusTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -250,7 +252,8 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                 <th className="p-4 font-bold text-center">ACTUAL QFYLP</th>
                 <th className="p-4 font-bold text-center">NOC</th>
                 <th className="p-4 font-bold text-center">ANP</th>
-                <th className="p-4 font-bold text-center">FYC Commission</th>
+                <th className="p-4 font-bold text-center border-emerald-400/20">FYC Commission</th>
+                <th className="p-4 font-bold text-center border-amber-400/20 text-amber-500">BIG CASES (&gt;3,750)</th>
                 <th className="p-4 font-bold text-center">Recruit Target</th>
                 <th className="p-4 font-bold text-center">Recruit Act</th>
               </tr>
@@ -328,6 +331,15 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                       />
                     </td>
                     <td className="p-4 text-center">
+                      <button 
+                        onClick={() => setEditingBigCasesIdx(i)}
+                        className="flex flex-col items-center justify-center p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all min-w-[60px]"
+                      >
+                        <span className="text-[14px] font-black font-mono text-amber-500">{(m.bigCases || []).length}</span>
+                        <span className="text-[7px] font-bold text-amber-500/50 uppercase tracking-tighter">Cases Recorded</span>
+                      </button>
+                    </td>
+                    <td className="p-4 text-center">
                       <input 
                         type="number" 
                         className="w-16 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-slate-500 font-mono focus:border-white outline-none"
@@ -376,6 +388,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                       <td className="p-4 text-center font-mono text-emerald-400">{qNoc}</td>
                       <td className="p-4 text-center font-mono text-white/50">{formatNumber(qAnp)}</td>
                       <td className="p-4 text-center font-mono text-white">{formatNumber(qFyc, 2)}</td>
+                      <td className="p-4 text-center font-mono text-amber-500">{quarterRecords.reduce((acc, curr) => acc + (curr.bigCases?.length || 0), 0)}</td>
                       <td className="p-4 text-center font-mono text-slate-500">{qRecruitTarget}</td>
                       <td className="p-4 text-center font-mono text-amber-500">{qRecruitActual}</td>
                     </tr>
@@ -398,6 +411,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                         <td className="p-4 text-center font-mono text-emerald-400">{yNoc}</td>
                         <td className="p-4 text-center font-mono text-emerald-400">{formatNumber(yAnp)}</td>
                         <td className="p-4 text-center font-mono text-white">{formatNumber(yFyc, 2)}</td>
+                        <td className="p-4 text-center font-mono text-amber-400 font-bold">{perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.bigCases?.length || 0), 0)}</td>
                         <td className="p-4 text-center font-mono text-slate-500">{yRecruitTarget}</td>
                         <td className="p-4 text-center font-mono text-amber-500">{yRecruitActual}</td>
                       </tr>
@@ -450,6 +464,115 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Big Cases Modal */}
+      {editingBigCasesIdx !== null && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl"
+          >
+            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-amber-500/5 to-transparent">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-amber-500/10 text-amber-500 rounded-2xl">
+                  <Award size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold uppercase tracking-[0.2em] text-white">
+                    {perfData.monthlyRecords[editingBigCasesIdx].month} Big Cases
+                  </h3>
+                  <p className="text-[10px] text-amber-500/60 uppercase tracking-widest mt-1">Single Case FYC &gt; RM 3,750</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setEditingBigCasesIdx(null)}
+                className="p-3 hover:bg-white/10 rounded-2xl transition-all"
+              >
+                <X size={20} className="text-slate-500" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+              <div className="space-y-3">
+                {perfData.monthlyRecords[editingBigCasesIdx].bigCases?.map((bc, bIdx) => (
+                  <div key={bc.id} className="group flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-amber-500/30 transition-all">
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Case ID: {bc.id.slice(0, 8)}</span>
+                        <button 
+                          onClick={() => {
+                            const newRecords = [...perfData.monthlyRecords];
+                            newRecords[editingBigCasesIdx].bigCases = (newRecords[editingBigCasesIdx].bigCases || []).filter(c => c.id !== bc.id);
+                            setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                          }}
+                          className="text-slate-600 hover:text-rose-500 transition-colors"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">FYC: RM</span>
+                        <input 
+                          type="number"
+                          step="0.01"
+                          className="flex-1 bg-transparent border-none outline-none text-lg font-mono font-black text-amber-500 p-0"
+                          value={bc.fyc}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            const newRecords = [...perfData.monthlyRecords];
+                            const cases = [...(newRecords[editingBigCasesIdx].bigCases || [])];
+                            cases[bIdx] = { ...bc, fyc: val };
+                            newRecords[editingBigCasesIdx].bigCases = cases;
+                            setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {(!perfData.monthlyRecords[editingBigCasesIdx].bigCases || perfData.monthlyRecords[editingBigCasesIdx].bigCases.length === 0) && (
+                  <div className="py-12 text-center border-2 border-dashed border-slate-800 rounded-3xl">
+                    <p className="text-[10px] text-slate-600 uppercase tracking-[0.2em]">Zero Big Cases Registered</p>
+                  </div>
+                )}
+              </div>
+
+              <button 
+                onClick={() => {
+                  const newRecords = [...perfData.monthlyRecords];
+                  const currentCases = newRecords[editingBigCasesIdx].bigCases || [];
+                  newRecords[editingBigCasesIdx].bigCases = [
+                    ...currentCases,
+                    { id: Math.random().toString(36).slice(2, 11), fyc: 3750 }
+                  ];
+                  setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                }}
+                className="w-full py-4 rounded-2xl bg-amber-500 text-slate-950 font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus size={14} fill="currentColor" />
+                Register New Big Case
+              </button>
+            </div>
+
+            <div className="p-8 bg-black/40 border-t border-white/5">
+               <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest mb-4">
+                  <span className="text-slate-500">Monthly Big Case Total</span>
+                  <span className="text-amber-500 font-mono text-lg">RM {
+                    formatNumber(perfData.monthlyRecords[editingBigCasesIdx].bigCases?.reduce((sum, c) => sum + c.fyc, 0) || 0, 2)
+                  }</span>
+               </div>
+               <button 
+                 onClick={() => setEditingBigCasesIdx(null)}
+                 className="w-full py-4 rounded-xl border border-white/10 text-white font-bold text-[10px] uppercase tracking-widest hover:bg-white/5 transition-all"
+               >
+                 Close Manifest
+               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

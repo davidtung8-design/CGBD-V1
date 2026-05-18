@@ -15,7 +15,7 @@ interface ContestDefinition {
   name: string;
   chineseName: string;
   description: string;
-  targetMetric: 'anp' | 'noc' | 'qfylp' | 'recruit' | 'qualifier' | 'fyc';
+  targetMetric: 'anp' | 'noc' | 'qfylp' | 'recruit' | 'qualifier' | 'fyc' | 'big_cases';
   targetValue: number;
   period: 'yearly' | 'quarterly' | 'monthly';
   category: 'rookie' | 'sales' | 'recruit' | 'top' | 'management';
@@ -37,7 +37,7 @@ const CONTESTS: ContestDefinition[] = [
   { id: '2.3', name: 'Superbeez Builder', chineseName: '超级蜜蜂增员奖', description: 'Min 2 Superbeez Award Qualifiers in DG (Excl. Personal Sales)', targetMetric: 'qualifier', targetValue: 2, period: 'quarterly', category: 'management', icon: <Users size={20} />, color: 'from-orange-400 to-rose-600' },
 
   // Special Recognition
-  { id: '4.0', name: 'Super Honey Award', chineseName: '超级蜂蜜奖', description: 'Total Year FYC > 3,750 (Based on single cases or accumulation)', targetMetric: 'fyc', targetValue: 3750, period: 'yearly', category: 'sales', icon: <Zap size={20} />, color: 'from-yellow-200 to-amber-500' },
+  { id: '4.0', name: 'Super Honey Award', chineseName: '超级蜂蜜奖', description: 'Single Case FYC > RM 3,750 (Award for exceptional high-value production)', targetMetric: 'big_cases', targetValue: 1, period: 'yearly', category: 'sales', icon: <Zap size={20} />, color: 'from-yellow-200 to-amber-500' },
 
   // Recruitment
   { id: '11.0a', name: 'Super Recruiter Bronze', chineseName: '超级招募金 (铜)', description: '1 New Recruit (30K QFYLP_C or 18K)', targetMetric: 'recruit', targetValue: 1, period: 'yearly', category: 'recruit', icon: <UserPlus size={20} />, color: 'from-amber-600 to-amber-800' },
@@ -84,7 +84,8 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
         anp: qMonths.reduce((acc, curr) => acc + curr.anp, 0),
         noc: qMonths.reduce((acc, curr) => acc + curr.noc, 0),
         fyc: qMonths.reduce((acc, curr) => acc + (curr.fyc || 0), 0),
-        qfylp: qMonths.reduce((acc, curr) => acc + curr.actual, 0)
+        qfylp: qMonths.reduce((acc, curr) => acc + curr.actual, 0),
+        bigCases: qMonths.reduce((acc, curr) => acc + (curr.bigCases?.length || 0), 0)
       };
     });
 
@@ -92,10 +93,11 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
     const currentMonthIdx = new Date().getMonth();
     const currentQuarterIdx = Math.floor(currentMonthIdx / 3);
     const qStats = quarters[currentQuarterIdx];
+    const totalBigCases = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.bigCases?.length || 0), 0);
 
     return { 
-      totalANP, totalNOC, totalQFYLP, totalFYC, 
-      qANP: qStats.anp, qNOC: qStats.noc, qFYC: qStats.fyc, qQFYLP: qStats.qfylp,
+      totalANP, totalNOC, totalQFYLP, totalFYC, totalBigCases,
+      qANP: qStats.anp, qNOC: qStats.noc, qFYC: qStats.fyc, qQFYLP: qStats.qfylp, qBigCases: qStats.bigCases,
       allQuarters: quarters,
       currentQuarterIdx
     };
@@ -157,6 +159,8 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
             currentVal = contest.period === 'quarterly' ? targetStats.qfylp : stats.totalQFYLP;
           } else if (contest.targetMetric === 'fyc') {
             currentVal = contest.period === 'quarterly' ? targetStats.fyc : stats.totalFYC;
+          } else if (contest.targetMetric === 'big_cases') {
+            currentVal = contest.period === 'quarterly' ? (targetStats as any).bigCases : stats.totalBigCases;
           } else if (contest.targetMetric === 'recruit') {
             currentVal = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.recruitActual || 0), 0);
           } else if (contest.targetMetric === 'qualifier') {
@@ -299,7 +303,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
                      ) : (
                         <div className="flex flex-col gap-0.5">
                           <span>
-                            {['noc', 'recruit', 'qualifier'].includes(contest.targetMetric)
+                            {['noc', 'recruit', 'qualifier', 'big_cases'].includes(contest.targetMetric)
                               ? `Gap: ${deficit}` 
                               : `Gap: RM ${formatNumber(deficit, contest.targetMetric === 'fyc' ? 2 : undefined)}`}
                           </span>

@@ -39,6 +39,12 @@ export interface DailyData {
   protocolDetails?: Record<string, string[]>; // Detailed logs for each protocol ID ('a': ['John-At Cafe-Met via friend', ...])
 }
 
+export interface BigCase {
+  id: string;
+  name?: string;
+  fyc: number;
+}
+
 export interface MonthlyRecord {
   month: string;
   target: number;
@@ -48,6 +54,7 @@ export interface MonthlyRecord {
   fyc?: number;
   recruitTarget: number;
   recruitActual: number;
+  bigCases?: BigCase[];
 }
 
 export interface TeamMember {
