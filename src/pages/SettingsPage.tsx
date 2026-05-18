@@ -22,6 +22,7 @@ interface SettingsPageProps {
   backups: { id: string, timestamp: any, label: string }[];
   onCreateBackup: () => void;
   onRestoreBackup: (id: string) => void;
+  onDeleteBackup: (id: string) => void;
   onClearData: () => void;
 }
 
@@ -29,7 +30,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   themeKey, setThemeKey, isDarkMode, setIsDarkMode, 
   onStartFocusTimer, isFocusTimerRunning, focusTime, formatFocusTime,
   targetMins, setTargetMins, onToggleTimer, onOpenLargeTimer,
-  backups, onCreateBackup, onRestoreBackup,
+  backups, onCreateBackup, onRestoreBackup, onDeleteBackup,
   onClearData
 }) => {
   const currentTheme = THEMES[themeKey] || THEMES.default;
@@ -183,26 +184,39 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
              <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-4">Restore system state to a previous node anchor:</p>
              
              {backups.length > 0 ? backups.map((b) => (
-               <button 
-                 key={b.id}
-                 onClick={() => {
-                    const confirmRestore = window.confirm(`Restore to [${b.label}]? Current session data will be overwritten.`);
-                    if (confirmRestore) {
-                       onRestoreBackup(b.id);
+               <div key={b.id} className="group relative">
+                <button 
+                  onClick={() => {
+                     const confirmRestore = window.confirm(`Restore to [${b.label}]? Current session data will be overwritten.`);
+                     if (confirmRestore) {
+                        onRestoreBackup(b.id);
+                     }
+                  }}
+                  className="w-full p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all text-left flex justify-between items-center"
+                >
+                  <div className="flex-1">
+                    <h4 className="text-[12px] font-bold text-white uppercase tracking-[0.2em] mb-1 group-hover:text-blue-400 transition-colors">
+                      {b.label}
+                    </h4>
+                    <p className="text-[9px] text-slate-500 uppercase">Strategic Node Archive</p>
+                  </div>
+                  <div className="p-2 bg-slate-900 rounded-xl text-slate-600 group-hover:text-blue-500 transition-colors ml-4">
+                    <History size={16} />
+                  </div>
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const confirmDelete = window.confirm(`Permanently delete node [${b.label}]?`);
+                    if (confirmDelete) {
+                      onDeleteBackup(b.id);
                     }
-                 }}
-                 className="w-full p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all text-left flex justify-between items-center group"
-               >
-                 <div className="flex-1">
-                   <h4 className="text-[12px] font-bold text-white uppercase tracking-[0.2em] mb-1 group-hover:text-blue-400 transition-colors">
-                     {b.label}
-                   </h4>
-                   <p className="text-[9px] text-slate-500 uppercase">Strategic Node Archive</p>
-                 </div>
-                 <div className="p-2 bg-slate-900 rounded-xl text-slate-600 group-hover:text-blue-500 transition-colors ml-4">
-                   <History size={16} />
-                 </div>
-               </button>
+                  }}
+                  className="absolute -top-2 -right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600 z-20"
+                >
+                  <Trash2 size={12} />
+                </button>
+               </div>
              )) : (
                <div className="py-10 text-center border border-dashed border-slate-800 rounded-2xl">
                  <p className="text-[10px] text-slate-600 uppercase tracking-widest">No Cloud Nodes Detected</p>

@@ -135,10 +135,11 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
               </div>
               <div className="mt-4">
                 <div className="flex items-baseline gap-2">
-                  <input 
-                    type="number"
-                    className="text-3xl font-mono text-white bg-transparent border-none outline-none w-full p-0"
-                    value={stat.value}
+                    <input 
+                      type="number"
+                      step={stat.label.includes('FYC') ? "0.01" : "1"}
+                      className="text-3xl font-mono text-white bg-transparent border-none outline-none w-full p-0"
+                      value={stat.label.includes('FYC') ? Math.round(stat.value * 100) / 100 : stat.value}
                     onChange={(e) => {
                       const val = parseFloat(e.target.value) || 0;
                       const currentMonthName = format(new Date(), 'M月', { locale: undefined });
@@ -315,8 +316,9 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                     <td className="p-4 text-center">
                       <input 
                         type="number" 
+                        step="0.01"
                         className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white font-mono focus:border-white outline-none"
-                        value={m.fyc || 0}
+                        value={m.fyc !== undefined ? Math.round(m.fyc * 100) / 100 : 0}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
                           const newRecords = [...perfData.monthlyRecords];
@@ -373,7 +375,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                       <td className="p-4 text-center font-mono text-white">{formatNumber(qActual)}</td>
                       <td className="p-4 text-center font-mono text-emerald-400">{qNoc}</td>
                       <td className="p-4 text-center font-mono text-white/50">{formatNumber(qAnp)}</td>
-                      <td className="p-4 text-center font-mono text-white">{formatNumber(qFyc)}</td>
+                      <td className="p-4 text-center font-mono text-white">{formatNumber(qFyc, 2)}</td>
                       <td className="p-4 text-center font-mono text-slate-500">{qRecruitTarget}</td>
                       <td className="p-4 text-center font-mono text-amber-500">{qRecruitActual}</td>
                     </tr>
@@ -395,7 +397,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                         <td className="p-4 text-center font-mono text-emerald-400">{formatNumber(yActual)}</td>
                         <td className="p-4 text-center font-mono text-emerald-400">{yNoc}</td>
                         <td className="p-4 text-center font-mono text-emerald-400">{formatNumber(yAnp)}</td>
-                        <td className="p-4 text-center font-mono text-white">{formatNumber(yFyc)}</td>
+                        <td className="p-4 text-center font-mono text-white">{formatNumber(yFyc, 2)}</td>
                         <td className="p-4 text-center font-mono text-slate-500">{yRecruitTarget}</td>
                         <td className="p-4 text-center font-mono text-amber-500">{yRecruitActual}</td>
                       </tr>

@@ -247,7 +247,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
                         <div key={idx} className="flex flex-col items-center">
                           <span>Q{idx + 1}</span>
                           <span className={cn(isHit ? "text-emerald-400" : "")}>
-                            {contest.targetMetric === 'noc' ? qTarget : `RM ${formatNumber(qTarget)}`}
+                            {contest.targetMetric === 'noc' ? qTarget : `RM ${formatNumber(qTarget, contest.targetMetric === 'fyc' ? 2 : undefined)}`}
                           </span>
                         </div>
                       );
@@ -261,12 +261,12 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
                      <div className="text-2xl font-mono font-black text-white">
                        {['noc', 'recruit', 'qualifier'].includes(contest.targetMetric)
                          ? currentVal 
-                         : `RM ${formatNumber(currentVal)}`
+                         : `RM ${formatNumber(currentVal, contest.targetMetric === 'fyc' ? 2 : undefined)}`
                        }
                        <span className="text-slate-600 text-xs font-normal ml-2">
                          / {['noc', 'recruit', 'qualifier'].includes(contest.targetMetric)
                            ? contest.targetValue 
-                           : `RM ${formatNumber(contest.targetValue)}`
+                           : `RM ${formatNumber(contest.targetValue, contest.targetMetric === 'fyc' ? 2 : undefined)}`
                          }
                        </span>
                      </div>
@@ -301,7 +301,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
                           <span>
                             {['noc', 'recruit', 'qualifier'].includes(contest.targetMetric)
                               ? `Gap: ${deficit}` 
-                              : `Gap: RM ${formatNumber(deficit)}`}
+                              : `Gap: RM ${formatNumber(deficit, contest.targetMetric === 'fyc' ? 2 : undefined)}`}
                           </span>
                           {!avgCaseSizeOk && currentVal > 0 && (
                             <span className="text-rose-500 text-[7px] lowercase italic">Avg case size below threshold</span>

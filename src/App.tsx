@@ -158,6 +158,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLargeTimerOpen, setIsLargeTimerOpen] = useState(false);
   const [isReflectionArchiveOpen, setIsReflectionArchiveOpen] = useState(false);
+  const [isAllocationHistoryOpen, setIsAllocationHistoryOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [focusTime, setFocusTime] = useState(0); // in seconds
@@ -257,6 +258,8 @@ export default function App() {
   const [connectionError, setConnectionError] = useState<{ reason: string; code?: string } | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(new Date());
+  const [isFirstLoadComplete, setIsFirstLoadComplete] = useState({ perf: false, daily: false, todos: false, events: false });
+  const isAllLoaded = isFirstLoadComplete.perf && isFirstLoadComplete.daily && isFirstLoadComplete.todos && isFirstLoadComplete.events;
 
   // --- Load Data & Real-time Sync ---
   useEffect(() => {
@@ -326,6 +329,7 @@ export default function App() {
           return prev;
         });
       }
+      setIsFirstLoadComplete(prev => ({ ...prev, perf: true }));
     }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/perf/main`)));
 
     // 2. Sync Events
@@ -339,6 +343,7 @@ export default function App() {
         }
         return prev;
       });
+      setIsFirstLoadComplete(prev => ({ ...prev, events: true }));
     }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/events`)));
 
     // 3. Sync Todos
@@ -354,6 +359,7 @@ export default function App() {
         }
         return prev;
       });
+      setIsFirstLoadComplete(prev => ({ ...prev, todos: true }));
     }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/todos`)));
 
     // 4. Sync Daily Data
@@ -369,6 +375,7 @@ export default function App() {
         }
         return prev;
       });
+      setIsFirstLoadComplete(prev => ({ ...prev, daily: true }));
       setIsSyncing(false); // Finished initial sync for daily at least
     }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/daily`)));
 
@@ -376,7 +383,7 @@ export default function App() {
   }, [user]);
 
   const saveToCloud = async () => {
-    if (!user) return;
+    if (!user || !isAllLoaded) return;
     setIsSyncing(true);
     try {
       const batch = writeBatch(db);
@@ -613,6 +620,17 @@ export default function App() {
       }
     } catch (e) {
       handleFirestoreError(e, OperationType.GET, backupRef.path);
+    }
+  };
+
+  const handleDeleteBackup = async (id: string) => {
+    if (!user) return;
+    const backupRef = doc(db, `users/${user.uid}/backups`, id);
+    try {
+      await deleteDoc(backupRef);
+      showToast("Backup node permanently removed");
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, backupRef.path);
     }
   };
 
@@ -946,7 +964,7 @@ export default function App() {
 
             <button 
               onClick={toggleFocusedTimer}
-              className="absolute top-10 right-10 z-50 p-6 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all text-white/20 hover:text-white backdrop-blur-xl group"
+              className="absolute top-10 right-10 z-50 p-6 bg-white/5 border border-white/10 rounded-full hover:bg-rose-500/20 transition-all text-rose-500/60 hover:text-rose-500 backdrop-blur-xl group"
             >
               <X size={40} className="group-active:scale-90 transition-transform" />
             </button>
@@ -1734,7 +1752,7 @@ export default function App() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
-                    onClick={() => setIsReflectionArchiveOpen(true)}
+                    onClick={() => setIsAllocationHistoryOpen(true)}
                     className="px-2 py-1 bg-white/10 border border-white/30 rounded-lg text-[8px] font-bold text-white uppercase tracking-widest hover:bg-white/20 transition-all flex items-center gap-1"
                   >
                     <History size={10} /> History
@@ -2129,6 +2147,7 @@ export default function App() {
           backups={backups}
           onCreateBackup={handleCreateBackup}
           onRestoreBackup={handleRestoreBackup}
+          onDeleteBackup={handleDeleteBackup}
           onClearData={() => {
             localStorage.clear();
             window.location.reload();
@@ -2294,10 +2313,190 @@ export default function App() {
                               {(data as DailyData).r || "No reflection recorded."}
                             </div>
                           </div>
+
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+                               <Award size={12} /> Gratitude
+                            </div>
+                            <div className={cn(
+                               "p-4 rounded-2xl text-[10px] leading-relaxed italic border min-h-[50px]",
+                               isDarkMode ? "bg-black/20 border-slate-800 text-amber-100/60" : "bg-white border-slate-200 text-amber-700 shadow-sm"
+                            )}>
+                               {(data as DailyData).g || "No gratitude recorded."}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Time Allocation History Modal */}
+      <AnimatePresence>
+        {isAllocationHistoryOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className={cn(
+                "w-full max-w-5xl max-h-[85vh] rounded-[2.5rem] border overflow-hidden flex flex-col transition-colors duration-300 shadow-2xl",
+                isDarkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200"
+              )}
+            >
+               <div className="p-8 border-b border-slate-800/20 flex justify-between items-center bg-gradient-to-r from-blue-500/5 to-transparent">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-500/10 text-blue-400 rounded-2xl">
+                    <PieChartIcon size={24} />
+                  </div>
+                  <div>
+                    <h3 className={cn("text-xl font-bold uppercase tracking-[0.2em]", isDarkMode ? "text-white" : "text-slate-900")}>Allocation History</h3>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Retro-active analysis of tactical time distribution</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsAllocationHistoryOpen(false)}
+                  className="p-3 hover:bg-white/10 rounded-2xl transition-all"
+                >
+                  <X size={20} className="text-slate-500" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                  <div className="mb-10 h-[400px]">
+                     {(() => {
+                        // Calculate last 8 weeks
+                        const historyData = [];
+                        for (let i = -7; i <= 0; i++) {
+                           const start = startOfWeek(addWeeks(new Date(), i), { weekStartsOn: 1 });
+                           const end = endOfWeek(start, { weekStartsOn: 1 });
+                           const label = `W${format(start, 'w')} (${format(start, 'dd/MM')})`;
+                           
+                           const weekEvents = events.filter(e => e.weekOffset === i);
+                           const totals: any = { label };
+                           
+                           Object.keys(GROUP_CONFIG).forEach(k => {
+                              totals[GROUP_CONFIG[k as keyof typeof GROUP_CONFIG].name] = 0;
+                           });
+
+                           weekEvents.forEach(e => {
+                              const act = ACTIVITIES.find(a => a.id === e.activityId);
+                              if (act && GROUP_CONFIG[act.group as keyof typeof GROUP_CONFIG]) {
+                                 const groupName = GROUP_CONFIG[act.group as keyof typeof GROUP_CONFIG].name;
+                                 totals[groupName] += (e.endHour - e.startHour);
+                              }
+                           });
+                           historyData.push(totals);
+                        }
+
+                        return (
+                           <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={historyData}>
+                                 <XAxis 
+                                    dataKey="label" 
+                                    stroke={isDarkMode ? "#475569" : "#94a3b8"} 
+                                    fontSize={10} 
+                                    tickLine={false} 
+                                    axisLine={false}
+                                 />
+                                 <YAxis 
+                                    stroke={isDarkMode ? "#475569" : "#94a3b8"} 
+                                    fontSize={10} 
+                                    tickLine={false} 
+                                    axisLine={false}
+                                    label={{ value: 'Hours', angle: -90, position: 'insideLeft', style: { fill: '#64748b', fontSize: 10, fontWeight: 'bold' } }}
+                                 />
+                                 <Tooltip 
+                                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                                    contentStyle={{ 
+                                       backgroundColor: isDarkMode ? '#0f172a' : '#ffffff',
+                                       border: isDarkMode ? '1px solid #1e293b' : '1px solid #e2e8f0',
+                                       borderRadius: '16px',
+                                       fontSize: '11px',
+                                       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                 />
+                                 <Legend 
+                                    wrapperStyle={{ paddingTop: '20px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                                 />
+                                 {Object.entries(GROUP_CONFIG).map(([key, config]) => (
+                                    <Bar 
+                                       key={key} 
+                                       dataKey={config.name} 
+                                       stackId="a" 
+                                       fill={config.color} 
+                                       radius={[0, 0, 0, 0]} 
+                                    />
+                                 ))}
+                              </BarChart>
+                           </ResponsiveContainer>
+                        );
+                     })()}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                     {[-3, -2, -1, 0].map(offset => {
+                        const start = startOfWeek(addWeeks(new Date(), offset), { weekStartsOn: 1 });
+                        const weekEvents = events.filter(e => e.weekOffset === offset);
+                        const totalHours = weekEvents.reduce((s, e) => s + (e.endHour - e.startHour), 0);
+
+                        return (
+                           <div key={offset} className={cn(
+                              "p-6 rounded-3xl border transition-all",
+                              isDarkMode ? "bg-slate-900/40 border-slate-800" : "bg-slate-50 border-slate-200"
+                           )}>
+                              <div className="flex justify-between items-center mb-4">
+                                 <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                                    {offset === 0 ? "Current Week" : `${Math.abs(offset)} Weeks Ago`}
+                                 </span>
+                                 <span className="text-xs font-mono text-blue-400 font-bold">{totalHours}h</span>
+                              </div>
+                              <div className="space-y-4">
+                                 {Object.entries(GROUP_CONFIG).map(([k, config]) => {
+                                    const hours = weekEvents
+                                       .filter(e => {
+                                          const act = ACTIVITIES.find(a => a.id === e.activityId);
+                                          return act?.group === k;
+                                       })
+                                       .reduce((sum, ev) => sum + (ev.endHour - ev.startHour), 0);
+                                    
+                                    const pct = totalHours > 0 ? Math.round((hours / totalHours) * 100) : 0;
+
+                                    return (
+                                       <div key={k}>
+                                          <div className="flex justify-between text-[9px] uppercase tracking-tighter mb-1">
+                                             <span className="text-slate-500 font-bold">{config.name}</span>
+                                             <span className="text-slate-400 font-mono">{hours}h ({pct}%)</span>
+                                          </div>
+                                          <div className="h-1 bg-black/20 rounded-full overflow-hidden">
+                                             <motion.div 
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${pct}%` }}
+                                                className="h-full" 
+                                                style={{ backgroundColor: config.color }} 
+                                             />
+                                          </div>
+                                       </div>
+                                    );
+                                 })}
+                              </div>
+                              <button 
+                                 onClick={() => {
+                                    setViewOffset(offset);
+                                    setIsAllocationHistoryOpen(false);
+                                 }}
+                                 className="w-full mt-6 py-2 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-[9px] font-bold text-white/50 hover:text-white uppercase tracking-widest transition-all"
+                              >
+                                 Go to Matrix
+                              </button>
+                           </div>
+                        );
+                     })}
+                  </div>
               </div>
             </motion.div>
           </div>

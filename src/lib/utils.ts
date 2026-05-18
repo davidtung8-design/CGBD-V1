@@ -6,7 +6,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatNumber(num: number) {
+export function formatNumber(num: number, decimals?: number) {
+  if (decimals !== undefined) {
+    const parts = num.toFixed(decimals).split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return parts.join(".");
+  }
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
