@@ -24,11 +24,14 @@ export function getLunarDate(date: Date) {
 }
 
 export function formatHour(hour: number) {
-  if (hour === 0) return '12:00 AM';
-  if (hour < 12) return `${hour}:00 AM`;
-  if (hour === 12) return '12:00 PM';
-  if (hour === 24) return '12:00 AM';
-  return `${hour - 12}:00 PM`;
+  const h = Math.floor(hour);
+  const m = Math.round((hour % 1) * 60);
+  const mm = m === 0 ? '00' : m.toString().padStart(2, '0');
+  
+  const displayH = h % 12 === 0 ? 12 : h % 12;
+  const ampm = (h % 24) < 12 ? 'AM' : 'PM';
+  
+  return `${displayH}:${mm} ${ampm}`;
 }
 
 export function formatTimeRange(start: number, end: number) {

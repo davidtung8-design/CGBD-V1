@@ -1998,13 +1998,15 @@ export default function App() {
                   </thead>
                   <tbody>
                     {(() => {
-                      const hours = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2];
+                      const hours = [];
+                      for (let h = 5; h < 24; h += 0.5) hours.push(h);
+                      for (let h = 0; h < 3; h += 0.5) hours.push(h);
                       const spanned = {} as Record<number, number>; // dayIdx -> remaining span
 
                       return hours.map((hour, hIdx) => (
                         <tr key={hour} className={cn("border-b transition-colors", isDarkMode ? "border-slate-800/30" : "border-slate-200")}>
                           <td className={cn(
-                            "sticky left-0 z-10 border-r p-2 text-center text-slate-500 font-mono transition-colors",
+                            "sticky left-0 z-10 border-r p-1 text-center text-slate-500 font-mono transition-colors text-[9px]",
                             isDarkMode ? "border-slate-800 bg-slate-900/80" : "border-slate-200 bg-slate-50/80 backdrop-blur-sm"
                           )}>
                              {formatHour(hour)}
@@ -2019,14 +2021,14 @@ export default function App() {
                             const cellEvents = events.filter(e => 
                               e.weekOffset === viewOffset && 
                               e.weekday === weekday && 
-                              e.startHour === hour
+                              Math.abs(e.startHour - hour) < 0.01
                             );
 
                             let maxSpan = 1;
                             cellEvents.forEach(e => {
                                const duration = (e.endHour - e.startHour + 24) % 24 || 24;
                                const remainingRows = hours.length - hIdx;
-                               const actualSpan = Math.min(duration, remainingRows);
+                               const actualSpan = Math.min(Math.round(duration * 2), remainingRows);
                                if (actualSpan > maxSpan) maxSpan = actualSpan;
                             });
 
@@ -2042,7 +2044,7 @@ export default function App() {
                                   "group relative cursor-pointer bg-transparent p-0 transition-colors border-r align-top",
                                   isDarkMode ? "hover:bg-white/5 border-slate-800/20" : "hover:bg-white/5 border-slate-100"
                                 )}
-                                style={{ height: maxSpan > 1 ? `${maxSpan * 64}px` : '64px' }}
+                                style={{ height: maxSpan > 1 ? `${maxSpan * 32}px` : '32px' }}
                                 onClick={() => {
                                   setSelectedSlot({ day: weekday, hour, offset: viewOffset });
                                   setIsEventModalOpen(true);
@@ -2551,9 +2553,10 @@ export default function App() {
                       )}
                       defaultValue={editingEvent?.startHour || selectedSlot?.hour || 9}
                     >
-                      {Array.from({ length: 24 }).map((_, h) => (
-                        <option key={h} value={h} className={isDarkMode ? "bg-slate-900" : "bg-white"}>{formatHour(h)}</option>
-                      ))}
+                      {Array.from({ length: 48 }).map((_, i) => {
+                        const h = i / 2;
+                        return <option key={i} value={h} className={isDarkMode ? "bg-slate-900" : "bg-white"}>{formatHour(h)}</option>;
+                      })}
                     </select>
                   </div>
                   <div>
@@ -2566,9 +2569,10 @@ export default function App() {
                       )}
                       defaultValue={editingEvent?.endHour || (selectedSlot?.hour ? selectedSlot.hour + 1 : 10)}
                     >
-                      {Array.from({ length: 25 }).map((_, h) => (
-                        <option key={h} value={h} className={isDarkMode ? "bg-slate-900" : "bg-white"}>{formatHour(h)}</option>
-                      ))}
+                      {Array.from({ length: 49 }).map((_, i) => {
+                        const h = i / 2;
+                        return <option key={i} value={h} className={isDarkMode ? "bg-slate-900" : "bg-white"}>{formatHour(h)}</option>;
+                      })}
                     </select>
                   </div>
                 </div>
@@ -2646,8 +2650,8 @@ export default function App() {
                    <button 
                       onClick={() => {
                         const title = (document.getElementById('modal-title') as HTMLInputElement).value;
-                        const sH = parseInt((document.getElementById('modal-start') as HTMLSelectElement).value);
-                        const eH = parseInt((document.getElementById('modal-end') as HTMLSelectElement).value);
+                        const sH = parseFloat((document.getElementById('modal-start') as HTMLSelectElement).value);
+                        const eH = parseFloat((document.getElementById('modal-end') as HTMLSelectElement).value);
                         const actId = parseInt(document.getElementById('activity-selector')?.getAttribute('data-selected') || '1');
 
                         if (!title) return;
