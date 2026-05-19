@@ -184,7 +184,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
              <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-4">Restore system state to a previous node anchor:</p>
              
              {backups.length > 0 ? backups.map((b) => (
-               <div key={b.id} className="group relative">
+               <div key={b.id} className="flex gap-2 items-stretch group">
                 <button 
                   onClick={() => {
                      const confirmRestore = window.confirm(`Restore to [${b.label}]? Current session data will be overwritten.`);
@@ -192,7 +192,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         onRestoreBackup(b.id);
                      }
                   }}
-                  className="w-full p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all text-left flex justify-between items-center"
+                  className="flex-1 p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all text-left flex justify-between items-center"
                 >
                   <div className="flex-1">
                     <h4 className="text-[12px] font-bold text-white uppercase tracking-[0.2em] mb-1 group-hover:text-blue-400 transition-colors">
@@ -205,16 +205,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   </div>
                 </button>
                 <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={() => {
                     const confirmDelete = window.confirm(`Permanently delete node [${b.label}]?`);
                     if (confirmDelete) {
                       onDeleteBackup(b.id);
                     }
                   }}
-                  className="absolute -top-2 -right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600 z-20"
+                  className="px-4 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl hover:bg-red-500 hover:text-white transition-all flex items-center justify-center group-hover:border-red-500/50"
+                  title="Delete Snapshot"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={16} />
                 </button>
                </div>
              )) : (
