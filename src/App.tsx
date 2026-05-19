@@ -1496,21 +1496,21 @@ export default function App() {
                       <div className="flex justify-between items-center mb-2">
                         <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">💰 ANP Core</h2>
                         <input 
-                          type="number"
+                          type="text"
                           className="w-20 bg-slate-800/20 hover:bg-slate-800/40 text-right text-[10px] font-mono text-slate-400 outline-none border-b border-white/30 px-2 py-1 rounded-t-lg transition-colors focus:border-white"
-                          value={perfData.annualTargetGSPC}
+                          value={formatNumber(perfData.annualTargetGSPC)}
                           onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => setPerfData(prev => ({ ...prev, annualTargetGSPC: parseFloat(e.target.value) || 0 }))}
+                          onChange={(e) => setPerfData(prev => ({ ...prev, annualTargetGSPC: parseFloat(e.target.value.replace(/,/g, '')) || 0 }))}
                         />
                       </div>
                       <div className="flex items-baseline gap-2">
                         <input 
-                          type="number"
+                          type="text"
                           className="text-4xl font-light text-white bg-transparent border-none outline-none w-full max-w-[150px] p-0 hover:text-white transition-colors cursor-text"
-                          value={perfData.totalANP}
+                          value={formatNumber(perfData.totalANP)}
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) => {
-                            const newVal = parseFloat(e.target.value) || 0;
+                            const newVal = parseFloat(e.target.value.replace(/,/g, '')) || 0;
                             const currentMonthName = format(new Date(), 'M月', { locale: undefined });
                             setPerfData(prev => {
                               const newMonthly = prev.monthlyRecords.map(m => {
@@ -1643,8 +1643,8 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-7 gap-1 text-center mb-2">
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(d => (
-                  <span key={d} className="text-[8px] font-bold text-slate-600 uppercase">{d}</span>
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, idx) => (
+                  <span key={idx} className="text-[8px] font-bold text-slate-600 uppercase">{d}</span>
                 ))}
               </div>
               

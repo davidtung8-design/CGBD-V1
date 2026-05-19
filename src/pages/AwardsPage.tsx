@@ -125,7 +125,7 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
            </div>
            <p className="text-sm text-slate-500 font-medium tracking-widest uppercase">Super Group Marketing Department 2026</p>
            
-           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-12">
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
               <div className="space-y-1">
                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total ANP Captured</div>
                  <div className="text-3xl font-mono font-bold text-white">RM {formatNumber(stats.totalANP)}</div>
@@ -135,8 +135,12 @@ export const AwardsPage: React.FC<AwardsPageProps> = ({ perfData, isDarkMode, th
                  <div className="text-3xl font-mono font-bold text-white">{stats.totalNOC}</div>
               </div>
               <div className="space-y-1">
-                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Strategic Velocity</div>
-                 <div className="text-3xl font-mono font-bold text-blue-400">Peak Performance</div>
+                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total QFYLP Captured</div>
+                 <div className="text-3xl font-mono font-bold text-emerald-400">RM {formatNumber(stats.totalQFYLP)}</div>
+              </div>
+              <div className="space-y-1">
+                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total FYC Captured</div>
+                 <div className="text-3xl font-mono font-bold text-amber-500">RM {formatNumber(stats.totalFYC, 2)}</div>
               </div>
            </div>
         </div>

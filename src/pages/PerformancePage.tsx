@@ -138,12 +138,11 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
               <div className="mt-4">
                 <div className="flex items-baseline gap-2">
                     <input 
-                      type="number"
-                      step={stat.label.includes('FYC') ? "0.01" : "1"}
+                      type="text"
                       className="text-3xl font-mono text-white bg-transparent border-none outline-none w-full p-0"
-                      value={stat.label.includes('FYC') ? Math.round(stat.value * 100) / 100 : stat.value}
+                      value={formatNumber(stat.label.includes('FYC') ? Math.round(stat.value * 100) / 100 : stat.value, stat.label.includes('FYC') ? 2 : undefined)}
                     onChange={(e) => {
-                      const val = parseFloat(e.target.value) || 0;
+                      const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
                       const currentMonthName = format(new Date(), 'M月', { locale: undefined });
                       
                       // For Team Q, we still update it directly as it's not in the monthly records
@@ -264,72 +263,11 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                 rows.push(
                   <tr key={`month-${i}`} className="hover:bg-white/[0.02] transition-colors group">
                     <td className="p-4 font-bold text-white uppercase">{m.month}</td>
-                    <td className="p-4 text-center">
-                      <input 
-                        type="number" 
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-slate-400 font-mono focus:border-white outline-none"
-                        value={m.target}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          const newRecords = [...perfData.monthlyRecords];
-                          newRecords[i].target = val;
-                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
-                        }}
-                      />
-                    </td>
-                    <td className="p-4 text-center">
-                      <input 
-                        type="number" 
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white font-mono focus:border-white outline-none"
-                        value={m.actual}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          const newRecords = [...perfData.monthlyRecords];
-                          newRecords[i].actual = val;
-                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
-                        }}
-                      />
-                    </td>
-                    <td className="p-4 text-center">
-                      <input 
-                        type="number" 
-                        className="w-16 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-emerald-400 font-mono focus:border-emerald-500 outline-none"
-                        value={m.noc}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 0;
-                          const newRecords = [...perfData.monthlyRecords];
-                          newRecords[i].noc = val;
-                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
-                        }}
-                      />
-                    </td>
-                    <td className="p-4 text-center">
-                      <input 
-                        type="number" 
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white/50 font-mono focus:border-white outline-none"
-                        value={m.anp}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          const newRecords = [...perfData.monthlyRecords];
-                          newRecords[i].anp = val;
-                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
-                        }}
-                      />
-                    </td>
-                    <td className="p-4 text-center">
-                      <input 
-                        type="number" 
-                        step="0.01"
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white font-mono focus:border-white outline-none"
-                        value={m.fyc !== undefined ? Math.round(m.fyc * 100) / 100 : 0}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          const newRecords = [...perfData.monthlyRecords];
-                          newRecords[i].fyc = val;
-                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
-                        }}
-                      />
-                    </td>
+                    <td className="p-4 text-center font-mono text-slate-400">{formatNumber(m.target)}</td>
+                    <td className="p-4 text-center font-mono text-white">{formatNumber(m.actual)}</td>
+                    <td className="p-4 text-center font-mono text-emerald-400">{m.noc}</td>
+                    <td className="p-4 text-center font-mono text-white/50">{formatNumber(m.anp)}</td>
+                    <td className="p-4 text-center font-mono text-white">{formatNumber(m.fyc || 0, 2)}</td>
                     <td className="p-4 text-center">
                       <button 
                         onClick={() => setEditingBigCasesIdx(i)}
