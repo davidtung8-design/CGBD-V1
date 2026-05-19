@@ -42,6 +42,7 @@ export interface DailyData {
 export interface BigCase {
   id: string;
   name?: string;
+  anp?: number;
   fyc: number;
 }
 

@@ -1323,34 +1323,32 @@ export default function App() {
             </div>
 
             <div className={cn(
-              "bento-grid transition-all duration-700",
-              "gap-10 scale-[0.99] opacity-90"
+               "bento-grid transition-all duration-700 gap-10 scale-[0.99] opacity-90"
             )}>
-              {/* Other home elements follow... */}
-              {/* Removed wishing statement from inside bento-grid */}
-
-            {/* 5352111 Elite Discipline Protocol */}
-            <div className={cn(
-              "bento-card md:col-span-7 p-8 relative overflow-hidden",
-              isDarkMode ? "bg-slate-900/60 border-white/10" : "bg-white border-slate-200"
-            )}>
-              <div className="absolute top-0 right-0 p-8 opacity-5">
-                <Zap size={160} className="text-white" />
-              </div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white text-slate-950 rounded-xl shadow-lg shadow-white/20">
-                      <Zap size={18} />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-white leading-none">Elite Protocol 5352111</h3>
-                      <p className="text-[9px] text-slate-500 mt-1 uppercase font-medium">每日核心作业纪律 · Core Discipline</p>
+              {/* 5352111 Elite Discipline Protocol */}
+              <div className={cn(
+                "bento-card md:col-span-12 p-6 relative overflow-hidden shadow-2xl",
+                isDarkMode ? "bg-slate-900 border-white/10" : "bg-white border-slate-200"
+              )}>
+                <div className="absolute top-0 right-0 p-8 opacity-5">
+                  <Zap size={160} className="text-white" />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white text-slate-950 rounded-xl shadow-lg shadow-white/20">
+                        <Zap size={18} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-white leading-none">
+                          Elite Protocol <span className="text-4xl font-black ml-2 tracking-normal text-amber-500">5352111</span>
+                        </h3>
+                        <p className="text-[9px] text-slate-500 mt-2 uppercase font-medium">每日核心作业纪律 · Core Discipline Protocol</p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
                     { id: 'a', val: '5', label: '新朋友', desc: '认识5位新朋友/陌生人', time: '15 Min' },
                     { id: 'b', val: '3', label: '工作预约', desc: '预定3个工作相关预约', time: '135 Min' },

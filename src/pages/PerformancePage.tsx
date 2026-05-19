@@ -263,11 +263,71 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                 rows.push(
                   <tr key={`month-${i}`} className="hover:bg-white/[0.02] transition-colors group">
                     <td className="p-4 font-bold text-white uppercase">{m.month}</td>
-                    <td className="p-4 text-center font-mono text-slate-400">{formatNumber(m.target)}</td>
-                    <td className="p-4 text-center font-mono text-white">{formatNumber(m.actual)}</td>
-                    <td className="p-4 text-center font-mono text-emerald-400">{m.noc}</td>
-                    <td className="p-4 text-center font-mono text-white/50">{formatNumber(m.anp)}</td>
-                    <td className="p-4 text-center font-mono text-white">{formatNumber(m.fyc || 0, 2)}</td>
+                    <td className="p-4 text-center">
+                      <input 
+                        type="text" 
+                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-slate-400 font-mono focus:border-white outline-none"
+                        value={formatNumber(m.target)}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                          const newRecords = [...perfData.monthlyRecords];
+                          newRecords[i].target = val;
+                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                        }}
+                      />
+                    </td>
+                    <td className="p-4 text-center">
+                      <input 
+                        type="text" 
+                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white font-mono focus:border-white outline-none"
+                        value={formatNumber(m.actual)}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                          const newRecords = [...perfData.monthlyRecords];
+                          newRecords[i].actual = val;
+                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                        }}
+                      />
+                    </td>
+                    <td className="p-4 text-center">
+                      <input 
+                        type="number" 
+                        className="w-16 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-emerald-400 font-mono focus:border-emerald-500 outline-none"
+                        value={m.noc}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          const newRecords = [...perfData.monthlyRecords];
+                          newRecords[i].noc = val;
+                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                        }}
+                      />
+                    </td>
+                    <td className="p-4 text-center">
+                      <input 
+                        type="text" 
+                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white/50 font-mono focus:border-white outline-none"
+                        value={formatNumber(m.anp)}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                          const newRecords = [...perfData.monthlyRecords];
+                          newRecords[i].anp = val;
+                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                        }}
+                      />
+                    </td>
+                    <td className="p-4 text-center">
+                      <input 
+                        type="text" 
+                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white font-mono focus:border-white outline-none"
+                        value={formatNumber(m.fyc || 0, 2)}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                          const newRecords = [...perfData.monthlyRecords];
+                          newRecords[i].fyc = val;
+                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                        }}
+                      />
+                    </td>
                     <td className="p-4 text-center">
                       <button 
                         onClick={() => setEditingBigCasesIdx(i)}
@@ -449,22 +509,57 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                           <Trash2 size={12} />
                         </button>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">FYC: RM</span>
-                        <input 
-                          type="number"
-                          step="0.01"
-                          className="flex-1 bg-transparent border-none outline-none text-lg font-mono font-black text-amber-500 p-0"
-                          value={bc.fyc}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
-                            const newRecords = [...perfData.monthlyRecords];
-                            const cases = [...(newRecords[editingBigCasesIdx].bigCases || [])];
-                            cases[bIdx] = { ...bc, fyc: val };
-                            newRecords[editingBigCasesIdx].bigCases = cases;
-                            setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
-                          }}
-                        />
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase w-16">Plan:</span>
+                          <input 
+                            type="text"
+                            placeholder="Plan Name"
+                            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white outline-none focus:border-amber-500/50"
+                            value={bc.name || ''}
+                            onChange={(e) => {
+                              const newRecords = [...perfData.monthlyRecords];
+                              const cases = [...(newRecords[editingBigCasesIdx].bigCases || [])];
+                              cases[bIdx] = { ...bc, name: e.target.value };
+                              newRecords[editingBigCasesIdx].bigCases = cases;
+                              setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase w-16">ANP: RM</span>
+                            <input 
+                              type="text"
+                              className="flex-1 bg-transparent border-none outline-none text-[12px] font-mono font-bold text-slate-300 p-0"
+                              value={formatNumber(bc.anp || 0)}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                                const newRecords = [...perfData.monthlyRecords];
+                                const cases = [...(newRecords[editingBigCasesIdx].bigCases || [])];
+                                cases[bIdx] = { ...bc, anp: val };
+                                newRecords[editingBigCasesIdx].bigCases = cases;
+                                setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 flex items-center gap-2 border-l border-white/10 pl-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase">FYC: RM</span>
+                            <input 
+                              type="text"
+                              className="flex-1 bg-transparent border-none outline-none text-[14px] font-mono font-black text-amber-500 p-0"
+                              value={formatNumber(bc.fyc || 0, 2)}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                                const newRecords = [...perfData.monthlyRecords];
+                                const cases = [...(newRecords[editingBigCasesIdx].bigCases || [])];
+                                cases[bIdx] = { ...bc, fyc: val };
+                                newRecords[editingBigCasesIdx].bigCases = cases;
+                                setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -483,7 +578,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                   const currentCases = newRecords[editingBigCasesIdx].bigCases || [];
                   newRecords[editingBigCasesIdx].bigCases = [
                     ...currentCases,
-                    { id: Math.random().toString(36).slice(2, 11), fyc: 3750 }
+                    { id: Math.random().toString(36).slice(2, 11), name: '', anp: 0, fyc: 3750 }
                   ];
                   setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
                 }}
