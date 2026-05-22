@@ -4,40 +4,83 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { GoogleGenAI } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = 3000;
 
-  // Basic middleware
-  app.use(cors());
-  app.use(express.json({ limit: '10mb' }));
+// Basic middleware
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 
-  // In-memory store for temporary ICS files
-  const calendarStore = new Map<string, { content: string; expiry: number }>();
-
-  // Cleanup old entries every minute
-  setInterval(() => {
-    const now = Date.now();
-    for (const [id, data] of calendarStore.entries()) {
-      if (now > data.expiry) {
-        calendarStore.delete(id);
-      }
+// Lazy-loaded Gemini Client for security and robust start
+let aiClient: GoogleGenAI | null = null;
+function getGeminiClient(): GoogleGenAI {
+  if (!aiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is not defined in the server environment');
     }
-  }, 60000);
-
-  // API: Health Check
-  app.get('/api/health', (req, res) => {
-    res.json({ 
-      status: 'ok', 
-      uptime: process.uptime(),
-      storeSize: calendarStore.size
+    aiClient = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
     });
-  });
+  }
+  return aiClient;
+}
 
+// API: Secure Gemini Proxy (Never exposes GEMINI_API_KEY to browser)
+app.post('/api/gemini/generate', async (req, res) => {
+  try {
+    const { prompt, systemInstruction } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    const ai = getGeminiClient();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: prompt,
+      config: systemInstruction ? { systemInstruction } : undefined
+    });
+
+    res.json({ text: response.text });
+  } catch (error: any) {
+    console.error('Server Gemini Error:', error);
+    res.status(500).json({ error: error.message || 'Error occurred during Gemini invocation' });
+  }
+});
+
+// In-memory store for temporary ICS files
+const calendarStore = new Map<string, { content: string; expiry: number }>();
+
+// Cleanup old entries every minute
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, data] of calendarStore.entries()) {
+    if (now > data.expiry) {
+      calendarStore.delete(id);
+    }
+  }
+}, 60000);
+
+// API: Health Check
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    uptime: process.uptime(),
+    storeSize: calendarStore.size
+  });
+});
+
+async function startServer() {
   // API: Prepare Calendar
   app.post('/api/calendar/prepare', (req, res) => {
     const { icsContent } = req.body;
@@ -113,12 +156,19 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running at http://0.0.0.0:${PORT}`);
+  // Skip listening if we are running in a serverless environment (like Vercel)
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running at http://0.0.0.0:${PORT}`);
+    });
+  }
+}
+
+if (!process.env.VERCEL) {
+  startServer().catch(err => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
   });
 }
 
-startServer().catch(err => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
-});
+export default app;

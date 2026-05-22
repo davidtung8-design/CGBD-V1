@@ -10,7 +10,7 @@ import {
   Milestone, PerfData, ThemeKey, ThemeConfig 
 } from './types';
 import { Header } from './components/Header';
-import { Home, Target, ClipboardList, Zap, Settings, Plus, Minus, Trash2, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw, Edit3, Award, Trophy, Calendar, CalendarPlus, History, X, BookOpen, PieChart as PieChartIcon, ListTodo, Volume2, VolumeX, CloudRain, Moon, Waves, Coffee } from 'lucide-react';
+import { Home, Target, ClipboardList, Zap, BarChart3, Settings, Plus, Minus, Trash2, CheckCircle2, Check, ChevronLeft, ChevronRight, RefreshCw, Edit3, Award, Trophy, Calendar, CalendarPlus, History, X, BookOpen, PieChart as PieChartIcon, ListTodo, Volume2, VolumeX, CloudRain, Moon, Waves, Coffee } from 'lucide-react';
 import { THEMES, ACTIVITIES, ENCOURAGEMENTS, GROUP_CONFIG } from './constants';
 import { formatNumber, cn, getLunarDate, formatHour, formatTimeRange } from './lib/utils';
 import * as XLSX from 'xlsx';
@@ -31,6 +31,7 @@ import { AuthModal } from './components/AuthModal';
 import { PerformancePage } from './pages/PerformancePage';
 import { ListPage } from './pages/ListPage';
 import { ActionPage3v6R } from './pages/ActionPage3v6R';
+import { ProductionPage } from './pages/ProductionPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AwardsPage } from './pages/AwardsPage';
 
@@ -62,6 +63,7 @@ const INITIAL_PERF: PerfData = {
   monthlyRecords: DEFAULT_MONTHLY,
   prospectList: [],
   recruitList: [],
+  customerSaleRecords: [],
   teamMembers: [],
   weekActs: { OF: 0, P: 0, F: 0, C: 0 },
   weekRecruitActs: { RO: 0, RP: 0, RF: 0, RS: 0 },
@@ -88,7 +90,7 @@ const INITIAL_PERF: PerfData = {
 
 export default function App() {
   // --- Navigation ---
-  const [currentPage, setCurrentPage] = useState<'home' | 'perf' | 'list' | '3v6r' | 'awards' | 'settings'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'perf' | 'list' | '3v6r' | 'production' | 'awards' | 'settings'>('home');
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const handleSpeak = (text: string) => {
@@ -161,6 +163,7 @@ export default function App() {
   const [isAllocationHistoryOpen, setIsAllocationHistoryOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [newDailyTodo, setNewDailyTodo] = useState('');
   const [focusTime, setFocusTime] = useState(0); // in seconds
   const [targetMins, setTargetMins] = useState(30);
   const [isFocusTimerRunning, setIsFocusTimerRunning] = useState(false);
@@ -516,6 +519,50 @@ export default function App() {
   const currentDaily = dailyData[todayKey] || { r: "", g: "", sixTasks: ["", "", "", "", "", ""], protocol5352111: [] };
   const safeSixTasks = currentDaily.sixTasks || ["", "", "", "", "", ""];
   const safeProtocol = currentDaily.protocol5352111 || [];
+
+  const handleAddDailyTodo = () => {
+    if (!newDailyTodo.trim()) return;
+    const newTodo: TodoItem = {
+      id: crypto.randomUUID(),
+      text: newDailyTodo.trim(),
+      completed: false
+    };
+    setTodoItems(prev => {
+      const todayList = prev[todayKey] || [];
+      return {
+        ...prev,
+        [todayKey]: [...todayList, newTodo]
+      };
+    });
+    setNewDailyTodo('');
+    showToast("任务已添加 (Task added)");
+  };
+
+  const handleToggleDailyTodo = (todoId: string) => {
+    setTodoItems(prev => {
+      const todayList = prev[todayKey] || [];
+      const updated = todayList.map(t => t.id === todoId ? { ...t, completed: !t.completed } : t);
+      const isNowCompleted = updated.find(t => t.id === todoId)?.completed;
+      if (isNowCompleted) {
+        showToast("任务检查：OK! (Task Completed!)");
+      }
+      return {
+        ...prev,
+        [todayKey]: updated
+      };
+    });
+  };
+
+  const handleDeleteDailyTodo = (todoId: string) => {
+    setTodoItems(prev => {
+      const todayList = prev[todayKey] || [];
+      return {
+        ...prev,
+        [todayKey]: todayList.filter(t => t.id !== todoId)
+      };
+    });
+    showToast("任务已删除 (Task deleted)");
+  };
 
   const currentMonday = useMemo(() => {
     const start = startOfWeek(baseDate, { weekStartsOn: 1 });
@@ -1809,74 +1856,170 @@ export default function App() {
             </div>
 
             {/* Reflection Bento Sections */}
-            <div className={cn("bento-card md:col-span-6 p-8", !isDarkMode && "bg-white border-slate-200")}>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <Edit3 size={16} className="text-slate-500" />
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Tactical Reflection · 今日检讨/反思</h3>
+            <div className={cn("bento-card md:col-span-6 p-8 flex flex-col justify-between", !isDarkMode && "bg-white border-slate-200")}>
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Edit3 size={16} className="text-slate-500" />
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Tactical & Gratitude Hub · 复盘反馈中心</h3>
+                  </div>
+                  <button 
+                    onClick={() => setIsReflectionArchiveOpen(true)}
+                    className={cn(
+                      "p-2 rounded-xl transition-all border",
+                      isDarkMode 
+                        ? "bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-slate-600" 
+                        : "bg-white border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm"
+                    )}
+                    title="View Matrix Archive"
+                  >
+                    <History size={14} />
+                  </button>
                 </div>
-                <button 
-                  onClick={() => setIsReflectionArchiveOpen(true)}
-                  className={cn(
-                    "p-2 rounded-xl transition-all border",
-                    isDarkMode 
-                      ? "bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-slate-600" 
-                      : "bg-white border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm"
-                  )}
-                  title="View Matrix Archive"
-                >
-                  <History size={14} />
-                </button>
+
+                <div className="space-y-4 pt-1">
+                  {/* Tactical Reflection Input */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      <Edit3 size={12} className="text-slate-600" />
+                      <span>Tactical Reflection · 今日检讨/反思</span>
+                    </div>
+                    <textarea 
+                      className={cn(
+                        "w-full rounded-2xl border p-4 text-xs outline-none transition-all min-h-[90px] resize-none",
+                        isDarkMode 
+                          ? "border-slate-800 bg-slate-900/50 text-slate-200 focus:border-white" 
+                          : "border-slate-200 bg-slate-50 text-slate-900 focus:border-white"
+                      )}
+                      placeholder="Analyze deviations & achievements..."
+                      value={currentDaily.r}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setDailyData(prev => ({ ...prev, [todayKey]: { ...currentDaily, r: val } }));
+                      }}
+                    />
+                  </div>
+
+                  {/* Gratitude Synthesis Input */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      <Award size={12} className="text-slate-600" />
+                      <span>Gratitude Synthesis · 今日感恩/鼓励自己</span>
+                    </div>
+                    <textarea 
+                      className={cn(
+                        "w-full rounded-2xl border p-4 text-xs outline-none transition-all min-h-[90px] resize-none",
+                        isDarkMode 
+                          ? "border-slate-800 bg-slate-900/50 text-slate-200 focus:border-emerald-500" 
+                          : "border-slate-200 bg-slate-50 text-slate-900 focus:border-emerald-500"
+                      )}
+                      placeholder="Log internal wins & appreciation..."
+                      value={currentDaily.g}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setDailyData(prev => ({ ...prev, [todayKey]: { ...currentDaily, g: val } }));
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
-              <textarea 
-                className={cn(
-                  "w-full rounded-2xl border p-4 text-sm outline-none transition-all min-h-[120px]",
-                  isDarkMode 
-                    ? "border-slate-800 bg-slate-900/50 text-slate-200 focus:border-white" 
-                    : "border-slate-200 bg-slate-50 text-slate-900 focus:border-white"
-                )}
-                placeholder="Analyze deviations & achievements..."
-                value={currentDaily.r}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setDailyData(prev => ({ ...prev, [todayKey]: { ...currentDaily, r: val } }));
-                }}
-              />
             </div>
 
-            <div className={cn("bento-card md:col-span-6 p-8", !isDarkMode && "bg-white border-slate-200")}>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <Award size={16} className="text-slate-500" />
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Gratitude Synthesis · 今日感恩/鼓励自己</h3>
+            {/* Daily To-Do List Reminder (每日待办提醒) */}
+            <div className={cn("bento-card md:col-span-6 p-8 flex flex-col justify-between", !isDarkMode && "bg-white border-slate-200")}>
+              <div className="flex flex-col h-full space-y-4 w-full">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-emerald-500" />
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">To-Do List Reminder · 每日待办提醒</h3>
+                  </div>
+                  <span className="text-[10px] text-slate-500 uppercase font-mono tracking-wider">
+                    {currentTodos.filter(t => t.completed).length}/{currentTodos.length} Completed
+                  </span>
                 </div>
-                <button 
-                  onClick={() => setIsReflectionArchiveOpen(true)}
-                  className={cn(
-                    "p-2 rounded-xl transition-all border",
-                    isDarkMode 
-                      ? "bg-slate-900 border-slate-800 text-slate-500 hover:text-white hover:border-slate-600" 
-                      : "bg-white border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm"
+
+                {/* Task Add Form */}
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="添加今天的新任务 | Add a task..." 
+                    className={cn(
+                      "flex-1 bg-transparent border rounded-2xl px-4 py-3 outline-none text-xs transition-colors",
+                      isDarkMode 
+                        ? "border-slate-800 focus:border-white text-white bg-slate-900/40" 
+                        : "border-slate-200 focus:border-slate-800 text-slate-900 bg-slate-50"
+                    )}
+                    value={newDailyTodo}
+                    onChange={e => setNewDailyTodo(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleAddDailyTodo();
+                    }}
+                  />
+                  <button 
+                    onClick={handleAddDailyTodo}
+                    className={cn(
+                      "px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 active:scale-95 flex items-center gap-1",
+                      isDarkMode ? "bg-white text-slate-950 hover:bg-slate-200" : "bg-slate-900 text-white hover:bg-slate-800"
+                    )}
+                  >
+                    <Plus size={14} /> Add
+                  </button>
+                </div>
+
+                {/* To-Do List Scrollable Container */}
+                <div className="flex-1 overflow-y-auto max-h-[220px] min-h-[160px] space-y-2.5 custom-scrollbar pr-1">
+                  {currentTodos.length > 0 ? (
+                    currentTodos.map((todo) => (
+                      <div 
+                        key={todo.id} 
+                        className={cn(
+                          "p-3.5 border rounded-2xl relative flex items-center justify-between transition-all hover:bg-white/[0.01]", 
+                          todo.completed 
+                            ? (isDarkMode ? "border-emerald-500/20 bg-emerald-500/[0.02]" : "border-emerald-200 bg-emerald-500/[0.01]") 
+                            : (isDarkMode ? "border-slate-800/80 bg-slate-900/10" : "border-slate-100 bg-slate-50/50")
+                        )}
+                      >
+                        <button 
+                          onClick={() => handleToggleDailyTodo(todo.id)}
+                          className="flex items-center gap-3.5 text-left flex-1"
+                        >
+                          <div className={cn(
+                            "w-5 h-5 rounded-lg flex items-center justify-center border transition-all shrink-0",
+                            todo.completed 
+                              ? "bg-emerald-500 border-emerald-500 text-white" 
+                              : (isDarkMode ? "border-slate-800 bg-slate-950/50 hover:border-slate-600" : "border-slate-300 bg-white hover:border-slate-400")
+                          )}>
+                            {todo.completed && <Check size={12} className="stroke-[3]" />}
+                          </div>
+                          <span className={cn(
+                            "text-xs font-semibold leading-relaxed transition-all",
+                            todo.completed 
+                              ? "line-through text-slate-500" 
+                              : (isDarkMode ? "text-slate-200" : "text-slate-800")
+                          )}>
+                            {todo.text}
+                          </span>
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteDailyTodo(todo.id)}
+                          className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className={cn(
+                      "p-8 text-center border border-dashed rounded-2xl h-full flex flex-col items-center justify-center min-h-[160px]",
+                      isDarkMode ? "border-slate-800 text-slate-600" : "border-slate-200 text-slate-400"
+                    )}>
+                      <CheckCircle2 size={24} className="mb-2 opacity-30" />
+                      <p className="text-[10px] uppercase font-bold tracking-widest">No reminders specified</p>
+                      <p className="text-[8px] uppercase mt-1">Add items above to stay synchronized</p>
+                    </div>
                   )}
-                  title="View Matrix Archive"
-                >
-                  <History size={14} />
-                </button>
+                </div>
               </div>
-              <textarea 
-                className={cn(
-                  "w-full rounded-2xl border p-4 text-sm outline-none transition-all min-h-[120px]",
-                  isDarkMode 
-                    ? "border-slate-800 bg-slate-900/50 text-slate-200 focus:border-emerald-500" 
-                    : "border-slate-200 bg-slate-50 text-slate-900 focus:border-emerald-500"
-                )}
-                placeholder="Log internal wins & appreciation..."
-                value={currentDaily.g}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setDailyData(prev => ({ ...prev, [todayKey]: { ...currentDaily, g: val } }));
-                }}
-              />
             </div>
 
             {/* Timeline View - Full Width Wide Bento Card */}
@@ -2130,6 +2273,15 @@ export default function App() {
           />
         )}
         {currentPage === '3v6r' && <ActionPage3v6R perfData={perfData} setPerfData={setPerfData} theme={theme} />}
+        {currentPage === 'production' && (
+          <ProductionPage 
+            perfData={perfData} 
+            setPerfData={setPerfData} 
+            isDarkMode={isDarkMode} 
+            theme={theme} 
+            showToast={showToast} 
+          />
+        )}
         {currentPage === 'awards' && <AwardsPage perfData={perfData} isDarkMode={isDarkMode} theme={theme} />}
         {currentPage === 'settings' && <SettingsPage 
           themeKey={themeKey} 
@@ -2181,6 +2333,7 @@ export default function App() {
             { id: 'perf', icon: <Target size={20} />, label: 'Core' },
             { id: 'list', icon: <ClipboardList size={20} />, label: 'Matrix' },
             { id: '3v6r', icon: <Zap size={20} />, label: 'Pulse' },
+            { id: 'production', icon: <BarChart3 size={20} />, label: 'Sales' },
             { id: 'awards', icon: <Trophy size={18} />, label: 'Contest' },
             { id: 'settings', icon: <Settings size={20} />, label: 'Configs' }
           ].map(item => {

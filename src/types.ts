@@ -37,6 +37,7 @@ export interface DailyData {
   sixTasks?: string[]; // 6 Most Important Things
   protocol5352111?: string[]; // Completed IDs for 5352111 Elite Protocol
   protocolDetails?: Record<string, string[]>; // Detailed logs for each protocol ID ('a': ['John-At Cafe-Met via friend', ...])
+  todos?: TodoItem[]; // daily to-do list reminders
 }
 
 export interface BigCase {
@@ -99,6 +100,21 @@ export interface RecruitCandidate {
   todos?: TodoItem[];
 }
 
+export interface CustomerSaleRecord {
+  id: string;
+  customerName: string;
+  inforceDate: string; // "YYYY-MM-DD" or equivalent
+  birthday?: string; // "YYYY-MM-DD" or equivalent
+  planName: string; // "SPY", "SPWP", etc.
+  anp: number;
+  fyc: number;
+  fycRate?: number; // Store the chosen rate option (e.g. 0.28, 0.35, etc.)
+  installmentPremium: number;
+  payMode: 'M' | 'Q' | 'HY' | 'Y'; // Month, Quarter, Half-Year, Year
+  monthlyPayments: number[]; // index 0 (Jan) to index 11 (Dec) representing premium payments received
+  notes?: string;
+}
+
 export interface Milestone {
   name: string;
   achieved: boolean;
@@ -115,6 +131,7 @@ export interface PerfData {
   monthlyRecords: MonthlyRecord[];
   prospectList: Prospect[];
   recruitList: RecruitCandidate[];
+  customerSaleRecords?: CustomerSaleRecord[];
   teamMembers: TeamMember[];
   weekActs: { OF: number; P: number; F: number; C: number };
   weekRecruitActs: { RO: number; RP: number; RF: number; RS: number };

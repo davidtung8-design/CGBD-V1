@@ -17,7 +17,8 @@ import {
   getFirestore, 
   doc, 
   getDocFromServer,
-  initializeFirestore
+  initializeFirestore,
+  enableIndexedDbPersistence
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -26,9 +27,26 @@ export const auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error", err));
 
 // Fix: Use initializeFirestore with explicit settings for better compatibility in restricted environments
+const dbId = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
+  ? firebaseConfig.firestoreDatabaseId
+  : undefined;
+
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true
-}, firebaseConfig.firestoreDatabaseId);
+}, dbId);
+
+// Enable offline persistence gracefully for smoother operation under connectivity drops
+if (typeof window !== 'undefined') {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn("Firestore Persistence fail-precondition (multiple tabs).");
+    } else if (err.code === 'unimplemented') {
+      console.warn("Firestore Persistence unimplemented.");
+    } else {
+      console.error("Firestore offline cache initialization error:", err);
+    }
+  });
+}
 
 export enum OperationType {
   CREATE = 'create',
