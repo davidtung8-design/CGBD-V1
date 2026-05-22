@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { PerfData, FollowupLog } from '../types';
-import { UserPlus, Target, Upload, Search, Plus, Trash2, Star, Database, ChevronRight, X, History, Clock, ClipboardPaste } from 'lucide-react';
+import { PerfData, FollowupLog, TodoItem } from '../types';
+import { UserPlus, Target, Upload, Search, Plus, Trash2, Star, Database, ChevronRight, X, History, Clock, ClipboardPaste, Check } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
@@ -84,6 +84,81 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
     newList[nodeIndex] = {
       ...node,
       followupLogs: (node.followupLogs || []).filter((l: any) => l.id !== logId)
+    };
+
+    setPerfData(prev => ({ ...prev, [listKey]: newList }));
+  };
+
+  // --- Node-level To Do Reminders Handlers ---
+  const [newTodoTerm, setNewTodoTerm] = useState('');
+
+  const handleAddTodo = () => {
+    if (!selectedNodeId || !newTodoTerm.trim()) return;
+
+    const listKey = activeTab === 'prospect' ? 'prospectList' : 'recruitList';
+    const newList = [...perfData[listKey]] as any[];
+    const nodeIndex = newList.findIndex(n => n.id === selectedNodeId);
+    
+    if (nodeIndex === -1) return;
+
+    const node = newList[nodeIndex];
+    const newTodo: TodoItem = {
+      id: Date.now().toString(),
+      text: newTodoTerm.trim(),
+      completed: false
+    };
+
+    newList[nodeIndex] = {
+      ...node,
+      todos: [...(node.todos || []), newTodo]
+    };
+
+    setPerfData(prev => ({ ...prev, [listKey]: newList }));
+    setNewTodoTerm('');
+    showToast('待办提醒事项已成功添加。');
+  };
+
+  const handleToggleTodo = (todoId: string) => {
+    if (!selectedNodeId) return;
+
+    const listKey = activeTab === 'prospect' ? 'prospectList' : 'recruitList';
+    const newList = [...perfData[listKey]] as any[];
+    const nodeIndex = newList.findIndex(n => n.id === selectedNodeId);
+    
+    if (nodeIndex === -1) return;
+
+    const node = newList[nodeIndex];
+    const updatedTodos = (node.todos || []).map((t: TodoItem) => 
+      t.id === todoId ? { ...t, completed: !t.completed } : t
+    );
+
+    newList[nodeIndex] = {
+      ...node,
+      todos: updatedTodos
+    };
+
+    setPerfData(prev => ({ ...prev, [listKey]: newList }));
+    const isNowCompleted = updatedTodos.find((t: TodoItem) => t.id === todoId)?.completed;
+    if (isNowCompleted) {
+      showToast('任务检查：OK! (Task Completed!)');
+    }
+  };
+
+  const handleDeleteTodo = (todoId: string) => {
+    if (!selectedNodeId) return;
+
+    const listKey = activeTab === 'prospect' ? 'prospectList' : 'recruitList';
+    const newList = [...perfData[listKey]] as any[];
+    const nodeIndex = newList.findIndex(n => n.id === selectedNodeId);
+    
+    if (nodeIndex === -1) return;
+
+    const node = newList[nodeIndex];
+    const updatedTodos = (node.todos || []).filter((t: TodoItem) => t.id !== todoId);
+
+    newList[nodeIndex] = {
+      ...node,
+      todos: updatedTodos
     };
 
     setPerfData(prev => ({ ...prev, [listKey]: newList }));
@@ -345,16 +420,30 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {pinnedEntries.map((item, idx) => (
-                <div key={item.id} className={cn("bento-card p-6 border-l-4 relative group transition-all hover:scale-[1.02]", activeTab === 'prospect' ? "border-l-white" : "border-l-emerald-500", isDarkMode ? "bg-slate-900/60" : "bg-white shadow-xl shadow-slate-200/50")}>
+                <div 
+                  key={item.id} 
+                  onClick={() => handleOpenFollowup(item.id)}
+                  className={cn(
+                    "bento-card p-6 border-l-4 relative group transition-all hover:scale-[1.02] cursor-pointer", 
+                    activeTab === 'prospect' ? "border-l-white" : "border-l-emerald-500", 
+                    isDarkMode ? "bg-slate-900/60" : "bg-white shadow-xl shadow-slate-200/50"
+                  )}
+                >
                     <div className="absolute top-4 right-4 flex items-center gap-2 z-30">
                       <button 
-                        onClick={() => togglePin(activeTab, item.id)} 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePin(activeTab, item.id);
+                        }} 
                         className="p-2 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white rounded-xl transition-all"
                       >
                         <Star size={18} fill="currentColor" />
                       </button>
                       <button 
-                        onClick={() => removeEntry(activeTab, item.id)} 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeEntry(activeTab, item.id);
+                        }} 
                         className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"
                       >
                         <Trash2 size={18} />
@@ -368,7 +457,15 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                     <div className={cn("p-3 rounded-xl text-[11px] font-mono", isDarkMode ? "bg-slate-950/50 text-slate-400" : "bg-slate-50 text-slate-600")}>
                       {activeTab === 'prospect' ? (item as any).plan : `CFG Code: ${(item as any).interest}`}
                     </div>
-                    <div className="flex justify-between items-center text-[9px] uppercase font-bold tracking-widest text-slate-500">
+                    
+                    {item.todos && item.todos.length > 0 && (
+                      <div className="flex items-center gap-1.5 text-[9px] uppercase font-mono font-bold tracking-wider text-amber-500 bg-amber-500/10 p-1.5 px-2.5 rounded-lg w-fit">
+                        <Check size={9} className="stroke-[3]" />
+                        <span>Reminders: {item.todos.filter((t: any) => t.completed).length}/{item.todos.length}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center text-[9px] uppercase font-bold tracking-widest text-slate-500 pt-1">
                       <span># Focus Node {idx + 1}</span>
                       <ChevronRight size={12} />
                     </div>
@@ -412,6 +509,7 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                 <th className="p-5 font-black min-w-[180px]">Organization / Role</th>
                 <th className="p-5 font-black min-w-[200px]">{activeTab === 'prospect' ? 'Strategic Plan' : 'CFG Code'}</th>
                 <th className="p-5 font-black min-w-[120px] text-center">History</th>
+                <th className="p-5 font-black min-w-[130px] text-center">To-Do List</th>
                 <th className="p-5 font-black min-w-[300px]">Operational Logs</th>
                 <th className="p-5 font-black w-20 text-center">Delete</th>
               </tr>
@@ -455,6 +553,25 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
                       <History size={12} /> {item.followupLogs?.length || 'HISTORY'}
                     </button>
                   </td>
+                  <td className="p-3 text-center">
+                    <button 
+                      onClick={() => handleOpenFollowup(item.id)} 
+                      className={cn(
+                        "px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 mx-auto transition-all active:scale-95 border",
+                        item.todos?.length 
+                          ? (item.todos.every((t: any) => t.completed)
+                              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                              : "bg-amber-500/10 text-amber-500 border-amber-500/20")
+                          : (isDarkMode ? "bg-slate-800/20 text-slate-500 border-transparent hover:border-slate-700" : "bg-slate-150 text-slate-400 border-transparent hover:border-slate-300")
+                      )}
+                    >
+                      <ClipboardPaste size={12} />
+                      {item.todos?.length 
+                        ? `${item.todos.filter((t: any) => t.completed).length}/${item.todos.length} ✔` 
+                        : 'ADD'
+                      }
+                    </button>
+                  </td>
                   <td className="p-3">
                     <input className="w-full bg-transparent px-4 py-3 outline-none text-[10px]" value={activeTab === 'prospect' ? (item as any).note : (item as any).followup} onChange={(e) => {
                       const newList = currentList.map(n => n.id === item.id ? (activeTab === 'prospect' ? { ...n, note: e.target.value } : { ...n, followup: e.target.value }) : n);
@@ -493,37 +610,127 @@ export const ListPage: React.FC<ListPageProps> = ({ perfData, setPerfData, isDar
       <AnimatePresence>
         {isFollowupModalOpen && selectedNodeId && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm bg-black/60" onClick={() => setIsFollowupModalOpen(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} onClick={(e) => e.stopPropagation()} className={cn("w-full max-w-2xl max-h-[90vh] p-8 rounded-[2.5rem] shadow-2xl space-y-8 border flex flex-col", isDarkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-200 text-slate-900")}>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} onClick={(e) => e.stopPropagation()} className={cn("w-full max-w-4xl max-h-[85vh] p-8 rounded-[2.5rem] shadow-2xl border flex flex-col", isDarkMode ? "bg-slate-950 border-slate-800 text-white" : "bg-white border-slate-200 text-slate-900")}>
               {(() => {
                 const node = currentList.find(n => n.id === selectedNodeId);
                 if (!node) return null;
                 return (
                   <>
-                    <div className="flex justify-between items-center border-b pb-6">
+                    <div className="flex justify-between items-center border-b pb-6 shrink-0">
                       <div className="flex items-center gap-4">
-                        <History className="text-white" size={24} />
+                        <div className={cn("p-2.5 rounded-xl border", isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200 text-slate-700")}>
+                          <History size={20} />
+                        </div>
                         <div>
-                          <h3 className="text-lg font-black uppercase tracking-widest">Operational History</h3>
-                          <p className="text-xs text-slate-500">{node.name}</p>
+                          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">Operational Hub (控制中心)</h3>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">{node.name || 'Anonymous Node'}</p>
                         </div>
                       </div>
-                      <button onClick={() => setIsFollowupModalOpen(false)}><X size={24} /></button>
+                      <button onClick={() => setIsFollowupModalOpen(false)} className={cn("p-1.5 rounded-full transition-all", isDarkMode ? "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white" : "bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-900")}><X size={18} /></button>
                     </div>
-                    <div className="flex-1 overflow-y-auto space-y-8">
-                       <div className="p-6 bg-slate-800/10 rounded-3xl space-y-4">
-                         <input type="datetime-local" className="w-full bg-transparent border-b p-2 outline-none" value={newLogDate} onChange={e => setNewLogDate(e.target.value)} />
-                         <textarea className="w-full bg-transparent border rounded-xl p-4 h-24 outline-none resize-none" placeholder="Add follow-up notes..." value={newLogNote} onChange={e => setNewLogNote(e.target.value)} />
-                         <button onClick={handleAddFollowupLog} className="w-full py-3 bg-white text-slate-950 rounded-xl text-xs font-black uppercase tracking-widest">Record Session</button>
-                       </div>
-                       <div className="space-y-4">
-                         {node.followupLogs?.map((log: any) => (
-                           <div key={log.id} className="p-5 border rounded-2xl relative group">
-                             <button onClick={() => removeFollowupLog(log.id)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500"><Trash2 size={14} /></button>
-                             <div className="text-[10px] text-white font-bold mb-1">{format(new Date(log.datetime), 'yyyy.MM.dd HH:mm')}</div>
-                             <p className="text-sm">{log.note}</p>
-                           </div>
-                         ))}
-                       </div>
+
+                    <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 min-h-0 custom-scrollbar">
+                      {/* Left: Followup Logs */}
+                      <div className="space-y-6 flex flex-col min-h-0">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 shrink-0 flex items-center gap-2">
+                          <Clock size={14} /> Step Logs / 跟进历史
+                        </h4>
+
+                        <div className={cn("p-5 border rounded-3xl space-y-3 shrink-0", isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200")}>
+                          <input type="datetime-local" className="w-full bg-transparent border-b pb-2 outline-none text-xs text-white" value={newLogDate} onChange={e => setNewLogDate(e.target.value)} />
+                          <textarea className="w-full bg-transparent border rounded-xl p-3 h-20 outline-none resize-none text-xs text-white" placeholder="Write next operational update..." value={newLogNote} onChange={e => setNewLogNote(e.target.value)} />
+                          <button onClick={handleAddFollowupLog} className={cn("w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all", isDarkMode ? "bg-white text-slate-950 hover:bg-slate-200" : "bg-slate-900 text-white hover:bg-slate-800")}>Record Session</button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto space-y-4 max-h-[300px] pr-1.5 custom-scrollbar">
+                          {node.followupLogs && node.followupLogs.length > 0 ? (
+                            node.followupLogs.map((log: any) => (
+                              <div key={log.id} className={cn("p-4 border rounded-2xl relative group-log", isDarkMode ? "border-white/5 bg-white/[0.01]" : "border-slate-100 bg-slate-50/50")}>
+                                <button onClick={() => removeFollowupLog(log.id)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
+                                <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">
+                                  {format(new Date(log.datetime), 'yyyy.MM.dd HH:mm')}
+                                </div>
+                                <p className="text-xs font-medium leading-relaxed">{log.note}</p>
+                              </div>
+                            ))
+                          ) : (
+                            <div className={cn("p-10 text-center border border-dashed rounded-2xl", isDarkMode ? "border-slate-800" : "border-slate-200")}>
+                              <p className="text-[10px] text-slate-600 uppercase tracking-widest">No follow-ups recorded</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right: To Do Reminders Checklists */}
+                      <div className={cn("space-y-6 flex flex-col pt-6 md:pt-0 md:pl-8 min-h-0 border-t md:border-t-0 md:border-l", isDarkMode ? "border-slate-800/40" : "border-slate-200")}>
+                        <h4 className="text-xs font-black uppercase tracking-widest text-amber-500 shrink-0 flex items-center gap-2">
+                          <ClipboardPaste size={14} /> To-Do Reminders / 待办提醒
+                        </h4>
+
+                        <div className="flex gap-2 shrink-0">
+                          <input 
+                            type="text" 
+                            placeholder="新提醒项目 | Type reminder text..." 
+                            className={cn(
+                              "flex-1 bg-transparent border rounded-2xl px-4 py-3 outline-none text-xs",
+                              isDarkMode ? "border-slate-800 focus:border-white text-white" : "border-slate-200 focus:border-slate-800 text-slate-900"
+                            )}
+                            value={newTodoTerm}
+                            onChange={e => setNewTodoTerm(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') handleAddTodo();
+                            }}
+                          />
+                          <button 
+                            onClick={handleAddTodo}
+                            className={cn(
+                              "px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 active:scale-95",
+                              isDarkMode ? "bg-white text-slate-950 hover:bg-slate-200" : "bg-slate-900 text-white hover:bg-slate-800"
+                            )}
+                          >
+                            Add
+                          </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto space-y-3 max-h-[380px] pr-1.5 custom-scrollbar">
+                          {node.todos && node.todos.length > 0 ? (
+                            node.todos.map((todo: any) => (
+                              <div key={todo.id} className={cn("p-4 border rounded-2xl relative flex items-center justify-between transition-all hover:bg-white/[0.01]", todo.completed ? "border-emerald-500/20 bg-emerald-500/[0.01]" : (isDarkMode ? "border-white/5 bg-white/[0.01]" : "border-slate-100 bg-slate-50"))}>
+                                <button 
+                                  onClick={() => handleToggleTodo(todo.id)}
+                                  className="flex items-start gap-3.5 text-left flex-1"
+                                >
+                                  <div className={cn(
+                                    "w-5 h-5 rounded-lg flex items-center justify-center border transition-all shrink-0 mt-0.5",
+                                    todo.completed 
+                                      ? "bg-emerald-500 border-emerald-500 text-white" 
+                                      : (isDarkMode ? "border-slate-800 bg-slate-900/40" : "border-slate-300 bg-white")
+                                  )}>
+                                    {todo.completed && <Check size={12} className="stroke-[3]" />}
+                                  </div>
+                                  <span className={cn(
+                                    "text-xs font-semibold leading-relaxed transition-all",
+                                    todo.completed ? "line-through text-slate-500" : (isDarkMode ? "text-slate-200" : "text-slate-800")
+                                  )}>
+                                    {todo.text}
+                                  </span>
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteTodo(todo.id)}
+                                  className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors ml-4"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            ))
+                          ) : (
+                            <div className={cn("p-10 text-center border border-dashed rounded-2xl", isDarkMode ? "border-slate-800" : "border-slate-200")}>
+                              <p className="text-[10px] text-slate-600 uppercase tracking-widest">No reminders specified</p>
+                              <p className="text-[8px] text-slate-500 uppercase mt-1">Add tasks above & check them off upon completion</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </>
                 );

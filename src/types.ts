@@ -84,6 +84,7 @@ export interface Prospect {
   isPinned?: boolean;
   category?: ProspectCategory;
   followupLogs?: FollowupLog[];
+  todos?: TodoItem[];
 }
 
 export interface RecruitCandidate {
@@ -95,6 +96,7 @@ export interface RecruitCandidate {
   isPinned?: boolean;
   category?: RecruitCategory;
   followupLogs?: FollowupLog[];
+  todos?: TodoItem[];
 }
 
 export interface Milestone {
