@@ -10,7 +10,7 @@ import {
   Milestone, PerfData, ThemeKey, ThemeConfig 
 } from './types';
 import { Header } from './components/Header';
-import { Home, Target, ClipboardList, Zap, BarChart3, Settings, Plus, Minus, Trash2, CheckCircle2, Check, ChevronLeft, ChevronRight, RefreshCw, Edit3, Award, Trophy, Calendar, CalendarPlus, History, X, BookOpen, PieChart as PieChartIcon, ListTodo, Volume2, VolumeX, CloudRain, Moon, Waves, Coffee } from 'lucide-react';
+import { Home, Target, ClipboardList, Users, Eye, Zap, BarChart3, Settings, Plus, Minus, Trash2, CheckCircle2, Check, ChevronLeft, ChevronRight, RefreshCw, Edit3, Award, Trophy, Calendar, CalendarPlus, History, X, BookOpen, PieChart as PieChartIcon, ListTodo, Volume2, VolumeX, CloudRain, Moon, Waves, Coffee } from 'lucide-react';
 import { THEMES, ACTIVITIES, ENCOURAGEMENTS, GROUP_CONFIG } from './constants';
 import { formatNumber, cn, getLunarDate, formatHour, formatTimeRange } from './lib/utils';
 import * as XLSX from 'xlsx';
@@ -220,6 +220,19 @@ export default function App() {
   const [isAllocationHistoryOpen, setIsAllocationHistoryOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  
+  // --- Supervisor & Team States ---
+  const [viewingUser, setViewingUser] = useState<{ uid: string; email: string; displayName?: string } | null>(null);
+  const [teamUsers, setTeamUsers] = useState<{ uid: string; email: string; displayName?: string }[]>([]);
+
+  const activeUserId = useMemo(() => {
+    return viewingUser ? viewingUser.uid : (user ? user.uid : null);
+  }, [viewingUser, user]);
+
+  const isReadOnly = useMemo(() => {
+    return !!viewingUser && viewingUser.uid !== user?.uid;
+  }, [viewingUser, user]);
+
   const [newDailyTodo, setNewDailyTodo] = useState('');
   const [focusTime, setFocusTime] = useState(0); // in seconds
   const [targetMins, setTargetMins] = useState(30);
@@ -240,6 +253,34 @@ export default function App() {
     setToast({ message, visible: true });
     setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
   }, []);
+
+  const checkReadOnly = useCallback(() => {
+    if (isReadOnly) {
+      showToast("只读模式：无法修改其他同事的数据");
+      return true;
+    }
+    return false;
+  }, [isReadOnly, showToast]);
+
+  const safeSetPerfData = useCallback((arg: any) => {
+    if (checkReadOnly()) return;
+    setPerfData(arg);
+  }, [checkReadOnly]);
+
+  const safeSetDailyData = useCallback((arg: any) => {
+    if (checkReadOnly()) return;
+    setDailyData(arg);
+  }, [checkReadOnly]);
+
+  const safeSetTodoItems = useCallback((arg: any) => {
+    if (checkReadOnly()) return;
+    setTodoItems(arg);
+  }, [checkReadOnly]);
+
+  const safeSetEvents = useCallback((arg: any) => {
+    if (checkReadOnly()) return;
+    setEvents(arg);
+  }, [checkReadOnly]);
 
   const startFocusTimer = (minutes: number) => {
     setFocusTime(minutes * 60);
@@ -360,6 +401,17 @@ export default function App() {
         setSyncId(currentUser.email);
         localStorage.setItem('dt_sync_id', currentUser.email);
         
+        // Save user profile metadata to allow supervisor loading
+        const profileRef = doc(db, 'users', currentUser.uid);
+        setDoc(profileRef, {
+          uid: currentUser.uid,
+          email: currentUser.email,
+          displayName: currentUser.displayName || currentUser.email.split('@')[0],
+          lastActive: serverTimestamp()
+        }, { merge: true }).catch(err => {
+          console.error("Failed to update user profile doc", err);
+        });
+        
         // Show welcome toast if they just logged in (transition from null to user)
         if (!prevUser) {
           showToast(`欢迎回来: ${currentUser.email}`);
@@ -368,17 +420,17 @@ export default function App() {
     });
 
     return () => unsubscribeAuth();
-  }, []);
+  }, [user]);
 
   // Real-time Firestore Listeners
   useEffect(() => {
-    if (!user) return;
+    if (!activeUserId) return;
 
     setIsSyncing(true);
     const unsubscribes: (() => void)[] = [];
 
     // 1. Sync Perf Data
-    const perfRef = doc(db, `users/${user.uid}/perf/main`);
+    const perfRef = doc(db, `users/${activeUserId}/perf/main`);
     unsubscribes.push(onSnapshot(perfRef, (snap) => {
       if (snap.exists()) {
         const data = snap.data() as PerfData;
@@ -389,12 +441,15 @@ export default function App() {
           }
           return prev;
         });
+      } else {
+        // Reset to default INITIAL_PERF if document does not exist for this user node
+        setPerfData(INITIAL_PERF);
       }
       setIsFirstLoadComplete(prev => ({ ...prev, perf: true }));
-    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/perf/main`)));
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${activeUserId}/perf/main`)));
 
     // 2. Sync Events
-    const eventsRef = collection(db, `users/${user.uid}/events`);
+    const eventsRef = collection(db, `users/${activeUserId}/events`);
     unsubscribes.push(onSnapshot(eventsRef, (snap) => {
       const loadedEvents: CalendarEvent[] = [];
       snap.forEach(doc => loadedEvents.push(doc.data() as CalendarEvent));
@@ -405,10 +460,10 @@ export default function App() {
         return prev;
       });
       setIsFirstLoadComplete(prev => ({ ...prev, events: true }));
-    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/events`)));
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${activeUserId}/events`)));
 
     // 3. Sync Todos
-    const todosRef = collection(db, `users/${user.uid}/todos`);
+    const todosRef = collection(db, `users/${activeUserId}/todos`);
     unsubscribes.push(onSnapshot(todosRef, (snap) => {
       const loadedTodos: Record<string, TodoItem[]> = {};
       snap.forEach(doc => {
@@ -421,10 +476,10 @@ export default function App() {
         return prev;
       });
       setIsFirstLoadComplete(prev => ({ ...prev, todos: true }));
-    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/todos`)));
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${activeUserId}/todos`)));
 
     // 4. Sync Daily Data
-    const dailyRef = collection(db, `users/${user.uid}/daily`);
+    const dailyRef = collection(db, `users/${activeUserId}/daily`);
     unsubscribes.push(onSnapshot(dailyRef, (snap) => {
       const loadedDaily: Record<string, DailyData> = {};
       snap.forEach(doc => {
@@ -438,13 +493,54 @@ export default function App() {
       });
       setIsFirstLoadComplete(prev => ({ ...prev, daily: true }));
       setIsSyncing(false); // Finished initial sync for daily at least
-    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${user.uid}/daily`)));
+    }, (err) => handleFirestoreError(err, OperationType.GET, `users/${activeUserId}/daily`)));
 
     return () => unsubscribes.forEach(unsub => unsub());
+  }, [activeUserId]);
+
+  // Listener to populate teamUsers for the supervisor (Davidtung8@gmail.com)
+  useEffect(() => {
+    if (!user || user.email !== 'Davidtung8@gmail.com') {
+      setTeamUsers([]);
+      setViewingUser(null);
+      return;
+    }
+
+    const usersRef = collection(db, 'users');
+    const unsubscribe = onSnapshot(usersRef, (snap) => {
+      const list: typeof teamUsers = [];
+      snap.forEach((docSnap) => {
+        const d = docSnap.data();
+        if (d.uid && d.email && d.uid !== user.uid) {
+          list.push({
+            uid: d.uid,
+            email: d.email,
+            displayName: d.displayName || d.email.split('@')[0],
+          });
+        }
+      });
+      setTeamUsers(list);
+    }, (err) => {
+      console.error("Error fetching registered team users list:", err);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Clear states and reset viewing user on log out
+  useEffect(() => {
+    if (!user) {
+      setEvents([]);
+      setTodoItems({});
+      setDailyData({});
+      setPerfData(INITIAL_PERF);
+      setViewingUser(null);
+    }
   }, [user]);
 
   const saveToCloud = async () => {
     if (!user || !isAllLoaded) return;
+    if (isReadOnly) return; // Prevent cloud write when viewing another user's dashboard (Read-Only Mode)
     setIsSyncing(true);
     try {
       const batch = writeBatch(db);
@@ -484,22 +580,27 @@ export default function App() {
   }, [isDarkMode]);
 
   useEffect(() => {
+    if (isReadOnly) return;
     localStorage.setItem('dt_events', JSON.stringify(events));
-  }, [events]);
+  }, [events, isReadOnly]);
 
   useEffect(() => {
+    if (isReadOnly) return;
     localStorage.setItem('dt_perf', JSON.stringify(perfData));
-  }, [perfData]);
+  }, [perfData, isReadOnly]);
 
   useEffect(() => {
+    if (isReadOnly) return;
     localStorage.setItem('dt_todos', JSON.stringify(todoItems));
-  }, [todoItems]);
+  }, [todoItems, isReadOnly]);
 
   useEffect(() => {
+    if (isReadOnly) return;
     localStorage.setItem('dt_daily', JSON.stringify(dailyData));
-  }, [dailyData]);
+  }, [dailyData, isReadOnly]);
 
   useEffect(() => {
+    if (isReadOnly) return;
     localStorage.setItem('dt_sync_id', syncId);
     
     if (syncId && user) {
@@ -512,7 +613,7 @@ export default function App() {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [syncId, perfData, todoItems, dailyData, user]);
+  }, [syncId, perfData, todoItems, dailyData, user, isReadOnly]);
 
   useEffect(() => {
     localStorage.setItem('dt_theme', themeKey);
@@ -821,6 +922,7 @@ export default function App() {
   const safeProtocol = currentDaily.protocol5352111 || [];
 
   const handleAddDailyTodo = () => {
+    if (checkReadOnly()) return;
     if (!newDailyTodo.trim()) return;
     const newTodo: TodoItem = {
       id: crypto.randomUUID(),
@@ -839,6 +941,7 @@ export default function App() {
   };
 
   const handleToggleDailyTodo = (todoId: string) => {
+    if (checkReadOnly()) return;
     setTodoItems(prev => {
       const todayList = prev[todayKey] || [];
       const updated = todayList.map(t => t.id === todoId ? { ...t, completed: !t.completed } : t);
@@ -854,6 +957,7 @@ export default function App() {
   };
 
   const handleDeleteDailyTodo = (todoId: string) => {
+    if (checkReadOnly()) return;
     setTodoItems(prev => {
       const todayList = prev[todayKey] || [];
       return {
@@ -898,13 +1002,14 @@ export default function App() {
 
   // --- Handlers ---
   const handleAddEvent = useCallback((event: CalendarEvent) => {
+    if (checkReadOnly()) return;
     setEvents(prev => [...prev, event]);
     if (user) {
       const eventPath = `users/${user.uid}/events/${event.id}`;
       setDoc(doc(db, eventPath), event).catch(e => handleFirestoreError(e, OperationType.WRITE, eventPath));
     }
     setIsEventModalOpen(false);
-  }, [user]);
+  }, [user, checkReadOnly]);
 
   const [backups, setBackups] = useState<{ id: string, timestamp: any, label: string }[]>([]);
 
@@ -929,6 +1034,7 @@ export default function App() {
   }, [user]);
 
   const handleCreateBackup = async () => {
+    if (checkReadOnly()) return;
     if (!user) {
       showToast("Please login to create cloud backups");
       return;
@@ -953,6 +1059,7 @@ export default function App() {
   };
 
   const handleRestoreBackup = async (backupId: string) => {
+    if (checkReadOnly()) return;
     if (!user) return;
     const backupRef = doc(db, `users/${user.uid}/backups`, backupId);
     try {
@@ -971,6 +1078,7 @@ export default function App() {
   };
 
   const handleDeleteBackup = async (id: string) => {
+    if (checkReadOnly()) return;
     if (!user) return;
     const backupRef = doc(db, `users/${user.uid}/backups`, id);
     try {
@@ -982,6 +1090,7 @@ export default function App() {
   };
 
   const handleUpdateEvent = useCallback((event: CalendarEvent) => {
+    if (checkReadOnly()) return;
     setEvents(prev => prev.map(e => e.id === event.id ? event : e));
     if (user) {
       const eventPath = `users/${user.uid}/events/${event.id}`;
@@ -989,15 +1098,16 @@ export default function App() {
     }
     setIsEventModalOpen(false);
     setEditingEvent(null);
-  }, [user]);
+  }, [user, checkReadOnly]);
 
   const handleDeleteEvent = useCallback((id: string) => {
+    if (checkReadOnly()) return;
     setEvents(prev => prev.filter(e => e.id !== id));
     if (user) {
       const eventPath = `users/${user.uid}/events/${id}`;
       deleteDoc(doc(db, eventPath)).catch(e => handleFirestoreError(e, OperationType.DELETE, eventPath));
     }
-  }, [user]);
+  }, [user, checkReadOnly]);
 
   const handleExport = () => {
     const data = { events, perfData, todoItems, dailyData, themeKey };
@@ -1434,6 +1544,94 @@ export default function App() {
           onExportReport={handleExportReport}
         />
 
+        {/* Read-Only Mode Banner */}
+        {isReadOnly && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl px-5 py-3 mb-6 text-xs text-amber-400 flex flex-col sm:flex-row items-center justify-between gap-3 animate-pulse">
+            <div className="flex items-center gap-2">
+              <Eye size={16} />
+              <span>正在查看 <strong>{viewingUser?.displayName || viewingUser?.email}</strong> 的业绩与日程 (只读监控模式 Team Spectator Mode)</span>
+            </div>
+            <button 
+              onClick={() => setViewingUser(null)} 
+              className="px-3 py-1 bg-amber-500 text-slate-950 font-black uppercase text-[10px] rounded-xl hover:bg-amber-400 transition-colors cursor-pointer shrink-0"
+            >
+              返回我的数据 Back to Mine
+            </button>
+          </div>
+        )}
+
+        {/* Supervisor Team Selector Dashboard */}
+        {user?.email === 'Davidtung8@gmail.com' && (
+          <div className={cn(
+            "bento-card p-5 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all duration-500",
+            viewingUser 
+              ? "border border-amber-500/40 bg-amber-500/5 shadow-[0_0_20px_rgba(245,158,11,0.05)]" 
+              : isDarkMode ? "bg-slate-900/80 border-slate-800" : "bg-white border-slate-200 shadow-slate-200"
+          )}>
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all",
+                viewingUser ? "bg-amber-500 text-slate-950 shadow-amber-500/25" : "bg-slate-800 text-slate-300"
+              )}>
+                <Users size={18} />
+              </div>
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300 flex items-center gap-2">
+                  主管专属团队监控面板 · Team Control Matrix
+                  <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[8px] font-mono rounded-md border border-blue-500/20 font-black">
+                    Supervisor Active
+                  </span>
+                </h3>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  {viewingUser 
+                    ? `正在查看：${viewingUser.displayName} 的实时数据 (只读模式)` 
+                    : `我的主管视图：共 ${teamUsers.length} 位下属注册监控中`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              <div className="relative w-full sm:w-auto">
+                <select
+                  value={viewingUser?.uid || ""}
+                  onChange={(e) => {
+                    const selectedUid = e.target.value;
+                    if (!selectedUid) {
+                      setViewingUser(null);
+                    } else {
+                      const found = teamUsers.find(u => u.uid === selectedUid);
+                      if (found) setViewingUser(found);
+                    }
+                  }}
+                  className={cn(
+                    "w-full sm:w-auto pl-4 pr-10 py-2 text-xs font-bold uppercase rounded-xl border appearance-none cursor-pointer outline-none transition-all focus:ring-2 focus:ring-accent/40 font-mono",
+                    isDarkMode 
+                      ? "bg-slate-950 border-slate-800 text-white" 
+                      : "bg-slate-50 border-slate-200 text-slate-800"
+                  )}
+                  style={{ backgroundImage: `url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem', backgroundRepeat: 'no-repeat' }}
+                >
+                  <option value="">👤 查看主管本人个人数据 (My Dashboard)</option>
+                  {teamUsers.map((u) => (
+                    <option key={u.uid} value={u.uid}>
+                      📋 {u.displayName} ({u.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {viewingUser && (
+                <button
+                  onClick={() => setViewingUser(null)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-bold uppercase rounded-xl border border-slate-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  返回我的数据 Check Mine
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <AuthModal 
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
@@ -1519,7 +1717,7 @@ export default function App() {
                           value={detail}
                           onChange={(e) => {
                             const val = e.target.value;
-                            setDailyData(prev => {
+                            safeSetDailyData(prev => {
                               const current = prev[todayKey] || { r: "", g: "", sixTasks: ["", "", "", "", "", ""], protocol5352111: [], protocolDetails: {} };
                               const details = { ...(current.protocolDetails || {}) };
                               const list = [...(details[activeProtocolId] || [])];
@@ -1606,7 +1804,7 @@ export default function App() {
                   placeholder="在此写下您的许愿文 (Define your vision here...)"
                   rows={6}
                   value={perfData.wishingStatement || ""}
-                  onChange={(e) => setPerfData(prev => ({ ...prev, wishingStatement: e.target.value }))}
+                  onChange={(e) => safeSetPerfData(prev => ({ ...prev, wishingStatement: e.target.value }))}
                 />
                 <div className="w-full h-px bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
               </div>
@@ -1711,7 +1909,7 @@ export default function App() {
                       <div 
                         key={i} 
                         onClick={() => {
-                          setDailyData(prev => {
+                          safeSetDailyData(prev => {
                             const current = prev[todayKey] || { r: "", g: "", sixTasks: ["", "", "", "", "", ""], protocol5352111: [] };
                             const protocol = current.protocol5352111 || [];
                             const isCurrentlyCompleted = protocol.includes(item.id);
@@ -2157,7 +2355,7 @@ export default function App() {
                       value={currentDaily.r}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setDailyData(prev => ({ ...prev, [todayKey]: { ...currentDaily, r: val } }));
+                        safeSetDailyData(prev => ({ ...prev, [todayKey]: { ...currentDaily, r: val } }));
                       }}
                     />
                   </div>
@@ -2165,7 +2363,7 @@ export default function App() {
                   {/* Gratitude Synthesis Input */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                      <Award size={12} className="text-slate-600" />
+                      <Award size={12} className="text-slate-600 text-slate-400 group-hover:text-emerald-500" />
                       <span>Gratitude Synthesis · 今日感恩/鼓励自己</span>
                     </div>
                     <textarea 
@@ -2179,7 +2377,7 @@ export default function App() {
                       value={currentDaily.g}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setDailyData(prev => ({ ...prev, [todayKey]: { ...currentDaily, g: val } }));
+                        safeSetDailyData(prev => ({ ...prev, [todayKey]: { ...currentDaily, g: val } }));
                       }}
                     />
                   </div>
@@ -2516,7 +2714,7 @@ export default function App() {
         {currentPage === 'perf' && (
           <PerformancePage 
             perfData={perfData} 
-            setPerfData={setPerfData} 
+            setPerfData={safeSetPerfData} 
             theme={theme}
             isFocusTimerRunning={isFocusTimerRunning}
             focusTime={focusTime}
@@ -2529,16 +2727,16 @@ export default function App() {
         {currentPage === 'list' && (
           <ListPage 
             perfData={perfData} 
-            setPerfData={setPerfData} 
+            setPerfData={safeSetPerfData} 
             isDarkMode={isDarkMode} 
             showToast={showToast}
           />
         )}
-        {currentPage === '3v6r' && <ActionPage3v6R perfData={perfData} setPerfData={setPerfData} theme={theme} />}
+        {currentPage === '3v6r' && <ActionPage3v6R perfData={perfData} setPerfData={safeSetPerfData} theme={theme} />}
         {currentPage === 'production' && (
           <ProductionPage 
             perfData={perfData} 
-            setPerfData={setPerfData} 
+            setPerfData={safeSetPerfData} 
             isDarkMode={isDarkMode} 
             theme={theme} 
             showToast={showToast} 

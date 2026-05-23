@@ -1110,7 +1110,10 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
 
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider pl-2">Payment Mode</label>
-                    <div className="flex rounded-2xl border border-slate-800 overflow-hidden h-[46px]">
+                    <div className={cn(
+                      "flex rounded-2xl border overflow-hidden h-[46px]",
+                      isDarkMode ? "border-slate-800 bg-slate-900/40" : "border-slate-200 bg-slate-50"
+                    )}>
                       {(['M', 'Q', 'HY', 'Y'] as const).map(mode => (
                         <button
                           key={mode}
@@ -1119,9 +1122,10 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                           className={cn(
                             "flex-1 text-[11px] font-black uppercase tracking-wider transition-all",
                             formPayMode === mode 
-                              ? (isDarkMode ? "bg-white text-slate-950" : "bg-slate-950 text-white")
-                              : (isDarkMode ? "bg-slate-900/50 text-slate-400 hover:text-white" : "bg-white text-slate-500 hover:text-slate-900")
+                              ? "text-slate-950 font-extrabold"
+                              : (isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900")
                           )}
+                          style={formPayMode === mode ? { backgroundColor: theme.accent, color: '#090d16' } : {}}
                         >
                           {mode === 'M' ? 'M (月)' : mode === 'Q' ? 'Q (季)' : mode === 'HY' ? 'H (半年)' : 'Y (年)'}
                         </button>
@@ -1131,7 +1135,12 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                 </div>
 
                 {/* Suggested Values & Manual Edit boxes */}
-                <div className="space-y-4 p-5 rounded-3xl bg-slate-900/30 border border-slate-800/60">
+                <div className={cn(
+                  "space-y-4 p-5 rounded-3xl",
+                  isDarkMode 
+                    ? "bg-slate-900/30 border border-slate-800/60" 
+                    : "bg-slate-50 border border-slate-200 shadow-sm"
+                )}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2">
@@ -1177,7 +1186,10 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                   </div>
 
                   {/* 6 Quick Rate Options Grid */}
-                  <div className="space-y-1.5 pt-2.5 border-t border-slate-800/40">
+                  <div className={cn(
+                    "space-y-1.5 pt-2.5",
+                    isDarkMode ? "border-t border-slate-800/40" : "border-t border-slate-200"
+                  )}>
                     <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider pl-2 block">
                       Choose FYC Calculation Rate • 快速佣金率比例
                     </span>
@@ -1207,7 +1219,10 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                   </div>
 
                   {/* Real-time Premium Collections Tracker */}
-                  <div className="space-y-2 pt-3 border-t border-slate-800/40">
+                  <div className={cn(
+                    "space-y-2 pt-3",
+                    isDarkMode ? "border-t border-slate-800/40" : "border-t border-slate-200"
+                  )}>
                     <div className="flex justify-between items-center px-1">
                       <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider block">
                         Premium Collections Month Grid • 保费回款月份 (1-12月)
@@ -1258,20 +1273,38 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                   </div>
 
                   {/* Real-time Summary Indicators */}
-                  <div className="pt-3 border-t border-slate-800/40 grid grid-cols-3 gap-2">
-                    <div className="bg-slate-950/40 p-2 rounded-xl text-center border border-slate-900/50">
+                  <div className={cn(
+                    "pt-3 grid grid-cols-3 gap-2",
+                    isDarkMode ? "border-t border-slate-800/40" : "border-t border-slate-200"
+                  )}>
+                    <div className={cn(
+                      "p-2 rounded-xl text-center border",
+                      isDarkMode 
+                        ? "bg-slate-950/40 border-slate-900/50" 
+                        : "bg-white border-slate-200 shadow-sm"
+                    )}>
                       <span className="text-[7.5px] font-bold text-slate-500 uppercase block leading-none">Collected (已收)</span>
                       <span className="text-[10px] sm:text-[11px] font-mono font-black text-emerald-400 mt-1 block">
                         RM {formatNumber(((parseFloat(formInstallmentPref) || 0) * formMonthlyPayments.reduce((acc, curr) => acc + curr, 0)))}
                       </span>
                     </div>
-                    <div className="bg-slate-950/40 p-2 rounded-xl text-center border border-slate-900/50">
+                    <div className={cn(
+                      "p-2 rounded-xl text-center border",
+                      isDarkMode 
+                        ? "bg-slate-950/40 border-slate-900/50" 
+                        : "bg-white border-slate-200 shadow-sm"
+                    )}>
                       <span className="text-[7.5px] font-bold text-slate-500 uppercase block leading-none">fyc (首年佣金)</span>
                       <span className="text-[10px] sm:text-[11px] font-mono font-black text-cyan-400 mt-1 block">
                         RM {formatNumber((parseFloat(formFYC) || 0))}
                       </span>
                     </div>
-                    <div className="bg-slate-950/40 p-2 rounded-xl text-center border border-slate-900/50">
+                    <div className={cn(
+                      "p-2 rounded-xl text-center border",
+                      isDarkMode 
+                        ? "bg-slate-950/40 border-slate-900/50" 
+                        : "bg-white border-slate-200 shadow-sm"
+                    )}>
                       <span className="text-[7.5px] font-bold text-slate-500 uppercase block leading-none">Carried fwd (转结下年)</span>
                       <span className="text-[10px] sm:text-[11px] font-mono font-black text-indigo-400 mt-1 block">
                         RM {formatNumber(Math.max(0, (parseFloat(formANP) || 0) - ((parseFloat(formInstallmentPref) || 0) * formMonthlyPayments.reduce((acc, curr) => acc + curr, 0))))}

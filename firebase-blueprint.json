@@ -65,9 +65,24 @@
         "protocol5352111": { "type": "array" },
         "protocolDetails": { "type": "object" }
       }
+    },
+    "UserProfile": {
+      "title": "User Profile Document",
+      "description": "Information stored on login to allow supervisor querying",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "lastActive": { "type": "string" }
+      }
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User account and profile information"
+    },
     "/users/{userId}/perf/main": {
       "schema": "UserPerf",
       "description": "Core performance metrics for the user"
