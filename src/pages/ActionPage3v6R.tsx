@@ -228,7 +228,7 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
                       <div className="text-[9px] text-slate-500 font-mono">{dateKey}</div>
                    </div>
                    <div className="flex justify-between items-baseline">
-                      <div className="text-3xl font-mono font-bold text-white text-shadow-glow">{formatNumber(salesTotal + recruitTotal)}</div>
+                      <div className="text-3xl font-mono font-bold text-white text-shadow-glow">{formatNumber(salesTotal + recruitTotal, 0)}</div>
                       <div className="text-[9px] text-slate-500 uppercase tracking-tighter">Total Daily Engagements (活动量总和)</div>
                    </div>
                 </div>
@@ -337,8 +337,8 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
               </div>
               
               <div className="flex gap-4">
-                 <div className="px-3 py-1 bg-accent/10 border border-accent/20 text-accent text-[9px] font-bold uppercase rounded-full tracking-widest font-mono">Sales: {formatNumber(salesTotal)}</div>
-                 <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase rounded-full tracking-widest font-mono">Recruit: {formatNumber(recruitTotal)}</div>
+                 <div className="px-3 py-1 bg-accent/10 border border-accent/20 text-accent text-[9px] font-bold uppercase rounded-full tracking-widest font-mono">Sales: {formatNumber(salesTotal, 0)}</div>
+                 <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase rounded-full tracking-widest font-mono">Recruit: {formatNumber(recruitTotal, 0)}</div>
               </div>
            </div>
 

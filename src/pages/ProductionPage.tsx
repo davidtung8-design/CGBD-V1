@@ -290,10 +290,10 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
       inforceDate: formInforceDate,
       birthday: formBirthday || undefined,
       planName: formPlanName.trim().toUpperCase(),
-      anp: anpNum,
+      anp: parseFloat(anpNum.toFixed(2)),
       fyc: parseFloat(savedFYC.toFixed(2)),
       fycRate: savedRate,
-      installmentPremium: installNum,
+      installmentPremium: parseFloat(installNum.toFixed(2)),
       payMode: formPayMode,
       monthlyPayments: formMonthlyPayments,
       notes: formNotes.trim() || undefined
@@ -510,9 +510,9 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
         'Inforce Date': formatDateDMY(r.inforceDate),
         'Birthday': r.birthday ? formatDateDMY(r.birthday) : 'N/A',
         'Plan': r.planName,
-        'Annualized Premium (ANP)': r.anp,
-        'First Year Commission (FYC)': r.fyc,
-        'Installment Premium': r.installmentPremium,
+        'Annualized Premium (ANP)': parseFloat(r.anp.toFixed(2)),
+        'First Year Commission (FYC)': parseFloat(r.fyc.toFixed(2)),
+        'Installment Premium': parseFloat(r.installmentPremium.toFixed(2)),
         'Payment Mode': r.payMode,
         'Jan Payments': r.monthlyPayments[0],
         'Feb Payments': r.monthlyPayments[1],
@@ -527,7 +527,7 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
         'Nov Payments': r.monthlyPayments[10],
         'Dec Payments': r.monthlyPayments[11],
         'Total Payments': r.monthlyPayments.reduce((sum, curr) => sum + curr, 0),
-        'Collected Premium': r.installmentPremium * r.monthlyPayments.reduce((sum, curr) => sum + curr, 0),
+        'Collected Premium': parseFloat((r.installmentPremium * r.monthlyPayments.reduce((sum, curr) => sum + curr, 0)).toFixed(2)),
         'Notes': r.notes || ''
       };
       return row;

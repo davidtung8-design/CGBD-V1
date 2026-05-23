@@ -7,12 +7,17 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatNumber(num: number, decimals?: number) {
-  if (decimals !== undefined) {
-    const parts = num.toFixed(decimals).split(".");
+  if (isNaN(num) || num === undefined || num === null) return "0";
+  const rounded = Math.round(num * 100) / 100;
+  const d = (rounded % 1 === 0) ? 0 : (decimals !== undefined ? decimals : 2);
+  if (d === 0) {
+    const parts = Math.round(rounded).toString().split(".");
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return parts.join(".");
+    return parts[0];
   }
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const parts = rounded.toFixed(d).split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return parts.join(".");
 }
 
 export function getLunarDate(date: Date) {
