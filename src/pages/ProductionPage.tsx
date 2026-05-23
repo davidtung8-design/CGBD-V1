@@ -143,8 +143,21 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
   const [formMonthlyPayments, setFormMonthlyPayments] = useState<number[]>(Array(12).fill(0));
   const [formNotes, setFormNotes] = useState('');
 
+  // Loading Premium / GSR split states
+  const [showLoadingSplit, setShowLoadingSplit] = useState(false);
+  const [formBipANP, setFormBipANP] = useState('');
+  const [formGsrANP, setFormGsrANP] = useState('');
+
   // Auto-fill monthly payments and live updating fyc and collected premium in the form state
-  const handleAutoFillMonthlyPaymentsState = (dateVal: string, modeVal: 'M' | 'Q' | 'HY' | 'Y', anpVal: string, activeRate: number) => {
+  const handleAutoFillMonthlyPaymentsState = (
+    dateVal: string, 
+    modeVal: 'M' | 'Q' | 'HY' | 'Y', 
+    anpVal: string, 
+    activeRate: number,
+    bipVal?: string,
+    gsrVal?: string,
+    isSplit?: boolean
+  ) => {
     if (!dateVal) return;
     const parts = dateVal.split('-');
     if (parts.length < 2) return;
@@ -189,28 +202,75 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
     // Live update the suggested FYC based on Collected Premium * Rate!
     const totalPayments = payments.reduce((acc, curr) => acc + curr, 0);
     const collectedPremium = suggestedInstall * totalPayments;
-    const computedFYC = collectedPremium > 0 ? (collectedPremium * activeRate) : (anpNum * activeRate);
+
+    let computedFYC = 0;
+    if (isSplit) {
+      const bipNum = parseFloat(bipVal || '0') || 0;
+      const gsrNum = parseFloat(gsrVal || '0') || 0;
+      const totalSplitNum = bipNum + gsrNum;
+      if (totalSplitNum > 0) {
+        const bipRatio = bipNum / totalSplitNum;
+        const gsrRatio = gsrNum / totalSplitNum;
+
+        if (collectedPremium > 0) {
+          const bipCollected = collectedPremium * bipRatio;
+          const gsrCollected = collectedPremium * gsrRatio;
+          computedFYC = (bipCollected * activeRate) + (gsrCollected * 0.02);
+        } else {
+          computedFYC = (bipNum * activeRate) + (gsrNum * 0.02);
+        }
+      } else {
+        computedFYC = collectedPremium > 0 ? (collectedPremium * activeRate) : (anpNum * activeRate);
+      }
+    } else {
+      computedFYC = collectedPremium > 0 ? (collectedPremium * activeRate) : (anpNum * activeRate);
+    }
     setFormFYC(computedFYC.toFixed(2));
   };
 
   const handleANPChange = (val: string) => {
     setFormANP(val);
-    handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, val, fycRate);
+    if (!showLoadingSplit) {
+      handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, val, fycRate, '', '', false);
+    } else {
+      const totalNum = parseFloat(val) || 0;
+      setFormBipANP(totalNum.toString());
+      setFormGsrANP('0');
+      handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, val, fycRate, totalNum.toString(), '0', true);
+    }
+  };
+
+  const handleBipANPChange = (val: string) => {
+    setFormBipANP(val);
+    const bipNum = parseFloat(val) || 0;
+    const gsrNum = parseFloat(formGsrANP) || 0;
+    const totalANPNum = bipNum + gsrNum;
+    setFormANP(totalANPNum.toString());
+    handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, totalANPNum.toString(), fycRate, val, formGsrANP, true);
+  };
+
+  const handleGsrANPChange = (val: string) => {
+    setFormGsrANP(val);
+    const bipNum = parseFloat(formBipANP) || 0;
+    const gsrNum = parseFloat(val) || 0;
+    const totalANPNum = bipNum + gsrNum;
+    setFormANP(totalANPNum.toString());
+    handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, totalANPNum.toString(), fycRate, formBipANP, val, true);
   };
 
   const handlePayModeChange = (mode: 'M' | 'Q' | 'HY' | 'Y') => {
     setFormPayMode(mode);
-    handleAutoFillMonthlyPaymentsState(formInforceDate, mode, formANP, fycRate);
+    handleAutoFillMonthlyPaymentsState(formInforceDate, mode, formANP, fycRate, formBipANP, formGsrANP, showLoadingSplit);
   };
 
   const handleFycRateSelect = (rate: number) => {
     setFycRate(rate);
-    handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, formANP, rate);
+    handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, formANP, rate, formBipANP, formGsrANP, showLoadingSplit);
   };
 
   const handleInforceDateChange = (val: string) => {
     setFormInforceDate(val);
-    handleAutoFillMonthlyPaymentsState(val, formPayMode, formANP, fycRate);
+    handleAutoFillMonthlyPaymentsState(val, formPayMode, formANP, fycRate, formBipANP, formGsrANP, showLoadingSplit);
   };
 
   // Open add modal
@@ -236,6 +296,9 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
     setFormMonthlyPayments(payments);
     
     setFormNotes('');
+    setShowLoadingSplit(false);
+    setFormBipANP('');
+    setFormGsrANP('');
     setIsAddModalOpen(true);
   };
 
@@ -259,6 +322,17 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
     setFormPayMode(rec.payMode);
     setFormMonthlyPayments([...rec.monthlyPayments]);
     setFormNotes(rec.notes || '');
+
+    if (rec.gsrANP !== undefined && rec.gsrANP > 0) {
+      setShowLoadingSplit(true);
+      setFormBipANP(rec.bipANP?.toString() || '');
+      setFormGsrANP(rec.gsrANP.toString());
+    } else {
+      setShowLoadingSplit(false);
+      setFormBipANP('');
+      setFormGsrANP('');
+    }
+
     setIsAddModalOpen(true);
   };
 
@@ -273,6 +347,9 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
     const anpNum = parseFloat(formANP) || 0;
     const installNum = parseFloat(formInstallmentPref) || 0;
 
+    const bipNum = parseFloat(formBipANP) || 0;
+    const gsrNum = parseFloat(formGsrANP) || 0;
+
     // Calculate collected premium
     const totalPayments = formMonthlyPayments.reduce((acc, curr) => acc + curr, 0);
     const collectedPremium = installNum * totalPayments;
@@ -280,24 +357,51 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
     // Use selected rate option
     const savedRate = fycRate;
 
-    // If collected premium > 0, FYC = collected premium * saved rate
-    // Else, default to ANP * saved rate so it shows the initial projected commission
-    const savedFYC = collectedPremium > 0 ? (collectedPremium * savedRate) : (anpNum * savedRate);
+    // Calculate split FYC if loading is present
+    let savedFYC = 0;
+    if (showLoadingSplit && (bipNum > 0 || gsrNum > 0)) {
+      const totalSplitNum = bipNum + gsrNum;
+      if (totalSplitNum > 0) {
+        const bipRatio = bipNum / totalSplitNum;
+        const gsrRatio = gsrNum / totalSplitNum;
+        if (collectedPremium > 0) {
+          const bipCollected = collectedPremium * bipRatio;
+          const gsrCollected = collectedPremium * gsrRatio;
+          savedFYC = (bipCollected * savedRate) + (gsrCollected * 0.02);
+        } else {
+          savedFYC = (bipNum * savedRate) + (gsrNum * 0.02);
+        }
+      } else {
+        savedFYC = collectedPremium > 0 ? (collectedPremium * savedRate) : (anpNum * savedRate);
+      }
+    } else {
+      savedFYC = collectedPremium > 0 ? (collectedPremium * savedRate) : (anpNum * savedRate);
+    }
 
     const savedRecord: CustomerSaleRecord = {
       id: editingRecord ? editingRecord.id : crypto.randomUUID(),
       customerName: formName.trim(),
       inforceDate: formInforceDate,
-      birthday: formBirthday || undefined,
       planName: formPlanName.trim().toUpperCase(),
       anp: parseFloat(anpNum.toFixed(2)),
       fyc: parseFloat(savedFYC.toFixed(2)),
       fycRate: savedRate,
       installmentPremium: parseFloat(installNum.toFixed(2)),
       payMode: formPayMode,
-      monthlyPayments: formMonthlyPayments,
-      notes: formNotes.trim() || undefined
+      monthlyPayments: formMonthlyPayments
     };
+
+    if (showLoadingSplit) {
+      savedRecord.bipANP = parseFloat(bipNum.toFixed(2));
+      savedRecord.gsrANP = parseFloat(gsrNum.toFixed(2));
+    }
+
+    if (formBirthday) {
+      savedRecord.birthday = formBirthday;
+    }
+    if (formNotes.trim()) {
+      savedRecord.notes = formNotes.trim();
+    }
 
     setPerfData(prev => {
       const currentList = prev.customerSaleRecords || [];
@@ -348,8 +452,25 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
           const rate = r.fycRate ?? (r.anp > 0 ? r.fyc / r.anp : 0.28);
           
           // Recalculate First Year Commission based on Collected Premium * Rate!
-          // Note: If total collected premium is 0, we show projected commission (r.anp * rate)
-          const actualFYC = totalPayments > 0 ? (collectedPremium * rate) : (r.anp * rate);
+          let actualFYC = 0;
+          if (r.bipANP !== undefined && r.gsrANP !== undefined) {
+            const totalANPNum = r.bipANP + r.gsrANP;
+            if (totalANPNum > 0) {
+              const bipRatio = r.bipANP / totalANPNum;
+              const gsrRatio = r.gsrANP / totalANPNum;
+              if (totalPayments > 0) {
+                const bipCollected = collectedPremium * bipRatio;
+                const gsrCollected = collectedPremium * gsrRatio;
+                actualFYC = (bipCollected * rate) + (gsrCollected * 0.02);
+              } else {
+                actualFYC = (r.bipANP * rate) + (r.gsrANP * 0.02);
+              }
+            } else {
+              actualFYC = totalPayments > 0 ? (collectedPremium * rate) : 0;
+            }
+          } else {
+            actualFYC = totalPayments > 0 ? (collectedPremium * rate) : (r.anp * rate);
+          }
 
           return { 
             ...r, 
@@ -425,7 +546,22 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
           const actualY2CollectedPayments = p2_array.reduce((acc, curr) => acc + curr, 0);
           const collectedPremiumY2 = r.installmentPremium * actualY2CollectedPayments;
           const rate = r.fycRate ?? (r.anp > 0 ? r.fyc / r.anp : 0.28);
-          const fycY2 = collectedPremiumY2 * rate;
+          
+          let fycY2 = 0;
+          if (r.bipANP !== undefined && r.gsrANP !== undefined) {
+            const totalANPNum = r.bipANP + r.gsrANP;
+            if (totalANPNum > 0) {
+              const bipRatio = r.bipANP / totalANPNum;
+              const gsrRatio = r.gsrANP / totalANPNum;
+              const bipCollectedY2 = collectedPremiumY2 * bipRatio;
+              const gsrCollectedY2 = collectedPremiumY2 * gsrRatio;
+              fycY2 = (bipCollectedY2 * rate) + (gsrCollectedY2 * 0.02);
+            } else {
+              fycY2 = collectedPremiumY2 * rate;
+            }
+          } else {
+            fycY2 = collectedPremiumY2 * rate;
+          }
 
           derivedBFRecords.push({
             ...r,
@@ -491,6 +627,37 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
         const collectedPremium = r.installmentPremium * totalPayments;
         const carriedOver = Math.max(0, r.anp - collectedPremium);
         sum += carriedOver;
+      }
+    });
+    return sum;
+  }, [filteredRecords]);
+
+  // Bring Forward First Year Commission calculation:
+  // For each policy in force in the selectedYear, calculate how much of its first-year commission (FYC)
+  // is carried forward to the next year (i.e. carriedOver premium * commission rate).
+  const bfFYC = useMemo(() => {
+    let sum = 0;
+    filteredRecords.forEach(r => {
+      if (!r.isBringForward) {
+        const totalPayments = r.monthlyPayments.reduce((acc, curr) => acc + curr, 0);
+        const collectedPremium = r.installmentPremium * totalPayments;
+        const carriedOver = Math.max(0, r.anp - collectedPremium);
+        const rate = r.fycRate ?? 0.28;
+
+        if (r.bipANP !== undefined && r.gsrANP !== undefined) {
+          const totalANPNum = r.bipANP + r.gsrANP;
+          if (totalANPNum > 0) {
+            const bipRatio = r.bipANP / totalANPNum;
+            const gsrRatio = r.gsrANP / totalANPNum;
+            const bipCarriedOver = carriedOver * bipRatio;
+            const gsrCarriedOver = carriedOver * gsrRatio;
+            sum += (bipCarriedOver * rate) + (gsrCarriedOver * 0.02);
+          } else {
+            sum += carriedOver * rate;
+          }
+        } else {
+          sum += carriedOver * rate;
+        }
       }
     });
     return sum;
@@ -642,7 +809,7 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
       </div>
 
       {/* KPI Stats Panel */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Metric 1 */}
         <div className={cn(
           "bento-card p-6 flex items-center justify-between relative overflow-hidden",
@@ -715,6 +882,25 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
             </div>
           </div>
           <div className="p-4 rounded-2xl bg-indigo-500/10 text-indigo-400">
+            <History size={20} />
+          </div>
+        </div>
+
+        {/* Metric 5 */}
+        <div className={cn(
+          "bento-card p-6 flex items-center justify-between relative overflow-hidden",
+          !isDarkMode && "bg-white border-slate-200"
+        )}>
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 block">Bring Forward First Year Commission</span>
+            <span className="text-2xl font-mono font-black text-purple-400 mt-1 block">
+              RM {formatNumber(bfFYC)}
+            </span>
+            <div className="flex items-center gap-1.5 text-[9px] text-slate-500 uppercase mt-2 font-bold pl-1">
+              <span>Carried over to next year • 转结至明年的首年佣金</span>
+            </div>
+          </div>
+          <div className="p-4 rounded-2xl bg-purple-500/10 text-purple-400">
             <History size={20} />
           </div>
         </div>
@@ -857,10 +1043,22 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                       </td>
 
                       {/* Plan */}
-                      <td className="py-3 px-2">
-                        <span className="px-2 py-0.5 bg-orange-500/10 text-[9px] font-extrabold text-orange-400 rounded-md border border-orange-500/25 font-mono shadow-[0_0_8px_rgba(249,115,22,0.05)]">
-                          {rec.planName}
-                        </span>
+                      <td className="py-3 px-2 border-b border-slate-800/20">
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="px-2 py-0.5 bg-orange-500/10 text-[9px] font-extrabold text-orange-400 rounded-md border border-orange-500/25 font-mono shadow-[0_0_8px_rgba(249,115,22,0.05)]">
+                            {rec.planName}
+                          </span>
+                          {rec.gsrANP !== undefined && rec.gsrANP > 0 && (
+                            <div className="flex flex-col gap-0.5 mt-0.5">
+                              <span className="text-[7.5px] px-1 bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 rounded font-black tracking-wider uppercase whitespace-nowrap">
+                                BIP: {formatNumber(rec.bipANP || 0)}
+                              </span>
+                              <span className="text-[7.5px] px-1 bg-purple-500/15 text-purple-400 border border-purple-500/20 rounded font-black tracking-wider uppercase whitespace-nowrap">
+                                GSR: {formatNumber(rec.gsrANP)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       {/* ANP */}
@@ -1132,6 +1330,85 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                       ))}
                     </div>
                   </div>
+                </div>
+
+                {/* Medical Loading / GSR Toggle & Split Inputs */}
+                <div className={cn(
+                  "p-4 rounded-3xl border space-y-3 transition-all",
+                  isDarkMode 
+                    ? "bg-slate-900/20 border-slate-800/80" 
+                    : "bg-slate-50 border-slate-200"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Has Medical Loading / GSR (包含医疗加费)</span>
+                      <span className="text-[8px] text-slate-500 uppercase mt-0.5">GSR premium receives a flat 2.0% commission</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={showLoadingSplit} 
+                        onChange={e => {
+                          const isChecked = e.target.checked;
+                          setShowLoadingSplit(isChecked);
+                          if (isChecked) {
+                            const totalNum = parseFloat(formANP) || 0;
+                            // Prefill basic as 83.33% and loading as 16.67% of total as example SPY 3600 -> 3000 & 600
+                            const bipVal = totalNum > 0 ? (totalNum * 3000 / 3600).toFixed(2) : '';
+                            const gsrVal = totalNum > 0 ? (totalNum * 600 / 3600).toFixed(2) : '';
+                            setFormBipANP(bipVal);
+                            setFormGsrANP(gsrVal);
+                            handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, formANP, fycRate, bipVal, gsrVal, true);
+                          } else {
+                            setFormBipANP('');
+                            setFormGsrANP('');
+                            handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, formANP, fycRate, '', '', false);
+                          }
+                        }}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                    </label>
+                  </div>
+
+                  {showLoadingSplit && (
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/20">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block pl-1">Basic BIP Premium (标准保费)</label>
+                        <input 
+                          type="number" 
+                          required
+                          step="any"
+                          placeholder="e.g. 3000.00"
+                          className={cn(
+                            "w-full px-3 py-2 rounded-xl border outline-none text-xs transition-colors font-mono",
+                            isDarkMode 
+                              ? "bg-slate-950 border-slate-800 focus:border-white text-white" 
+                              : "bg-white border-slate-200 focus:border-slate-800 text-slate-900"
+                          )}
+                          value={formBipANP}
+                          onChange={e => handleBipANPChange(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block pl-1">Loading GSR Premium (加保费)</label>
+                        <input 
+                          type="number" 
+                          required
+                          step="any"
+                          placeholder="e.g. 600.00"
+                          className={cn(
+                            "w-full px-3 py-2 rounded-xl border outline-none text-xs transition-colors font-mono",
+                            isDarkMode 
+                              ? "bg-slate-950 border-slate-800 focus:border-white text-white" 
+                              : "bg-white border-slate-200 focus:border-slate-800 text-slate-900"
+                          )}
+                          value={formGsrANP}
+                          onChange={e => handleGsrANPChange(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Suggested Values & Manual Edit boxes */}

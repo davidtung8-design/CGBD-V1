@@ -32,7 +32,8 @@ const dbId = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatab
   : undefined;
 
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true
+  experimentalForceLongPolling: true,
+  ignoreUndefinedProperties: true
 }, dbId);
 
 // Enable offline persistence gracefully for smoother operation under connectivity drops

@@ -113,6 +113,8 @@ export interface CustomerSaleRecord {
   payMode: 'M' | 'Q' | 'HY' | 'Y'; // Month, Quarter, Half-Year, Year
   monthlyPayments: number[]; // index 0 (Jan) to index 11 (Dec) representing premium payments received
   notes?: string;
+  bipANP?: number; // Basic Premium ANP
+  gsrANP?: number; // Loading Premium ANP
 }
 
 export interface Milestone {
