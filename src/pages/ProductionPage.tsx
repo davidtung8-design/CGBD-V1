@@ -8,6 +8,92 @@ import { cn, formatNumber } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
 
+const formatDateDMY = (dateStr: string | undefined): string => {
+  if (!dateStr) return 'N/A';
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
+  
+  const parts = dateStr.trim().split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    if (year.length === 4 && (month.length === 1 || month.length === 2) && (day.length === 1 || day.length === 2)) {
+      const formattedDay = day.padStart(2, '0');
+      const formattedMonth = month.padStart(2, '0');
+      return `${formattedDay}/${formattedMonth}/${year}`;
+    }
+  }
+
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+  } catch (e) {}
+
+  return dateStr;
+};
+
+const calculateANB = (birthdayStr: string | undefined, referenceDateStr?: string): number | null => {
+  if (!birthdayStr) return null;
+  
+  // Parse birthday
+  let birthDate: Date;
+  if (birthdayStr.includes('/')) {
+    const parts = birthdayStr.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      birthDate = new Date(year, month, day);
+    } else {
+      birthDate = new Date(birthdayStr);
+    }
+  } else {
+    birthDate = new Date(birthdayStr);
+  }
+  
+  if (isNaN(birthDate.getTime())) return null;
+
+  // Reference date: try using referenceDateStr first, then default to current date
+  let refDate = new Date();
+  if (referenceDateStr) {
+    if (referenceDateStr.includes('/')) {
+      const parts = referenceDateStr.split('/');
+      if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        refDate = new Date(year, month, day);
+      } else {
+        refDate = new Date(referenceDateStr);
+      }
+    } else {
+      refDate = new Date(referenceDateStr);
+    }
+  }
+
+  if (isNaN(refDate.getTime())) {
+    refDate = new Date();
+  }
+
+  const birthYear = birthDate.getFullYear();
+  const refYear = refDate.getFullYear();
+
+  // Next birthday relative to refDate
+  // e.g. if birthday is June 30, and refDate is May 23, 2026.
+  // birthdayThisYear is June 30, 2026. 
+  // refDate (May 23, 2026) < birthdayThisYear (June 30, 2026) is true -> turns 34 on next birthday in 2026.
+  const birthdayThisYear = new Date(refYear, birthDate.getMonth(), birthDate.getDate());
+
+  if (refDate < birthdayThisYear) {
+    return refYear - birthYear;
+  } else {
+    return (refYear + 1) - birthYear;
+  }
+};
+
 const fycRateOptions = [
   { label: '28%', value: 0.28, desc: '< 20 Years ILP (默认 Default)' },
   { label: '35%', value: 0.35, desc: '< 20 Years ILP Traditional' },
@@ -421,8 +507,8 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
       const row: any = {
         'No.': idx + 1,
         'Life Assured': r.customerName,
-        'Inforce Date': r.inforceDate,
-        'Birthday': r.birthday || 'N/A',
+        'Inforce Date': formatDateDMY(r.inforceDate),
+        'Birthday': r.birthday ? formatDateDMY(r.birthday) : 'N/A',
         'Plan': r.planName,
         'Annualized Premium (ANP)': r.anp,
         'First Year Commission (FYC)': r.fyc,
@@ -751,13 +837,23 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                       </td>
 
                       {/* Inforce date */}
-                      <td className="py-3 px-2 font-mono text-slate-400 leading-none">
-                        {rec.inforceDate}
+                      <td className="py-3 px-2 font-mono text-slate-400 leading-none border-b border-slate-800/20">
+                        {formatDateDMY(rec.inforceDate)}
                       </td>
 
                       {/* Birthday */}
-                      <td className="py-3 px-2 text-slate-400 text-[11px] font-mono">
-                        {rec.birthday || 'N/A'}
+                      <td className="py-3 px-2 text-slate-400 text-[11px] font-mono border-b border-slate-800/20">
+                        <div className="flex flex-col gap-0.5">
+                          <span>{rec.birthday ? formatDateDMY(rec.birthday) : 'N/A'}</span>
+                          {rec.birthday && (() => {
+                            const anb = calculateANB(rec.birthday, rec.inforceDate);
+                            return anb !== null ? (
+                              <span className="text-[9px] text-accent font-black tracking-wider uppercase">
+                                ANB: {anb}
+                              </span>
+                            ) : null;
+                          })()}
+                        </div>
                       </td>
 
                       {/* Plan */}
@@ -967,7 +1063,17 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider pl-2">Birthday (生日日期 - 可空)</label>
+                    <div className="flex justify-between items-center pr-1 pl-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Birthday (生日日期 - 可空)</label>
+                      {formBirthday && (() => {
+                        const anb = calculateANB(formBirthday, formInforceDate);
+                        return anb !== null ? (
+                          <span className="text-[10px] font-mono font-black text-accent bg-accent/10 px-2 py-0.5 rounded-md border border-accent/20">
+                            ANB: {anb}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
                     <input 
                       type="date" 
                       className={cn(

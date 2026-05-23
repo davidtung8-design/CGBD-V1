@@ -148,9 +148,25 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
           <button onClick={() => setSelectedDate(prev => subDays(prev, 1))} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400">
             <ChevronLeft size={20} />
           </button>
-          <div className="text-center">
+          <div className="text-center flex flex-col items-center">
             <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">{format(selectedDate, 'EEEE')}</div>
-            <div className="text-xl font-mono font-bold text-white tracking-tighter">{format(selectedDate, 'MMM dd, yyyy')}</div>
+            <div className="relative cursor-pointer group mt-0.5">
+              <input 
+                type="date"
+                value={format(selectedDate, 'yyyy-MM-dd')}
+                onChange={(e) => {
+                  const parsed = parseISO(e.target.value);
+                  if (!isNaN(parsed.getTime())) {
+                    setSelectedDate(parsed);
+                  }
+                }}
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+              />
+              <div className="text-xl font-mono font-bold text-white tracking-tighter border-b border-dashed border-slate-600 group-hover:border-accent transition-colors flex items-center gap-1">
+                <span>{format(selectedDate, 'MMM dd, yyyy')}</span>
+                <span className="text-xs text-slate-500 group-hover:text-accent transition-colors">📅</span>
+              </div>
+            </div>
           </div>
           <button onClick={() => setSelectedDate(prev => addDays(prev, 1))} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400">
             <ChevronRight size={20} />
@@ -267,13 +283,59 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
 
         {/* Activity Log Grid */}
         <div className="bento-card md:col-span-12 p-8 overflow-hidden">
-           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-slate-800 text-slate-400 rounded-xl">
-                  <Clipboard size={18} />
-                </div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">3v6R Activity Log · Point of Entry</h3>
+           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6 pb-4 border-b border-slate-800/40">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full xl:w-auto">
+                 <div className="flex items-center gap-3">
+                   <div className="p-2 bg-slate-800 text-slate-400 rounded-xl">
+                     <Clipboard size={18} />
+                   </div>
+                   <div>
+                     <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">3v6R Activity Log · Point of Entry</h3>
+                     <p className="text-[9px] text-slate-500 uppercase font-mono mt-0.5">Adjust values for any selected day</p>
+                   </div>
+                 </div>
+                 
+                 {/* Local Date Control Panel directly inside Point of Entry */}
+                 <div className="flex items-center gap-1 bg-slate-900/60 border border-slate-800 rounded-xl p-1 self-start sm:self-auto">
+                   <button 
+                     onClick={() => setSelectedDate(prev => subDays(prev, 1))} 
+                     className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-slate-400"
+                     title="Prev Day"
+                   >
+                     <ChevronLeft size={14} />
+                   </button>
+                   <div className="relative px-2 py-0.5">
+                     <input 
+                       type="date"
+                       value={format(selectedDate, 'yyyy-MM-dd')}
+                       onChange={(e) => {
+                         const parsed = parseISO(e.target.value);
+                         if (!isNaN(parsed.getTime())) {
+                           setSelectedDate(parsed);
+                         }
+                       }}
+                       className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                     />
+                     <span className="text-[10px] font-mono font-bold text-accent border-b border-dashed border-accent/40 flex items-center gap-1 hover:border-accent transition-colors">
+                       {format(selectedDate, 'yyyy-MM-dd')} 📅
+                     </span>
+                   </div>
+                   <button 
+                     onClick={() => setSelectedDate(prev => addDays(prev, 1))} 
+                     className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors text-slate-400"
+                     title="Next Day"
+                   >
+                     <ChevronRight size={14} />
+                   </button>
+                   <button 
+                     onClick={() => setSelectedDate(new Date())} 
+                     className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[8px] font-extrabold uppercase rounded-md transition-colors"
+                   >
+                     Today
+                   </button>
+                 </div>
               </div>
+              
               <div className="flex gap-4">
                  <div className="px-3 py-1 bg-accent/10 border border-accent/20 text-accent text-[9px] font-bold uppercase rounded-full tracking-widest font-mono">Sales: {formatNumber(salesTotal)}</div>
                  <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-bold uppercase rounded-full tracking-widest font-mono">Recruit: {formatNumber(recruitTotal)}</div>

@@ -2,8 +2,11 @@ import { Activity, ThemeKey, ThemeConfig } from './types';
 import { INSPIRATIONAL_QUOTES } from './quotes';
 
 export const ACTIVITIES: Activity[] = [
-  { id: 1, group: 'green', icon: '💰', bg: '#E8F5E8', name: 'Close Case' },
-  { id: 2, group: 'green', icon: '💼', bg: '#E8F5E8', name: 'Sales Activities' },
+  { id: 101, group: 'green', icon: '📁', bg: '#E8F5E8', name: 'Open File (OF)' },
+  { id: 102, group: 'green', icon: '📢', bg: '#E8F5E8', name: 'Presentation (P)' },
+  { id: 103, group: 'green', icon: '📞', bg: '#E8F5E8', name: 'Follow Up (F)' },
+  { id: 104, group: 'green', icon: '🔎', bg: '#E8F5E8', name: 'Policy Review' },
+  { id: 105, group: 'green', icon: '💰', bg: '#E8F5E8', name: 'Close Cases (NOC, ANP)' },
   { id: 3, group: 'green', icon: '🔍', bg: '#E8F5E8', name: 'Fact Finding' },
   { id: 4, group: 'green', icon: '🌱', bg: '#E8F5E8', name: 'Prospecting' },
   { id: 5, group: 'yellow', icon: '📋', bg: '#FFF7B3', name: 'Planning' },
@@ -11,7 +14,10 @@ export const ACTIVITIES: Activity[] = [
   { id: 7, group: 'yellow', icon: '🤝', bg: '#FFF7B3', name: 'Client Building' },
   { id: 8, group: 'yellow', icon: '📞', bg: '#FFF7B3', name: 'Telephoning' },
   { id: 9, group: 'yellow', icon: '📊', bg: '#FFF7B3', name: 'Record Keeping' },
-  { id: 10, group: 'orange', icon: '👥', bg: '#FFE4CC', name: 'Recruiting' },
+  { id: 201, group: 'orange', icon: '👥', bg: '#FFE4CC', name: 'R-OP' },
+  { id: 202, group: 'orange', icon: '🤝', bg: '#FFE4CC', name: 'R-PR' },
+  { id: 203, group: 'orange', icon: '📞', bg: '#FFE4CC', name: 'R-FO' },
+  { id: 204, group: 'orange', icon: '📝', bg: '#FFE4CC', name: 'R-SU' },
   { id: 11, group: 'orange', icon: '🌐', bg: '#FFE4CC', name: 'Build COI' },
   { id: 12, group: 'orange', icon: '💰', bg: '#FFE4CC', name: '万元保单' },
   { id: 13, group: 'blue', icon: '📢', bg: '#E8F2FF', name: 'Meeting' },

@@ -227,6 +227,7 @@ export default function App() {
   const [isAlarmActive, setIsAlarmActive] = useState(false);
   const focusTimerRef = useRef<any>(null);
   const chimeRef = useRef<HTMLAudioElement | null>(null);
+  const lastEventCountsRef = useRef<Record<string, Record<string, number>> | null>(null);
 
   useEffect(() => {
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'); // Soft melodic bell
@@ -516,6 +517,123 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('dt_theme', themeKey);
   }, [themeKey]);
+
+  // Synchronize Calendar Events to Daily Activities Log
+  useEffect(() => {
+    if (!isAllLoaded) return;
+
+    // 1. Compute current event counts for all dates
+    const currentCounts: Record<string, Record<string, number>> = {};
+    events.forEach(event => {
+      const monday = startOfWeek(baseDate, { weekStartsOn: 1 });
+      const weekMonday = addWeeks(monday, event.weekOffset);
+      const eventDate = addDays(weekMonday, event.weekday === 0 ? 6 : event.weekday - 1);
+      const dateKey = format(eventDate, 'yyyy-MM-dd');
+
+      if (!currentCounts[dateKey]) {
+        currentCounts[dateKey] = { of: 0, p: 0, f: 0, c: 0, ro: 0, rp: 0, rf: 0, rs: 0 };
+      }
+
+      const keyMap: Record<number, string> = {
+        101: 'of',
+        102: 'p',
+        103: 'f',
+        104: 'f', // Policy Review also maps to Follow Up ('f')
+        105: 'c',
+        1: 'c', // old close case fall back
+        201: 'ro',
+        10: 'ro', // old recruiting fall back
+        202: 'rp',
+        203: 'rf',
+        204: 'rs'
+      };
+
+      const key = keyMap[event.activityId];
+      if (key) {
+        currentCounts[dateKey][key] = (currentCounts[dateKey][key] || 0) + 1;
+      }
+    });
+
+    // If this is the very first time we load, we initialize the ref to currentCounts
+    // and raise dailyActivitiesLog counts to match existing events so everything stays in sync
+    if (lastEventCountsRef.current === null) {
+      lastEventCountsRef.current = currentCounts;
+      let logUpdated = false;
+      const updatedLog = { ...(perfData.dailyActivitiesLog || {}) };
+
+      Object.entries(currentCounts).forEach(([dateKey, counts]) => {
+        const existingData = updatedLog[dateKey] || { of: 0, p: 0, f: 0, c: 0, ro: 0, rp: 0, rf: 0, rs: 0, q: 0, noc: 0, anp: 0 };
+        const newData = { ...existingData };
+        let dateModified = false;
+
+        const keys = ['of', 'p', 'f', 'c', 'ro', 'rp', 'rf', 'rs'] as const;
+        keys.forEach(k => {
+          const expected = counts[k] || 0;
+          const actual = existingData[k] || 0;
+          if (expected > actual) {
+            newData[k] = expected; // raise to expected count
+            dateModified = true;
+            logUpdated = true;
+          }
+        });
+
+        if (dateModified) {
+          updatedLog[dateKey] = newData;
+        }
+      });
+
+      if (logUpdated) {
+        setPerfData(prev => ({
+          ...prev,
+          dailyActivitiesLog: updatedLog
+        }));
+      }
+      return;
+    }
+
+    const lastCounts = lastEventCountsRef.current;
+    let logModified = false;
+    const updatedLog = { ...(perfData.dailyActivitiesLog || {}) };
+
+    // Get union of all dates from lastCounts and currentCounts
+    const allDates = new Set([...Object.keys(lastCounts), ...Object.keys(currentCounts)]);
+
+    allDates.forEach(dateKey => {
+      const prevForDate = lastCounts[dateKey] || { of: 0, p: 0, f: 0, c: 0, ro: 0, rp: 0, rf: 0, rs: 0 };
+      const currForDate = currentCounts[dateKey] || { of: 0, p: 0, f: 0, c: 0, ro: 0, rp: 0, rf: 0, rs: 0 };
+
+      const existingData = updatedLog[dateKey] || { of: 0, p: 0, f: 0, c: 0, ro: 0, rp: 0, rf: 0, rs: 0, q: 0, noc: 0, anp: 0 };
+      const newData = { ...existingData };
+      let dateModified = false;
+
+      const keys = ['of', 'p', 'f', 'c', 'ro', 'rp', 'rf', 'rs'] as const;
+      keys.forEach(k => {
+        const prevVal = prevForDate[k] || 0;
+        const currVal = currForDate[k] || 0;
+        const delta = currVal - prevVal;
+
+        if (delta !== 0) {
+          newData[k] = Math.max(0, (newData[k] || 0) + delta);
+          dateModified = true;
+          logModified = true;
+        }
+      });
+
+      if (dateModified) {
+        updatedLog[dateKey] = newData;
+      }
+    });
+
+    // Update the ref to track current counts
+    lastEventCountsRef.current = currentCounts;
+
+    if (logModified) {
+      setPerfData(prev => ({
+        ...prev,
+        dailyActivitiesLog: updatedLog
+      }));
+    }
+  }, [events, isAllLoaded, baseDate]);
 
   // --- Data Synchronization ---
   // Sync total performance figures from Customer Sales Ledger (customerSaleRecords)
@@ -2878,7 +2996,7 @@ export default function App() {
                   <label className="mb-3 block text-[10px] font-bold text-slate-500 uppercase tracking-widest">🎨 活动类别 (Frequency Module)</label>
                   <div className="grid grid-cols-5 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar p-1">
                     {ACTIVITIES.map(a => {
-                      const isSelected = (editingEvent?.activityId === a.id);
+                      const isSelected = editingEvent ? (editingEvent.activityId === a.id) : (a.id === 101);
                       const groupColor = GROUP_CONFIG[a.group as keyof typeof GROUP_CONFIG]?.color || '#333';
                       
                       return (
@@ -2891,7 +3009,7 @@ export default function App() {
                                if (selector) {
                                  selector.setAttribute('data-selected', a.id.toString());
                                  const btns = document.querySelectorAll('[data-activity-btn]');
-                                 btns.forEach(b => b.classList.remove('ring-4', 'ring-blue-500/50', 'shadow-[0_0_15px_rgba(59,130,246,0.5)]'));
+                                 btns.forEach(b => b.classList.remove('ring-4', 'ring-blue-500/50', 'shadow-[0_0_15px_rgba(59,130,246,0.5)]', 'ring-white/50', 'shadow-[0_0_15px_rgba(255,255,255,0.5)]'));
                                  const current = document.querySelector(`[data-id="${a.id}"]`);
                                  current?.classList.add('ring-4', 'ring-blue-500/50', 'shadow-[0_0_15px_rgba(59,130,246,0.5)]');
                                }
@@ -2901,7 +3019,7 @@ export default function App() {
                           data-activity-btn
                           className={cn(
                             "flex flex-col items-center gap-1 rounded-2xl p-3 text-[9px] transition-all hover:scale-110 border border-transparent",
-                            isSelected && "ring-4 ring-white/50 shadow-[0_0_15px_rgba(255,255,255,0.5)] scale-105"
+                            isSelected && "ring-4 ring-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-105"
                           )}
                           style={{ 
                             backgroundColor: isDarkMode ? `${groupColor}20` : `${groupColor}15`,
@@ -2914,7 +3032,7 @@ export default function App() {
                       );
                     })}
                   </div>
-                  <div id="activity-selector" className="hidden" data-selected={editingEvent?.activityId || 1}></div>
+                  <div id="activity-selector" className="hidden" data-selected={editingEvent?.activityId || 101}></div>
                 </div>
 
                 <div className="mt-10 flex flex-wrap gap-4">
@@ -2949,7 +3067,7 @@ export default function App() {
                         const title = (document.getElementById('modal-title') as HTMLInputElement).value;
                         const sH = parseFloat((document.getElementById('modal-start') as HTMLSelectElement).value);
                         const eH = parseFloat((document.getElementById('modal-end') as HTMLSelectElement).value);
-                        const actId = parseInt(document.getElementById('activity-selector')?.getAttribute('data-selected') || '1');
+                        const actId = parseInt(document.getElementById('activity-selector')?.getAttribute('data-selected') || '101');
 
                         if (!title) return;
                         
