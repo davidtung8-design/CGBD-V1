@@ -762,7 +762,7 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
 
                       {/* Plan */}
                       <td className="py-3 px-2">
-                        <span className="px-2 py-0.5 bg-slate-800/80 text-[9px] font-extrabold text-slate-300 rounded-md border border-slate-700/50 font-mono">
+                        <span className="px-2 py-0.5 bg-orange-500/10 text-[9px] font-extrabold text-orange-400 rounded-md border border-orange-500/25 font-mono shadow-[0_0_8px_rgba(249,115,22,0.05)]">
                           {rec.planName}
                         </span>
                       </td>

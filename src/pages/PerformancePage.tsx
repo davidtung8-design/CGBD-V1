@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { PerfData, ThemeConfig } from '../types';
 import { formatNumber, cn } from '../lib/utils';
 import { format } from 'date-fns';
-import { Target, Users, Zap, Shield, Award, Edit3, Trash2, History, CloudRain, Moon, Waves, Coffee, VolumeX, X, Minus, Plus } from 'lucide-react';
+import { Target, Users, Zap, Shield, Award, Edit3, Trash2, History, CloudRain, Moon, Waves, Coffee, VolumeX, X, Minus, Plus, BarChart3 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 interface PerformancePageProps {
   perfData: PerfData;
@@ -40,6 +41,51 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
   const totalNOC = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.noc || 0), 0);
   const totalRecruit = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.recruitActual || 0), 0);
   const totalFYC = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.fyc || 0), 0);
+
+  const chartData = useMemo(() => {
+    return perfData.monthlyRecords.map(m => ({
+      name: m.month,
+      Target: m.target || 0,
+      Actual: m.actual || 0,
+    }));
+  }, [perfData.monthlyRecords]);
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const targetVal = payload[0]?.payload?.Target || 0;
+      const actualVal = payload[0]?.payload?.Actual || 0;
+      const achievementPct = targetVal > 0 ? Math.floor((actualVal / targetVal) * 100) : 0;
+      const diff = actualVal - targetVal;
+
+      return (
+        <div className="bg-slate-950/95 border border-slate-800 p-4 rounded-2xl backdrop-blur-md shadow-xl text-left">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{label}</p>
+          <div className="space-y-1 text-xs">
+            <div className="flex items-center justify-between gap-8">
+              <span className="text-slate-500 font-medium">目标 (Target):</span>
+              <span className="font-mono font-bold text-slate-300">RM {formatNumber(targetVal)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-8">
+              <span className="text-slate-500 font-medium">实际 (Actual):</span>
+              <span className="font-mono font-black" style={{ color: theme.accent }}>RM {formatNumber(actualVal)}</span>
+            </div>
+            <div className="h-px bg-slate-800/50 my-1.5" />
+            <div className="flex items-center justify-between gap-8">
+              <span className="text-slate-500 font-medium">达成率 (Rate):</span>
+              <span className="font-mono font-bold text-emerald-400">{achievementPct}%</span>
+            </div>
+            <div className="flex items-center justify-between gap-8">
+              <span className="text-slate-500 font-medium">差额 (Diff):</span>
+              <span className={`font-mono font-bold ${diff >= 0 ? "text-emerald-400" : "text-rose-500"}`}>
+                {diff >= 0 ? "+" : ""}RM {formatNumber(diff)}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   const personalPct = Math.min(100, Math.floor((totalActualQFYLP / (perfData.annualTargetGSPC || 1)) * 100));
   const fycPct = Math.min(100, Math.floor((totalFYC / (perfData.annualTargetFYC || 1)) * 100));
@@ -202,45 +248,120 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
       </div>
 
       {/* Progress Sync Grid */}
-      <div className="grid gap-4 md:grid-cols-12">
-        <div className="bento-card md:col-span-12 p-8 overflow-hidden relative">
-          <div className="flex items-center gap-2 mb-8">
-            <Award size={18} className="text-white" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">Core Progress Synthesis</h3>
-          </div>
-          
-          <div className="space-y-8">
-            {[
-              { label: 'Core ANP Achievement', current: personalPct },
-              { label: 'FYC Commission Flow', current: fycPct },
-              { label: 'Team Coverage Matrix', current: teamPct },
-              { label: 'Recruitment Flow Velocity', current: recruitPct }
-            ].map((p, idx) => (
-              <div key={idx} className="space-y-3">
-                <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                  <span>{p.label}</span>
-                  <span className="font-mono text-white">{p.current}%</span>
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-12">
+        {/* Core Progress Synthesis */}
+        <div className="bento-card lg:col-span-5 p-8 overflow-hidden relative flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-8">
+              <Award size={18} className="text-white" />
+              <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">Core Progress Synthesis</h3>
+            </div>
+            
+            <div className="space-y-8">
+              {[
+                { label: 'Core ANP Achievement', current: personalPct },
+                { label: 'FYC Commission Flow', current: fycPct },
+                { label: 'Team Coverage Matrix', current: teamPct },
+                { label: 'Recruitment Flow Velocity', current: recruitPct }
+              ].map((p, idx) => (
+                <div key={idx} className="space-y-3">
+                  <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                    <span>{p.label}</span>
+                    <span className="font-mono text-white">{p.current}%</span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${p.current}%` }}
+                      transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 + idx * 0.15 }}
+                      className="h-full rounded-full shadow-[0_0_20px_var(--accent-color)]"
+                      style={{ backgroundColor: theme.accent, opacity: 1 - (idx * 0.2) }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${p.current}%` }}
-                    transition={{ duration: 1, delay: 0.2 + idx * 0.1 }}
-                    className="h-full rounded-full transition-all duration-1000 shadow-[0_0_20px_var(--accent-color)]"
-                    style={{ backgroundColor: theme.accent, opacity: 1 - (idx * 0.2) }}
-                  />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Dynamic Performance Analyzer Chart */}
+        <div className="bento-card lg:col-span-7 p-8 overflow-hidden relative flex flex-col justify-between">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="flex items-center gap-2">
+                <BarChart3 size={18} className="text-white" />
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">QFYLP Target vs Actual Analyzer</h3>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-[10px] uppercase font-bold tracking-widest">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded bg-slate-700"></span>
+                  <span className="text-slate-500">Target</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: theme.accent }}></span>
+                  <span className="text-slate-300">Actual</span>
                 </div>
               </div>
-            ))}
+            </div>
+
+            <div className="h-64 w-full sm:h-72 mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={chartData}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid stroke="#1e293b" vertical={false} strokeDasharray="3 3" opacity={0.5} />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#475569" 
+                    fontSize={9} 
+                    tickLine={false} 
+                    axisLine={false}
+                    dy={8}
+                    fontFamily="monospace"
+                  />
+                  <YAxis 
+                    stroke="#475569" 
+                    fontSize={9} 
+                    tickLine={false} 
+                    axisLine={false}
+                    dx={-8}
+                    fontFamily="monospace"
+                    tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }} />
+                  <Bar 
+                    dataKey="Actual" 
+                    fill={theme.accent} 
+                    radius={[4, 4, 0, 0]} 
+                    barSize={16}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="Target" 
+                    stroke="#475569" 
+                    strokeWidth={2} 
+                    strokeDasharray="4 4" 
+                    dot={{ r: 2, strokeWidth: 1, fill: '#1e293b' }}
+                    activeDot={false}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Detailed Matrix Table */}
       <div className="bento-card p-8">
-        <div className="flex items-center gap-2 mb-6">
-          <History size={18} className="text-slate-500" />
-          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Performance Matrix · monthly Logs</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <History size={18} className="text-slate-500" />
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Performance Matrix · monthly Logs</h3>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            📊 Sync Active • Customer Production Ledger Standards
+          </span>
         </div>
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left text-[11px]">
@@ -277,56 +398,24 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                       />
                     </td>
                     <td className="p-4 text-center">
-                      <input 
-                        type="text" 
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white font-mono focus:border-white outline-none"
-                        value={formatNumber(m.actual)}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
-                          const newRecords = [...perfData.monthlyRecords];
-                          newRecords[i].actual = val;
-                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
-                        }}
-                      />
+                      <div className="w-24 mx-auto bg-slate-950/40 border border-slate-800/30 rounded-lg py-1.5 text-center text-emerald-400 font-mono text-xs font-semibold">
+                        {formatNumber(m.actual)}
+                      </div>
                     </td>
                     <td className="p-4 text-center">
-                      <input 
-                        type="number" 
-                        className="w-16 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-emerald-400 font-mono focus:border-emerald-500 outline-none"
-                        value={m.noc}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 0;
-                          const newRecords = [...perfData.monthlyRecords];
-                          newRecords[i].noc = val;
-                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
-                        }}
-                      />
+                      <div className="w-16 mx-auto bg-slate-950/40 border border-slate-800/30 rounded-lg py-1.5 text-center text-slate-300 font-mono text-xs font-semibold">
+                        {m.noc}
+                      </div>
                     </td>
                     <td className="p-4 text-center">
-                      <input 
-                        type="text" 
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white/50 font-mono focus:border-white outline-none"
-                        value={formatNumber(m.anp)}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
-                          const newRecords = [...perfData.monthlyRecords];
-                          newRecords[i].anp = val;
-                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
-                        }}
-                      />
+                      <div className="w-24 mx-auto bg-slate-950/40 border border-slate-800/30 rounded-lg py-1.5 text-center text-white/90 font-mono text-xs font-semibold">
+                        {formatNumber(m.anp)}
+                      </div>
                     </td>
                     <td className="p-4 text-center">
-                      <input 
-                        type="text" 
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-white font-mono focus:border-white outline-none"
-                        value={formatNumber(m.fyc || 0, 2)}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
-                          const newRecords = [...perfData.monthlyRecords];
-                          newRecords[i].fyc = val;
-                          setPerfData(prev => ({ ...prev, monthlyRecords: newRecords }));
-                        }}
-                      />
+                      <div className="w-24 mx-auto bg-slate-950/40 border border-slate-800/30 rounded-lg py-1.5 text-center text-white/50 font-mono text-xs font-semibold">
+                        {formatNumber(m.fyc || 0, 2)}
+                      </div>
                     </td>
                     <td className="p-4 text-center">
                       <button 

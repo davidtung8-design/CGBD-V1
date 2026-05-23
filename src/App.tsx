@@ -63,7 +63,64 @@ const INITIAL_PERF: PerfData = {
   monthlyRecords: DEFAULT_MONTHLY,
   prospectList: [],
   recruitList: [],
-  customerSaleRecords: [],
+  customerSaleRecords: [
+    {
+      id: "init-1",
+      customerName: "王林山",
+      inforceDate: "2026-01-15",
+      birthday: "1988-05-12",
+      planName: "SPY Premium Wealth",
+      anp: 130000,
+      fyc: 45500,
+      fycRate: 0.35,
+      installmentPremium: 130000,
+      payMode: 'Y',
+      monthlyPayments: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      notes: "系统初始化数据 / Initial record"
+    },
+    {
+      id: "init-2",
+      customerName: "常青树集团",
+      inforceDate: "2026-02-10",
+      birthday: "1980-11-20",
+      planName: "SPWP Corporate Shield",
+      anp: 130000,
+      fyc: 39000,
+      fycRate: 0.30,
+      installmentPremium: 130000,
+      payMode: 'Y',
+      monthlyPayments: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      notes: "系统初始化数据 / Initial record"
+    },
+    {
+      id: "init-3",
+      customerName: "赵家豪",
+      inforceDate: "2026-03-24",
+      birthday: "1994-07-08",
+      planName: "SPY Golden Retirement",
+      anp: 130000,
+      fyc: 45500,
+      fycRate: 0.35,
+      installmentPremium: 130000,
+      payMode: 'Y',
+      monthlyPayments: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      notes: "系统初始化数据 / Initial record"
+    },
+    {
+      id: "init-4",
+      customerName: "星海科技",
+      inforceDate: "2026-04-18",
+      birthday: "1985-02-14",
+      planName: "SPY Alpha Investment",
+      anp: 145211,
+      fyc: 50823.85,
+      fycRate: 0.35,
+      installmentPremium: 145211,
+      payMode: 'Y',
+      monthlyPayments: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+      notes: "系统初始化数据 / Initial record"
+    }
+  ],
   teamMembers: [],
   weekActs: { OF: 0, P: 0, F: 0, C: 0 },
   weekRecruitActs: { RO: 0, RP: 0, RF: 0, RS: 0 },
@@ -461,16 +518,129 @@ export default function App() {
   }, [themeKey]);
 
   // --- Data Synchronization ---
-  // Sync total performance figures from monthly records
+  // Sync total performance figures from Customer Sales Ledger (customerSaleRecords)
   useEffect(() => {
-    const totalActualQ = perfData.monthlyRecords.reduce((sum, r) => sum + (r.actual || 0), 0);
-    const totalNOC = perfData.monthlyRecords.reduce((sum, r) => sum + (r.noc || 0), 0);
-    const totalANP = perfData.monthlyRecords.reduce((sum, r) => sum + (r.anp || 0), 0);
-    const totalFYC = perfData.monthlyRecords.reduce((sum, r) => sum + (r.fyc || 0), 0);
+    const targetYear = new Date().getFullYear().toString();
+    const records = perfData.customerSaleRecords || [];
+
+    const monthlyANP = Array(12).fill(0);
+    const monthlyQFYLP = Array(12).fill(0);
+    const monthlyFYC = Array(12).fill(0);
+    const monthlyNOC = Array(12).fill(0);
+
+    records.forEach(r => {
+      // Ignore simulated bring-forward records that are dynamically synthesized inside views
+      if (r.id.endsWith('-bf')) return;
+
+      // Classify if it's a direct record of the current targetYear
+      if (r.inforceDate && r.inforceDate.startsWith(targetYear)) {
+        const inforceParts = r.inforceDate.split('-');
+        const M = inforceParts.length >= 2 ? parseInt(inforceParts[1], 10) - 1 : 0;
+        if (M >= 0 && M < 12) {
+          monthlyANP[M] += r.anp || 0;
+          monthlyNOC[M] += 1;
+        }
+        
+        // Accumulate first-year installment payments received for QFYLP & FYC
+        if (r.monthlyPayments) {
+          r.monthlyPayments.forEach((p, idx) => {
+            if (idx >= 0 && idx < 12) {
+              const amt = (r.installmentPremium || 0) * p;
+              monthlyQFYLP[idx] += amt;
+              const rate = r.fycRate ?? ((r.anp && r.anp > 0) ? r.fyc / r.anp : 0.28);
+              monthlyFYC[idx] += amt * rate;
+            }
+          });
+        }
+      }
+
+      // Classify if it's a carry-forward / Bring Forward policy from previous year
+      const priorYearStr = (parseInt(targetYear, 10) - 1).toString();
+      if (r.inforceDate && r.inforceDate.startsWith(priorYearStr)) {
+        const p1 = r.monthlyPayments ? r.monthlyPayments.reduce((acc, curr) => acc + curr, 0) : 0;
+        let expectedTotalPayments = 12;
+        if (r.payMode === 'Q') expectedTotalPayments = 4;
+        else if (r.payMode === 'HY') expectedTotalPayments = 2;
+        else if (r.payMode === 'Y') expectedTotalPayments = 1;
+
+        const remainingCount = Math.max(0, expectedTotalPayments - p1);
+        if (remainingCount > 0) {
+          const inforceParts = r.inforceDate.split('-');
+          const inforceMonth = inforceParts.length >= 2 ? parseInt(inforceParts[1], 10) : 1;
+          const p2_array = Array(12).fill(0);
+
+          if (r.payMode === 'M') {
+            for (let i = 0; i < remainingCount && i < 12; i++) {
+              p2_array[i] = 1;
+            }
+          } else if (r.payMode === 'Q') {
+            for (let k = 0; k < 4; k++) {
+              const targetMonth = inforceMonth + 3 * k;
+              if (targetMonth > 12) {
+                const y2Index = targetMonth - 12 - 1;
+                if (y2Index >= 0 && y2Index < 12) {
+                  p2_array[y2Index] = 1;
+                }
+              }
+            }
+          } else if (r.payMode === 'HY') {
+            for (let k = 0; k < 2; k++) {
+              const targetMonth = inforceMonth + 6 * k;
+              if (targetMonth > 12) {
+                const y2Index = targetMonth - 12 - 1;
+                if (y2Index >= 0 && y2Index < 12) {
+                  p2_array[y2Index] = 1;
+                }
+              }
+            }
+          }
+
+          const rate = r.fycRate ?? ((r.anp && r.anp > 0) ? r.fyc / r.anp : 0.28);
+          for (let i = 0; i < 12; i++) {
+            const paymentsInMonth = p2_array[i] || 0;
+            const collectedInMonth = (r.installmentPremium || 0) * paymentsInMonth;
+            monthlyQFYLP[i] += collectedInMonth;
+            monthlyFYC[i] += collectedInMonth * rate;
+          }
+        }
+      }
+    });
+
+    const totalActualQ = monthlyQFYLP.reduce((sum, val) => sum + val, 0);
+    const totalNOC = monthlyNOC.reduce((sum, val) => sum + val, 0);
+    const totalANP = monthlyANP.reduce((sum, val) => sum + val, 0);
+    const totalFYC = monthlyFYC.reduce((sum, val) => sum + val, 0);
     const totalRecruit = perfData.monthlyRecords.reduce((sum, r) => sum + (r.recruitActual || 0), 0);
 
-    // Only update if there's a discrepancy to avoid potential update loops
+    // Formulate updated monthly records with derived actuals
+    let monthlyRecordsChanged = false;
+    const updatedMonthlyRecords = perfData.monthlyRecords.map((m, idx) => {
+      const derivedANP = monthlyANP[idx];
+      const derivedQFYLP = monthlyQFYLP[idx];
+      const derivedFYC = parseFloat(monthlyFYC[idx].toFixed(2));
+      const derivedNOC = monthlyNOC[idx];
+
+      if (
+        m.anp !== derivedANP ||
+        m.actual !== derivedQFYLP ||
+        (m.fyc || 0) !== derivedFYC ||
+        m.noc !== derivedNOC
+      ) {
+        monthlyRecordsChanged = true;
+        return {
+          ...m,
+          anp: derivedANP,
+          actual: derivedQFYLP,
+          fyc: derivedFYC,
+          noc: derivedNOC
+        };
+      }
+      return m;
+    });
+
+    // Check if anything has shifted to update the parent performance state
     if (
+      monthlyRecordsChanged ||
       totalActualQ !== perfData.personalQ ||
       totalNOC !== perfData.totalNOC ||
       totalANP !== perfData.totalANP ||
@@ -478,6 +648,8 @@ export default function App() {
       totalRecruit !== perfData.recruitCount
     ) {
       setPerfData(prev => {
+        const finalMonthlyRecords = monthlyRecordsChanged ? updatedMonthlyRecords : prev.monthlyRecords;
+        
         // Auto-check milestones
         const updatedMilestones = prev.milestones.map(m => {
           let achieved = m.achieved;
@@ -502,6 +674,7 @@ export default function App() {
 
         return {
           ...prev,
+          monthlyRecords: finalMonthlyRecords,
           personalQ: totalActualQ,
           totalNOC: totalNOC,
           totalANP: totalANP,
@@ -511,7 +684,16 @@ export default function App() {
         };
       });
     }
-  }, [perfData.monthlyRecords, perfData.personalQ, perfData.totalNOC, perfData.totalANP, perfData.recruitCount, perfData.teamMembers]);
+  }, [
+    perfData.customerSaleRecords,
+    perfData.monthlyRecords,
+    perfData.personalQ,
+    perfData.totalNOC,
+    perfData.totalANP,
+    perfData.totalFYC,
+    perfData.recruitCount,
+    perfData.teamMembers
+  ]);
 
   // --- Helpers ---
   const todayKey = format(new Date(), 'yyyy-MM-dd');
@@ -1549,28 +1731,9 @@ export default function App() {
                         />
                       </div>
                       <div className="flex items-baseline gap-2">
-                        <input 
-                          type="text"
-                          className="text-4xl font-light text-white bg-transparent border-none outline-none w-full max-w-[150px] p-0 hover:text-white transition-colors cursor-text"
-                          value={formatNumber(perfData.totalANP)}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            const newVal = parseFloat(e.target.value.replace(/,/g, '')) || 0;
-                            const currentMonthName = format(new Date(), 'M月', { locale: undefined });
-                            setPerfData(prev => {
-                              const newMonthly = prev.monthlyRecords.map(m => {
-                                if (m.month === currentMonthName) {
-                                  const otherMonthsSum = prev.monthlyRecords
-                                    .filter(om => om.month !== currentMonthName)
-                                    .reduce((sum, om) => sum + (om.anp || 0), 0);
-                                  return { ...m, anp: newVal - otherMonthsSum };
-                                }
-                                return m;
-                              });
-                              return { ...prev, monthlyRecords: newMonthly };
-                            });
-                          }}
-                        />
+                        <div className="text-4xl font-light text-white font-mono select-none">
+                          {formatNumber(perfData.totalANP)}
+                        </div>
                         <div className="text-[10px] text-slate-500 font-mono">ANP</div>
                       </div>
                       <div className="mt-4 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
@@ -1589,28 +1752,9 @@ export default function App() {
                         <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">🛡️ NOC Nodes</h2>
                       </div>
                       <div className="flex items-baseline gap-2">
-                        <input 
-                          type="number"
-                          className="text-4xl font-light text-emerald-400 bg-transparent border-none outline-none w-full max-w-[100px] p-0 hover:text-emerald-300 focus:text-emerald-300 transition-colors cursor-text"
-                          value={perfData.totalNOC}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            const newVal = parseInt(e.target.value) || 0;
-                            const currentMonthName = format(new Date(), 'M月', { locale: undefined });
-                            setPerfData(prev => {
-                              const newMonthly = prev.monthlyRecords.map(m => {
-                                if (m.month === currentMonthName) {
-                                  const otherMonthsSum = prev.monthlyRecords
-                                    .filter(om => om.month !== currentMonthName)
-                                    .reduce((sum, om) => sum + (om.noc || 0), 0);
-                                  return { ...m, noc: newVal - otherMonthsSum };
-                                }
-                                return m;
-                              });
-                              return { ...prev, monthlyRecords: newMonthly };
-                            });
-                          }}
-                        />
+                        <div className="text-4xl font-light text-emerald-400 font-mono select-none">
+                          {perfData.totalNOC}
+                        </div>
                         <div className="text-[10px] text-slate-500 font-mono">件数</div>
                       </div>
                       <div className="mt-4 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
