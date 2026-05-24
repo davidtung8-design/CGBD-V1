@@ -622,6 +622,8 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
     let totalCollected = 0;
     let totalANP = 0;
     let totalFYC = 0;
+    let totalBIPANP = 0;
+    let totalBIPCollected = 0;
 
     // Month level collections
     const monthlyCollections = Array(12).fill(0);
@@ -629,6 +631,23 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
     filteredRecords.forEach(r => {
       totalANP += r.anp;
       totalFYC += r.fyc;
+      totalBIPANP += (r.bipANP !== undefined ? r.bipANP : r.anp);
+      
+      const totalPayments = r.monthlyPayments.reduce((acc, curr) => acc + curr, 0);
+      const rCollectedPremium = r.installmentPremium * totalPayments;
+      let rBipCollected = 0;
+      if (r.bipANP !== undefined && r.gsrANP !== undefined) {
+        const totalANPNum = r.bipANP + r.gsrANP;
+        if (totalANPNum > 0) {
+          const bipRatio = r.bipANP / totalANPNum;
+          rBipCollected = rCollectedPremium * bipRatio;
+        } else {
+          rBipCollected = rCollectedPremium;
+        }
+      } else {
+        rBipCollected = rCollectedPremium;
+      }
+      totalBIPCollected += rBipCollected;
       
       r.monthlyPayments.forEach((p, idx) => {
         const amt = r.installmentPremium * p;
@@ -641,6 +660,8 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
       totalCollected,
       totalANP,
       totalFYC,
+      totalBIPANP,
+      totalBIPCollected,
       monthlyCollections
     };
   }, [filteredRecords]);
@@ -852,6 +873,9 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
             <div className="flex items-center gap-1.5 text-[9px] text-slate-500 uppercase mt-2 font-bold pl-1">
               <span>Total ledger sum paid</span>
             </div>
+            <div className="flex items-center gap-1.5 text-[9px] text-emerald-500/80 uppercase mt-0.5 font-bold pl-1">
+              <span>Collected BIP without GSR: RM {formatNumber(stats.totalBIPCollected)}</span>
+            </div>
           </div>
           <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-500">
             <DollarSign size={20} />
@@ -870,6 +894,9 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
             </span>
             <div className="flex items-center gap-1.5 text-[9px] text-slate-500 uppercase mt-2 font-bold pl-1">
               <span>Target: RM 450,000 AIM</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[9px] text-amber-550-custom text-amber-500/80 uppercase mt-0.5 font-bold pl-1">
+              <span>BIP without GSR: RM {formatNumber(stats.totalBIPANP)}</span>
             </div>
           </div>
           <div className="p-4 rounded-2xl bg-amber-500/10 text-amber-500">
