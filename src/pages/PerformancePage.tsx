@@ -16,6 +16,7 @@ interface PerformancePageProps {
   setTargetMins: React.Dispatch<React.SetStateAction<number>>;
   toggleFocusedTimer: () => void;
   setIsLargeTimerOpen: (open: boolean) => void;
+  isDarkMode: boolean;
 }
 
 export const PerformancePage: React.FC<PerformancePageProps> = ({ 
@@ -27,7 +28,8 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
   targetMins,
   setTargetMins,
   toggleFocusedTimer,
-  setIsLargeTimerOpen
+  setIsLargeTimerOpen,
+  isDarkMode
 }) => {
   const [editingBigCasesIdx, setEditingBigCasesIdx] = React.useState<number | null>(null);
 
@@ -41,6 +43,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
   const totalNOC = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.noc || 0), 0);
   const totalRecruit = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.recruitActual || 0), 0);
   const totalFYC = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.fyc || 0), 0);
+  const totalANP = perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.anp || 0), 0);
 
   const chartData = useMemo(() => {
     return perfData.monthlyRecords.map(m => ({
@@ -93,7 +96,8 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
   const recruitPct = Math.min(100, Math.floor((totalRecruit / (perfData.annualTargetTeam || 1)) * 100));
 
   const stats = [
-    { label: '核心 ANP (QFYLP)', value: totalActualQFYLP, total: perfData.annualTargetGSPC, icon: <Target size={18} /> },
+    { label: '核心 ANP (Core ANP)', value: totalANP, total: perfData.annualTargetGSPC, icon: <Target size={18} /> },
+    { label: '核心 QFYLP (Core QFYLP)', value: totalActualQFYLP, total: perfData.annualTargetGSPC, icon: <Target size={18} /> },
     { label: '成交件数 (NOC Nodes)', value: totalNOC, icon: <Shield size={18} /> },
     { label: '招募战将 (Recruits)', value: totalRecruit, total: perfData.annualTargetTeam, icon: <Zap size={18} /> },
     { label: 'FYC Commission', value: totalFYC, total: perfData.annualTargetFYC, icon: <Award size={18} /> },
@@ -166,15 +170,10 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
       </div>
 
       {/* Header Cards (Bento Style) */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {stats.map((stat, i) => {
-          const isWide = i === 0 || i === 4;
-          
           return (
-            <div key={i} className={cn(
-              "bento-card p-6 flex flex-col justify-between group",
-              isWide ? "md:col-span-2 lg:col-span-1 xl:col-span-1" : "md:col-span-1"
-            )}>
+            <div key={i} className="bento-card p-6 flex flex-col justify-between group md:col-span-1">
               <div className="flex justify-between items-start">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{stat.label}</span>
                 <div className="p-2 bg-slate-800 rounded-xl text-white group-hover:bg-white group-hover:text-slate-900 transition-all">
@@ -203,6 +202,10 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                             if (stat.label.includes('ANP')) {
                               const otherSum = prev.monthlyRecords.filter(om => om.month !== currentMonthName).reduce((s, om) => s + (om.anp || 0), 0);
                               return { ...m, anp: val - otherSum };
+                            }
+                            if (stat.label.includes('QFYLP')) {
+                              const otherSum = prev.monthlyRecords.filter(om => om.month !== currentMonthName).reduce((s, om) => s + (om.actual || 0), 0);
+                              return { ...m, actual: val - otherSum };
                             }
                             if (stat.label.includes('招募')) {
                               const otherSum = prev.monthlyRecords.filter(om => om.month !== currentMonthName).reduce((s, om) => s + (om.recruitActual || 0), 0);
@@ -233,6 +236,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 0;
                           if (stat.label.includes('ANP')) setPerfData(prev => ({ ...prev, annualTargetGSPC: val }));
+                          if (stat.label.includes('QFYLP')) setPerfData(prev => ({ ...prev, annualTargetGSPC: val }));
                           if (stat.label.includes('招募')) setPerfData(prev => ({ ...prev, annualTargetTeam: val }));
                           if (stat.label.includes('FYC')) setPerfData(prev => ({ ...prev, annualTargetFYC: val }));
                         }}
@@ -366,7 +370,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left text-[11px]">
             <thead>
-              <tr className="text-slate-500 uppercase tracking-tighter border-b border-slate-800">
+              <tr className={cn("text-slate-500 uppercase tracking-tighter border-b", isDarkMode ? "border-slate-800" : "border-slate-200")}>
                 <th className="p-4 font-bold">Month Unit</th>
                 <th className="p-4 font-bold text-center">TARGET QFYLP</th>
                 <th className="p-4 font-bold text-center">ACTUAL QFYLP</th>
@@ -378,16 +382,16 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                 <th className="p-4 font-bold text-center">Recruit Act</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/30">
+            <tbody className={cn("divide-y", isDarkMode ? "divide-slate-800/30" : "divide-slate-200/50")}>
               {perfData.monthlyRecords.map((m, i) => {
                 const rows = [];
                 rows.push(
-                  <tr key={`month-${i}`} className="hover:bg-white/[0.02] transition-colors group">
-                    <td className="p-4 font-bold text-white uppercase">{m.month}</td>
+                  <tr key={`month-${i}`} className={cn("transition-colors group", isDarkMode ? "hover:bg-white/[0.02]" : "hover:bg-slate-50")}>
+                    <td className={cn("p-4 font-bold uppercase", isDarkMode ? "text-white" : "text-slate-800")}>{m.month}</td>
                     <td className="p-4 text-center">
                       <input 
                         type="text" 
-                        className="w-24 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-slate-400 font-mono focus:border-white outline-none"
+                        className={cn("w-24 border rounded-lg p-2 text-center font-mono outline-none", isDarkMode ? "bg-slate-900 border-slate-800 text-slate-400 focus:border-white" : "bg-slate-50 border-slate-200 text-slate-600 focus:border-slate-400")}
                         value={formatNumber(m.target)}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
@@ -398,29 +402,49 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                       />
                     </td>
                     <td className="p-4 text-center">
-                      <div className="w-24 mx-auto bg-slate-950/40 border border-slate-800/30 rounded-lg py-1.5 text-center text-emerald-400 font-mono text-xs font-semibold">
+                      <div className={cn(
+                        "w-24 mx-auto border rounded-lg py-1.5 text-center font-mono text-xs font-semibold",
+                        isDarkMode 
+                          ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+                          : "bg-emerald-50 border-emerald-250 text-emerald-700"
+                      )}>
                         {formatNumber(m.actual)}
                       </div>
                     </td>
                     <td className="p-4 text-center">
-                      <div className="w-16 mx-auto bg-slate-950/40 border border-slate-800/30 rounded-lg py-1.5 text-center text-slate-300 font-mono text-xs font-semibold">
+                      <div className={cn(
+                        "w-16 mx-auto border rounded-lg py-1.5 text-center font-mono text-xs font-semibold",
+                        isDarkMode 
+                          ? "bg-slate-900/40 border-slate-800/30 text-slate-300" 
+                          : "bg-slate-100 border-slate-200 text-slate-700"
+                      )}>
                         {m.noc}
                       </div>
                     </td>
                     <td className="p-4 text-center">
-                      <div className="w-24 mx-auto bg-slate-950/40 border border-slate-800/30 rounded-lg py-1.5 text-center text-white/90 font-mono text-xs font-semibold">
+                      <div className={cn(
+                        "w-24 mx-auto border rounded-lg py-1.5 text-center font-mono text-xs font-semibold",
+                        isDarkMode 
+                          ? "bg-slate-900/40 border-slate-800/30 text-white" 
+                          : "bg-slate-50 border-slate-200 text-slate-900"
+                      )}>
                         {formatNumber(m.anp)}
                       </div>
                     </td>
                     <td className="p-4 text-center">
-                      <div className="w-24 mx-auto bg-slate-950/40 border border-slate-800/30 rounded-lg py-1.5 text-center text-white/50 font-mono text-xs font-semibold">
+                      <div className={cn(
+                        "w-24 mx-auto border rounded-lg py-1.5 text-center font-mono text-xs font-semibold",
+                        isDarkMode 
+                          ? "bg-slate-900/40 border-slate-800/30 text-slate-455-custom text-slate-400" 
+                          : "bg-slate-50 border-slate-200 p-0 text-slate-700"
+                      )}>
                         {formatNumber(m.fyc || 0, 2)}
                       </div>
                     </td>
                     <td className="p-4 text-center">
                       <button 
                         onClick={() => setEditingBigCasesIdx(i)}
-                        className="flex flex-col items-center justify-center p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all min-w-[60px]"
+                        className="flex flex-col items-center justify-center p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-all min-w-[60px] mx-auto"
                       >
                         <span className="text-[14px] font-black font-mono text-amber-500">{(m.bigCases || []).length}</span>
                         <span className="text-[7px] font-bold text-amber-500/50 uppercase tracking-tighter">Cases Recorded</span>
@@ -429,7 +453,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                     <td className="p-4 text-center">
                       <input 
                         type="number" 
-                        className="w-16 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-slate-500 font-mono focus:border-white outline-none"
+                        className={cn("w-16 border rounded-lg p-2 text-center font-mono outline-none", isDarkMode ? "bg-slate-900 border-slate-800 text-slate-400 focus:border-white" : "bg-slate-50 border-slate-200 text-slate-600 focus:border-slate-400")}
                         value={m.recruitTarget}
                         onChange={(e) => {
                           const val = parseInt(e.target.value) || 0;
@@ -442,7 +466,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                     <td className="p-4 text-center">
                       <input 
                         type="number" 
-                        className="w-16 bg-slate-900 border border-slate-800 rounded-lg p-2 text-center text-amber-500 font-mono focus:border-amber-500 outline-none"
+                        className={cn("w-16 border rounded-lg p-2 text-center font-mono outline-none focus:border-amber-500", isDarkMode ? "bg-slate-900 border-slate-800 text-amber-500" : "bg-slate-50 border-slate-200 text-amber-600")}
                         value={m.recruitActual}
                         onChange={(e) => {
                           const val = parseInt(e.target.value) || 0;
@@ -468,15 +492,15 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
                   const qNum = Math.floor((i + 1) / 3);
 
                   rows.push(
-                    <tr key={`q-summary-${qNum}`} className="bg-white/5 font-bold border-y border-white/10">
-                      <td className="p-4 text-white uppercase tracking-widest text-[9px]">Q{qNum} STAGE SUMMARY</td>
-                      <td className="p-4 text-center font-mono text-slate-400">{formatNumber(qTarget)}</td>
-                      <td className="p-4 text-center font-mono text-white">{formatNumber(qActual)}</td>
-                      <td className="p-4 text-center font-mono text-emerald-400">{qNoc}</td>
-                      <td className="p-4 text-center font-mono text-white/50">{formatNumber(qAnp)}</td>
-                      <td className="p-4 text-center font-mono text-white">{formatNumber(qFyc, 2)}</td>
+                    <tr key={`q-summary-${qNum}`} className={cn("font-bold border-y", isDarkMode ? "bg-white/5 border-white/10" : "bg-slate-100 border-slate-200")}>
+                      <td className={cn("p-4 uppercase tracking-widest text-[9px]", isDarkMode ? "text-white" : "text-slate-800")}>Q{qNum} STAGE SUMMARY</td>
+                      <td className={cn("p-4 text-center font-mono", isDarkMode ? "text-slate-400" : "text-slate-500")}>{formatNumber(qTarget)}</td>
+                      <td className={cn("p-4 text-center font-mono", isDarkMode ? "text-white" : "text-slate-800")}>{formatNumber(qActual)}</td>
+                      <td className="p-4 text-center font-mono text-emerald-500">{qNoc}</td>
+                      <td className={cn("p-4 text-center font-mono", isDarkMode ? "text-white/50" : "text-slate-500")}>{formatNumber(qAnp)}</td>
+                      <td className={cn("p-4 text-center font-mono", isDarkMode ? "text-white" : "text-slate-800")}>{formatNumber(qFyc, 2)}</td>
                       <td className="p-4 text-center font-mono text-amber-500">{quarterRecords.reduce((acc, curr) => acc + (curr.bigCases?.length || 0), 0)}</td>
-                      <td className="p-4 text-center font-mono text-slate-500">{qRecruitTarget}</td>
+                      <td className={cn("p-4 text-center font-mono", isDarkMode ? "text-slate-500" : "text-slate-400")}>{qRecruitTarget}</td>
                       <td className="p-4 text-center font-mono text-amber-500">{qRecruitActual}</td>
                     </tr>
                   );
@@ -492,14 +516,14 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
 
                     rows.push(
                       <tr key="annual-summary" className="bg-emerald-400/10 font-black border-y-2 border-emerald-400/30">
-                        <td className="p-4 text-emerald-400 uppercase tracking-[0.2em] text-[10px]">TOTAL WHOLE YEAR SUMMARY</td>
-                        <td className="p-4 text-center font-mono text-slate-400">{formatNumber(yTarget)}</td>
-                        <td className="p-4 text-center font-mono text-emerald-400">{formatNumber(yActual)}</td>
-                        <td className="p-4 text-center font-mono text-emerald-400">{yNoc}</td>
-                        <td className="p-4 text-center font-mono text-emerald-400">{formatNumber(yAnp)}</td>
-                        <td className="p-4 text-center font-mono text-white">{formatNumber(yFyc, 2)}</td>
-                        <td className="p-4 text-center font-mono text-amber-400 font-bold">{perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.bigCases?.length || 0), 0)}</td>
-                        <td className="p-4 text-center font-mono text-slate-500">{yRecruitTarget}</td>
+                        <td className={cn("p-4 uppercase tracking-[0.2em] text-[10px]", isDarkMode ? "text-emerald-400" : "text-emerald-700")}>TOTAL WHOLE YEAR SUMMARY</td>
+                        <td className={cn("p-4 text-center font-mono", isDarkMode ? "text-slate-400" : "text-slate-500")}>{formatNumber(yTarget)}</td>
+                        <td className={cn("p-4 text-center font-mono", isDarkMode ? "text-emerald-400" : "text-emerald-600")}>{formatNumber(yActual)}</td>
+                        <td className={cn("p-4 text-center font-mono", isDarkMode ? "text-emerald-400" : "text-emerald-600")}>{yNoc}</td>
+                        <td className={cn("p-4 text-center font-mono", isDarkMode ? "text-emerald-400" : "text-emerald-600")}>{formatNumber(yAnp)}</td>
+                        <td className={cn("p-4 text-center font-mono", isDarkMode ? "text-white" : "text-slate-800")}>{formatNumber(yFyc, 2)}</td>
+                        <td className="p-4 text-center font-mono text-amber-500 font-bold">{perfData.monthlyRecords.reduce((acc, curr) => acc + (curr.bigCases?.length || 0), 0)}</td>
+                        <td className={cn("p-4 text-center font-mono", isDarkMode ? "text-slate-500" : "text-slate-400")}>{yRecruitTarget}</td>
                         <td className="p-4 text-center font-mono text-amber-500">{yRecruitActual}</td>
                       </tr>
                     );

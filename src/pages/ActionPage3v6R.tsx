@@ -8,9 +8,10 @@ interface ActionPage3v6RProps {
   perfData: PerfData;
   setPerfData: React.Dispatch<React.SetStateAction<PerfData>>;
   theme: ThemeConfig;
+  isDarkMode: boolean;
 }
 
-export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPerfData, theme }) => {
+export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPerfData, theme, isDarkMode }) => {
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   const dateKey = format(selectedDate, 'yyyy-MM-dd');
   
@@ -538,16 +539,16 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
                               isSelected && "bg-accent/10"
                             )}>
                              <td className="p-3 font-bold text-slate-400">{d.dayName} {d.dateStr}</td>
-                             <td className="p-3 text-slate-600">{d.totals.of}</td>
-                             <td className="p-3 text-slate-600">{d.totals.p}</td>
-                             <td className="p-3 text-slate-600">{d.totals.f}</td>
-                             <td className="p-3 text-slate-600">{d.totals.c}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.of}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.p}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.f}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.c}</td>
                              <td className="p-3 font-bold text-blue-400">{sT}</td>
                              <td className="p-3 font-bold text-yellow-400">{formatNumber(d.totals.anp)}</td>
-                             <td className="p-3 text-slate-600">{d.totals.ro}</td>
-                             <td className="p-3 text-slate-600">{d.totals.rp}</td>
-                             <td className="p-3 text-slate-600">{d.totals.rf}</td>
-                             <td className="p-3 text-slate-600">{d.totals.rs}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.ro}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.rp}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.rf}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.rs}</td>
                              <td className="p-3 font-bold text-emerald-400">{rT}</td>
                           </tr>
                         );
@@ -607,16 +608,16 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
                               isSelected && "bg-emerald-500/10"
                             )}>
                              <td className="p-3 font-bold text-slate-400">{d.dayNum}/{format(parseISO(d.fullDate), 'MM')} {d.dayName}</td>
-                             <td className="p-3 text-slate-600">{d.totals.of}</td>
-                             <td className="p-3 text-slate-600">{d.totals.p}</td>
-                             <td className="p-3 text-slate-600">{d.totals.f}</td>
-                             <td className="p-3 text-slate-600">{d.totals.c}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.of}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.p}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.f}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.c}</td>
                              <td className="p-3 font-bold text-blue-400">{sT}</td>
                              <td className="p-3 font-bold text-yellow-400">{formatNumber(d.totals.anp)}</td>
-                             <td className="p-3 text-slate-600">{d.totals.ro}</td>
-                             <td className="p-3 text-slate-600">{d.totals.rp}</td>
-                             <td className="p-3 text-slate-600">{d.totals.rf}</td>
-                             <td className="p-3 text-slate-600">{d.totals.rs}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.ro}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.rp}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.rf}</td>
+                             <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{d.totals.rs}</td>
                              <td className="p-3 font-bold text-emerald-400">{rT}</td>
                           </tr>
                         );
@@ -677,32 +678,32 @@ export const ActionPage3v6R: React.FC<ActionPage3v6RProps> = ({ perfData, setPer
                               m.month === format(selectedDate, 'MMM') && "bg-white/10"
                             )}>
                                <td className="p-3 font-bold text-slate-400">{m.month}</td>
-                               <td className="p-3 text-slate-600">{m.totals.of}</td>
-                               <td className="p-3 text-slate-600">{m.totals.p}</td>
-                               <td className="p-3 text-slate-600">{m.totals.f}</td>
-                               <td className="p-3 text-slate-600">{m.totals.c}</td>
+                               <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{m.totals.of}</td>
+                               <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{m.totals.p}</td>
+                               <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{m.totals.f}</td>
+                               <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{m.totals.c}</td>
                                <td className="p-3 font-bold text-white">{sT}</td>
                                <td className="p-3 font-bold text-yellow-400">{formatNumber(m.totals.anp)}</td>
-                               <td className="p-3 text-slate-600">{m.totals.ro}</td>
-                               <td className="p-3 text-slate-600">{m.totals.rp}</td>
-                               <td className="p-3 text-slate-600">{m.totals.rf}</td>
-                               <td className="p-3 text-slate-600">{m.totals.rs}</td>
+                               <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{m.totals.ro}</td>
+                               <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{m.totals.rp}</td>
+                               <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{m.totals.rf}</td>
+                               <td className={cn("p-3", isDarkMode ? "text-slate-300" : "text-slate-600")}>{m.totals.rs}</td>
                                <td className="p-3 font-bold text-emerald-400">{rT}</td>
                             </tr>
                           );
                         })}
-                        <tr className="bg-slate-800/20 font-bold border-t-2 border-slate-700">
-                           <td className="p-4 text-white uppercase text-[9px] tracking-widest">Annual Aggregate</td>
-                           <td className="p-4 text-slate-500">{yearTotals.of}</td>
-                           <td className="p-4 text-slate-500">{yearTotals.p}</td>
-                           <td className="p-4 text-slate-500">{yearTotals.f}</td>
-                           <td className="p-4 text-slate-500">{yearTotals.c}</td>
-                           <td className="p-4 text-white text-sm">{yearTotals.of + yearTotals.p + yearTotals.f + yearTotals.c}</td>
+                        <tr className={cn("font-bold border-t-2", isDarkMode ? "bg-slate-800/20 border-slate-700" : "bg-slate-100 border-slate-300")}>
+                           <td className={cn("p-4 uppercase text-[9px] tracking-widest", isDarkMode ? "text-white" : "text-slate-800")}>Annual Aggregate</td>
+                           <td className={cn("p-4", isDarkMode ? "text-slate-400" : "text-slate-500")}>{yearTotals.of}</td>
+                           <td className={cn("p-4", isDarkMode ? "text-slate-400" : "text-slate-500")}>{yearTotals.p}</td>
+                           <td className={cn("p-4", isDarkMode ? "text-slate-400" : "text-slate-500")}>{yearTotals.f}</td>
+                           <td className={cn("p-4", isDarkMode ? "text-slate-400" : "text-slate-500")}>{yearTotals.c}</td>
+                           <td className={cn("p-4 text-sm", isDarkMode ? "text-white" : "text-slate-900")}>{yearTotals.of + yearTotals.p + yearTotals.f + yearTotals.c}</td>
                            <td className="p-4 text-yellow-400 text-sm">{formatNumber(yearTotals.anp)}</td>
-                           <td className="p-4 text-slate-500">{yearTotals.ro}</td>
-                           <td className="p-4 text-slate-500">{yearTotals.rp}</td>
-                           <td className="p-4 text-slate-500">{yearTotals.rf}</td>
-                           <td className="p-4 text-slate-500">{yearTotals.rs}</td>
+                           <td className={cn("p-4", isDarkMode ? "text-slate-400" : "text-slate-500")}>{yearTotals.ro}</td>
+                           <td className={cn("p-4", isDarkMode ? "text-slate-400" : "text-slate-500")}>{yearTotals.rp}</td>
+                           <td className={cn("p-4", isDarkMode ? "text-slate-400" : "text-slate-500")}>{yearTotals.rf}</td>
+                           <td className={cn("p-4", isDarkMode ? "text-slate-400" : "text-slate-500")}>{yearTotals.rs}</td>
                            <td className="p-4 text-emerald-400 text-sm">{yearTotals.ro + yearTotals.rp + yearTotals.rf + yearTotals.rs}</td>
                         </tr>
                      </tbody>

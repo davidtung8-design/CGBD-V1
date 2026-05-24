@@ -103,6 +103,41 @@ const fycRateOptions = [
   { label: '10%', value: 0.10, desc: '5 Years Traditional' }
 ];
 
+const getCalculatedFYC = (
+  payments: number[],
+  installPremium: number,
+  totalANPStr: string,
+  activeRate: number,
+  isSplit: boolean,
+  bipStr: string,
+  gsrStr: string
+): number => {
+  const totalPayments = payments.reduce((acc, curr) => acc + curr, 0);
+  const collectedPremium = installPremium * totalPayments;
+  const anpNum = parseFloat(totalANPStr) || 0;
+
+  if (isSplit) {
+    const bipNum = parseFloat(bipStr || '0') || 0;
+    const gsrNum = parseFloat(gsrStr || '0') || 0;
+    const totalSplitNum = bipNum + gsrNum;
+    
+    if (totalSplitNum > 0) {
+      const bipRatio = bipNum / totalSplitNum;
+      const gsrRatio = gsrNum / totalSplitNum;
+
+      if (collectedPremium > 0) {
+        const bipCollected = collectedPremium * bipRatio;
+        const gsrCollected = collectedPremium * gsrRatio;
+        return (bipCollected * activeRate) + (gsrCollected * 0.02);
+      } else {
+        return (bipNum * activeRate) + (gsrNum * 0.02);
+      }
+    }
+  }
+  
+  return collectedPremium > 0 ? (collectedPremium * activeRate) : (anpNum * activeRate);
+};
+
 interface ProductionPageProps {
   perfData: PerfData;
   setPerfData: React.Dispatch<React.SetStateAction<PerfData>>;
@@ -203,28 +238,15 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
     const totalPayments = payments.reduce((acc, curr) => acc + curr, 0);
     const collectedPremium = suggestedInstall * totalPayments;
 
-    let computedFYC = 0;
-    if (isSplit) {
-      const bipNum = parseFloat(bipVal || '0') || 0;
-      const gsrNum = parseFloat(gsrVal || '0') || 0;
-      const totalSplitNum = bipNum + gsrNum;
-      if (totalSplitNum > 0) {
-        const bipRatio = bipNum / totalSplitNum;
-        const gsrRatio = gsrNum / totalSplitNum;
-
-        if (collectedPremium > 0) {
-          const bipCollected = collectedPremium * bipRatio;
-          const gsrCollected = collectedPremium * gsrRatio;
-          computedFYC = (bipCollected * activeRate) + (gsrCollected * 0.02);
-        } else {
-          computedFYC = (bipNum * activeRate) + (gsrNum * 0.02);
-        }
-      } else {
-        computedFYC = collectedPremium > 0 ? (collectedPremium * activeRate) : (anpNum * activeRate);
-      }
-    } else {
-      computedFYC = collectedPremium > 0 ? (collectedPremium * activeRate) : (anpNum * activeRate);
-    }
+    const computedFYC = getCalculatedFYC(
+      payments,
+      suggestedInstall,
+      anpVal,
+      activeRate,
+      isSplit ?? false,
+      bipVal || '',
+      gsrVal || ''
+    );
     setFormFYC(computedFYC.toFixed(2));
   };
 
@@ -234,9 +256,26 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
       handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, val, fycRate, '', '', false);
     } else {
       const totalNum = parseFloat(val) || 0;
-      setFormBipANP(totalNum.toString());
-      setFormGsrANP('0');
-      handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, val, fycRate, totalNum.toString(), '0', true);
+      const leftBip = parseFloat(formBipANP) || 0;
+      const leftGsr = parseFloat(formGsrANP) || 0;
+      const sum = leftBip + leftGsr;
+      if (sum > 0 && totalNum > 0) {
+        // Keep the existing ratio!
+        const bipRatio = leftBip / sum;
+        const gsrRatio = leftGsr / sum;
+        const newBip = (totalNum * bipRatio).toFixed(2);
+        const newGsr = (totalNum * gsrRatio).toFixed(2);
+        setFormBipANP(newBip);
+        setFormGsrANP(newGsr);
+        handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, val, fycRate, newBip, newGsr, true);
+      } else {
+        // Default to standard SPY standard split ratio (3000 BIP / 600 GSR)
+        const newBip = (totalNum * 3000 / 3600).toFixed(2);
+        const newGsr = (totalNum * 600 / 3600).toFixed(2);
+        setFormBipANP(newBip);
+        setFormGsrANP(newGsr);
+        handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, val, fycRate, newBip, newGsr, true);
+      }
     }
   };
 
@@ -357,26 +396,16 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
     // Use selected rate option
     const savedRate = fycRate;
 
-    // Calculate split FYC if loading is present
-    let savedFYC = 0;
-    if (showLoadingSplit && (bipNum > 0 || gsrNum > 0)) {
-      const totalSplitNum = bipNum + gsrNum;
-      if (totalSplitNum > 0) {
-        const bipRatio = bipNum / totalSplitNum;
-        const gsrRatio = gsrNum / totalSplitNum;
-        if (collectedPremium > 0) {
-          const bipCollected = collectedPremium * bipRatio;
-          const gsrCollected = collectedPremium * gsrRatio;
-          savedFYC = (bipCollected * savedRate) + (gsrCollected * 0.02);
-        } else {
-          savedFYC = (bipNum * savedRate) + (gsrNum * 0.02);
-        }
-      } else {
-        savedFYC = collectedPremium > 0 ? (collectedPremium * savedRate) : (anpNum * savedRate);
-      }
-    } else {
-      savedFYC = collectedPremium > 0 ? (collectedPremium * savedRate) : (anpNum * savedRate);
-    }
+    // Calculate split FYC using unified helper
+    const savedFYC = getCalculatedFYC(
+      formMonthlyPayments,
+      installNum,
+      formANP,
+      savedRate,
+      showLoadingSplit,
+      formBipANP,
+      formGsrANP
+    );
 
     const savedRecord: CustomerSaleRecord = {
       id: editingRecord ? editingRecord.id : crypto.randomUUID(),
@@ -1407,6 +1436,111 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                           onChange={e => handleGsrANPChange(e.target.value)}
                         />
                       </div>
+
+                      {/* Quick Presets row inside the grid spanning full width */}
+                      <div className="col-span-2 space-y-1.5 pt-2 border-t border-slate-800/10">
+                        <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-wider block pl-1">
+                          Quick Presets • 常用比例加费快速填充
+                        </span>
+                        <div className="flex flex-wrap gap-1.5 pl-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormANP('3600.00');
+                              const bipVal = '3000.00';
+                              const gsrVal = '600.00';
+                              setFormBipANP(bipVal);
+                              setFormGsrANP(gsrVal);
+                              handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, '3600.00', fycRate, bipVal, gsrVal, true);
+                              showToast('✅ Applied SPY standard (RM 3000 Standard + RM 600 Loading)');
+                            }}
+                            className={cn(
+                              "text-[8px] font-black uppercase px-2 py-1 rounded-lg border transition-all active:scale-95",
+                              isDarkMode 
+                                ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/25" 
+                                : "bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-150-custom bg-indigo-50"
+                            )}
+                          >
+                            SPY Standard (RM 3600 / 3000 BIP / 600 GSR)
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const totalNum = parseFloat(formANP) || 0;
+                              if (totalNum > 0) {
+                                // Split total into standard 3000 / 3600 ratio (83.33% / 16.67%)
+                                const bipVal = (totalNum * 3000 / 3600).toFixed(2);
+                                const gsrVal = (totalNum * 600 / 3600).toFixed(2);
+                                setFormBipANP(bipVal);
+                                setFormGsrANP(gsrVal);
+                                handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, formANP, fycRate, bipVal, gsrVal, true);
+                                showToast(`✅ Split 83.3% BIP / 16.7% GSR for RM ${totalNum}`);
+                              } else {
+                                showToast('⚠️ Enter Annualized Premium (ANP) first to auto-split');
+                              }
+                            }}
+                            className={cn(
+                              "text-[8px] font-black uppercase px-2 py-1 rounded-lg border transition-all active:scale-95",
+                              isDarkMode
+                                ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+                                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 shadow-sm"
+                            )}
+                          >
+                            Proportionate (BIP 83.3% / GSR 16.7%)
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const totalNum = parseFloat(formANP) || 0;
+                              if (totalNum > 0) {
+                                const bipVal = (totalNum * 0.9).toFixed(2);
+                                const gsrVal = (totalNum * 0.1).toFixed(2);
+                                setFormBipANP(bipVal);
+                                setFormGsrANP(gsrVal);
+                                handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, formANP, fycRate, bipVal, gsrVal, true);
+                                showToast(`✅ Split 90% BIP / 10% GSR for RM ${totalNum}`);
+                              } else {
+                                showToast('⚠️ Enter Annualized Premium (ANP) first to auto-split');
+                              }
+                            }}
+                            className={cn(
+                              "text-[8px] font-black uppercase px-2 py-1 rounded-lg border transition-all active:scale-95",
+                              isDarkMode
+                                ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+                                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 shadow-sm"
+                            )}
+                          >
+                            BIP 90% / GSR 10%
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const totalNum = parseFloat(formANP) || 0;
+                              if (totalNum > 0) {
+                                const bipVal = (totalNum * 0.5).toFixed(2);
+                                const gsrVal = (totalNum * 0.5).toFixed(2);
+                                setFormBipANP(bipVal);
+                                setFormGsrANP(gsrVal);
+                                handleAutoFillMonthlyPaymentsState(formInforceDate, formPayMode, formANP, fycRate, bipVal, gsrVal, true);
+                                showToast(`✅ Split 50% BIP / 50% GSR for RM ${totalNum}`);
+                              } else {
+                                showToast('⚠️ Enter Annualized Premium (ANP) first to auto-split');
+                              }
+                            }}
+                            className={cn(
+                              "text-[8px] font-black uppercase px-2 py-1 rounded-lg border transition-all active:scale-95",
+                              isDarkMode
+                                ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+                                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 shadow-sm"
+                            )}
+                          >
+                            BIP 50% / GSR 50%
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1520,16 +1654,18 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                                 nextPayments[mIdx] = (nextPayments[mIdx] + 1) % 3;
                                 setFormMonthlyPayments(nextPayments);
                                 
-                                // Recalculate and update the FYC input in the form live!
+                                // Recalculate and update the FYC input in the form live using getCalculatedFYC!
                                 const installNum = parseFloat(formInstallmentPref) || 0;
-                                const totalPayments = nextPayments.reduce((acc, curr) => acc + curr, 0);
-                                const collectedSum = installNum * totalPayments;
-                                if (collectedSum > 0) {
-                                  setFormFYC((collectedSum * fycRate).toFixed(2));
-                                } else {
-                                  const anpNum = parseFloat(formANP) || 0;
-                                  setFormFYC((anpNum * fycRate).toFixed(2));
-                                }
+                                const calculatedFYC = getCalculatedFYC(
+                                  nextPayments,
+                                  installNum,
+                                  formANP,
+                                  fycRate,
+                                  showLoadingSplit,
+                                  formBipANP,
+                                  formGsrANP
+                                );
+                                setFormFYC(calculatedFYC.toFixed(2));
                               }}
                               title={`${fullNames[mIdx]} payment counter`}
                               className={cn(

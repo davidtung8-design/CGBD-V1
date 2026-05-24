@@ -2722,6 +2722,7 @@ export default function App() {
             setTargetMins={setTargetMins}
             toggleFocusedTimer={toggleFocusedTimer}
             setIsLargeTimerOpen={setIsLargeTimerOpen}
+            isDarkMode={isDarkMode}
           />
         )}
         {currentPage === 'list' && (
@@ -2732,7 +2733,7 @@ export default function App() {
             showToast={showToast}
           />
         )}
-        {currentPage === '3v6r' && <ActionPage3v6R perfData={perfData} setPerfData={safeSetPerfData} theme={theme} />}
+        {currentPage === '3v6r' && <ActionPage3v6R perfData={perfData} setPerfData={safeSetPerfData} theme={theme} isDarkMode={isDarkMode} />}
         {currentPage === 'production' && (
           <ProductionPage 
             perfData={perfData} 
