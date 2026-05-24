@@ -626,6 +626,19 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
     let totalBIPCollected = 0;
     let totalCollectedFYC = 0;
 
+    const currentDate = new Date();
+    const currentYearNum = currentDate.getFullYear();
+    const currentMonthIdx = currentDate.getMonth(); // 0 = Jan, 1 = Feb, ..., 11 = Dec
+    const targetYearNum = parseInt(selectedYear, 10) || currentYearNum;
+
+    // Determine the boundary month for "Up-To-Date" calculations based on selectedYear
+    let maxMonthIndexToInclude = 11; // Include up to December for past years by default
+    if (targetYearNum === currentYearNum) {
+      maxMonthIndexToInclude = currentMonthIdx;
+    } else if (targetYearNum > currentYearNum) {
+      maxMonthIndexToInclude = -1; // Future years have no realized payments yet up to today
+    }
+
     // Month level collections
     const monthlyCollections = Array(12).fill(0);
 
@@ -668,6 +681,42 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
       });
     });
 
+    // Strictly compute up-to-date values only up to maxMonthIndexToInclude
+    let totalBIPCollectedUpToDate = 0;
+    let totalCollectedFYCUpToDate = 0;
+
+    filteredRecords.forEach(r => {
+      let paymentsUpToDate = 0;
+      if (maxMonthIndexToInclude >= 0) {
+        paymentsUpToDate = r.monthlyPayments.slice(0, maxMonthIndexToInclude + 1).reduce((acc, curr) => acc + curr, 0);
+      }
+      const collectedPremiumUpToDate = r.installmentPremium * paymentsUpToDate;
+      const rate = r.fycRate ?? (r.anp > 0 ? r.fyc / r.anp : 0.28);
+
+      let bipCollectedUpToDate = 0;
+      let fycCollectedUpToDate = 0;
+
+      if (r.bipANP !== undefined && r.gsrANP !== undefined) {
+        const totalANPNum = r.bipANP + r.gsrANP;
+        if (totalANPNum > 0) {
+          const bipRatio = r.bipANP / totalANPNum;
+          const gsrRatio = r.gsrANP / totalANPNum;
+          bipCollectedUpToDate = collectedPremiumUpToDate * bipRatio;
+          const gsrCollectedUpToDate = collectedPremiumUpToDate * gsrRatio;
+          fycCollectedUpToDate = (bipCollectedUpToDate * rate) + (gsrCollectedUpToDate * 0.02);
+        } else {
+          bipCollectedUpToDate = collectedPremiumUpToDate;
+          fycCollectedUpToDate = collectedPremiumUpToDate * rate;
+        }
+      } else {
+        bipCollectedUpToDate = collectedPremiumUpToDate;
+        fycCollectedUpToDate = collectedPremiumUpToDate * rate;
+      }
+
+      totalBIPCollectedUpToDate += bipCollectedUpToDate;
+      totalCollectedFYCUpToDate += fycCollectedUpToDate;
+    });
+
     return {
       totalCollected,
       totalANP,
@@ -675,9 +724,12 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
       totalBIPANP,
       totalBIPCollected,
       totalCollectedFYC,
+      totalBIPCollectedUpToDate,
+      totalCollectedFYCUpToDate,
+      maxMonthIndexToInclude,
       monthlyCollections
     };
-  }, [filteredRecords]);
+  }, [filteredRecords, selectedYear]);
 
   // Bring Forward Collected Premium calculation:
   // For each policy in force in the selectedYear, calculate how much of its first-year annualized premium (ANP)
@@ -887,7 +939,9 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
               <span>Total ledger sum paid</span>
             </div>
             <div className="flex items-center gap-1.5 text-[9px] text-emerald-500/80 uppercase mt-0.5 font-bold pl-1">
-              <span>Collected BIP without GSR: RM {formatNumber(stats.totalBIPCollected)}</span>
+              <span>
+                Collected BIP without GSR ({stats.maxMonthIndexToInclude >= 0 ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][stats.maxMonthIndexToInclude] : 'N/A'}): RM {formatNumber(stats.totalBIPCollectedUpToDate)}
+              </span>
             </div>
           </div>
           <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-500">
@@ -931,7 +985,9 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
               <span>Gross Commission Base</span>
             </div>
             <div className="flex items-center gap-1.5 text-[9px] text-cyan-500/80 uppercase mt-0.5 font-bold pl-1">
-              <span>Up-To-Date FYC: RM {formatNumber(stats.totalCollectedFYC)}</span>
+              <span>
+                Up-To-Date FYC ({stats.maxMonthIndexToInclude >= 0 ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][stats.maxMonthIndexToInclude] : 'N/A'}): RM {formatNumber(stats.totalCollectedFYCUpToDate)}
+              </span>
             </div>
           </div>
           <div className="p-4 rounded-2xl bg-cyan-500/10 text-cyan-400">
