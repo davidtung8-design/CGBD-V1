@@ -624,6 +624,7 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
     let totalFYC = 0;
     let totalBIPANP = 0;
     let totalBIPCollected = 0;
+    let totalCollectedFYC = 0;
 
     // Month level collections
     const monthlyCollections = Array(12).fill(0);
@@ -648,6 +649,17 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
         rBipCollected = rCollectedPremium;
       }
       totalBIPCollected += rBipCollected;
+
+      // Calculate up-to-date collected FYC
+      if (r.isBringForward) {
+        totalCollectedFYC += r.fyc;
+      } else {
+        if (totalPayments > 0) {
+          totalCollectedFYC += r.fyc;
+        } else {
+          totalCollectedFYC += 0;
+        }
+      }
       
       r.monthlyPayments.forEach((p, idx) => {
         const amt = r.installmentPremium * p;
@@ -662,6 +674,7 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
       totalFYC,
       totalBIPANP,
       totalBIPCollected,
+      totalCollectedFYC,
       monthlyCollections
     };
   }, [filteredRecords]);
@@ -916,6 +929,9 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
             </span>
             <div className="flex items-center gap-1.5 text-[9px] text-slate-500 uppercase mt-2 font-bold pl-1">
               <span>Gross Commission Base</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[9px] text-cyan-500/80 uppercase mt-0.5 font-bold pl-1">
+              <span>Up-To-Date FYC: RM {formatNumber(stats.totalCollectedFYC)}</span>
             </div>
           </div>
           <div className="p-4 rounded-2xl bg-cyan-500/10 text-cyan-400">
