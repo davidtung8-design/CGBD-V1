@@ -1164,28 +1164,38 @@ export const ProductionPage: React.FC<ProductionPageProps> = ({
                       {/* Months 1-12 Payments Grid */}
                       <td className="py-2 px-1">
                         <div className="flex gap-1 justify-center max-w-[380px] mx-auto">
-                          {rec.monthlyPayments.map((payVal, mIdx) => (
-                            <button
-                              key={mIdx}
-                              disabled={rec.isBringForward}
-                              onClick={() => handleCycleMonthPayment(rec.id, mIdx)}
-                              title={rec.isBringForward 
-                                ? `Month ${mIdx + 1} carry-over payment (${payVal} payment(s)) - edit under prior year to adjust`
-                                : `Month ${mIdx + 1} payment counter (click to cycle)`}
-                              className={cn(
-                                "w-6 h-6 rounded-lg transition-all text-[9px] font-mono font-black border text-center flex items-center justify-center select-none",
-                                !rec.isBringForward && "active:scale-90 hover:border-slate-600",
-                                payVal === 0 
-                                  ? (isDarkMode ? "bg-slate-900 border-slate-800 text-slate-600" : "bg-white border-slate-200 text-slate-300")
-                                  : payVal === 1
-                                    ? "bg-cyan-500/25 border-cyan-500/70 text-cyan-400 hover:opacity-85"
-                                    : "bg-emerald-500/30 border-emerald-500 text-emerald-400 hover:opacity-85",
-                                rec.isBringForward && "cursor-not-allowed opacity-75"
-                              )}
-                            >
-                              {payVal}
-                            </button>
-                          ))}
+                          {rec.monthlyPayments.map((payVal, mIdx) => {
+                            const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            return (
+                              <div key={mIdx} className="flex flex-col items-center gap-0.5">
+                                <span className={cn(
+                                  "text-[7.5px] font-mono font-bold uppercase tracking-tighter select-none leading-none",
+                                  isDarkMode ? "text-slate-500" : "text-slate-400"
+                                )}>
+                                  {monthLabels[mIdx]}
+                                </span>
+                                <button
+                                  disabled={rec.isBringForward}
+                                  onClick={() => handleCycleMonthPayment(rec.id, mIdx)}
+                                  title={rec.isBringForward 
+                                    ? `Month ${mIdx + 1} (${monthLabels[mIdx]}) carry-over payment (${payVal} payment(s)) - edit under prior year to adjust`
+                                    : `Month ${mIdx + 1} (${monthLabels[mIdx]}) payment counter (click to cycle)`}
+                                  className={cn(
+                                    "w-6 h-6 rounded-lg transition-all text-[9px] font-mono font-black border text-center flex items-center justify-center select-none",
+                                    !rec.isBringForward && "active:scale-90 hover:border-slate-600",
+                                    payVal === 0 
+                                      ? (isDarkMode ? "bg-slate-900 border-slate-800 text-slate-600" : "bg-white border-slate-200 text-slate-300")
+                                      : payVal === 1
+                                        ? "bg-cyan-500/25 border-cyan-500/70 text-cyan-400 hover:opacity-85"
+                                        : "bg-emerald-500/30 border-emerald-500 text-emerald-400 hover:opacity-85",
+                                    rec.isBringForward && "cursor-not-allowed opacity-75"
+                                  )}
+                                >
+                                  {payVal}
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       </td>
 
