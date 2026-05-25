@@ -145,6 +145,17 @@ const INITIAL_PERF: PerfData = {
   dailyActivitiesLog: {}
 };
 
+const getWeekOffsetAndDay = (d: Date, base: Date) => {
+  const mondayBase = startOfWeek(base, { weekStartsOn: 1 });
+  const mondayDay = startOfWeek(d, { weekStartsOn: 1 });
+  const diffWeeks = Math.round((mondayDay.getTime() - mondayBase.getTime()) / (7 * 24 * 60 * 60 * 1000));
+  const dayOfWeek = d.getDay();
+  return {
+    weekOffset: diffWeeks,
+    weekday: dayOfWeek
+  };
+};
+
 export default function App() {
   // --- Navigation ---
   const [currentPage, setCurrentPage] = useState<'home' | 'perf' | 'list' | '3v6r' | 'production' | 'awards' | 'settings'>('home');
@@ -210,6 +221,22 @@ export default function App() {
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ day: number, hour: number, offset: number } | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  
+  // --- Event modal default dates ---
+  const defaultEventDateStr = useMemo(() => {
+    if (editingEvent) {
+      const monday = startOfWeek(baseDate, { weekStartsOn: 1 });
+      const weekMonday = addWeeks(monday, editingEvent.weekOffset);
+      const eventDate = addDays(weekMonday, editingEvent.weekday === 0 ? 6 : editingEvent.weekday - 1);
+      return format(eventDate, 'yyyy-MM-dd');
+    } else if (selectedSlot) {
+      const monday = startOfWeek(baseDate, { weekStartsOn: 1 });
+      const weekMonday = addWeeks(monday, selectedSlot.offset);
+      const eventDate = addDays(weekMonday, selectedSlot.day === 0 ? 6 : selectedSlot.day - 1);
+      return format(eventDate, 'yyyy-MM-dd');
+    }
+    return format(new Date(), 'yyyy-MM-dd');
+  }, [editingEvent, selectedSlot, baseDate]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
   const [isProtocolModalOpen, setIsProtocolModalOpen] = useState(false);
@@ -3158,6 +3185,33 @@ export default function App() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <label className="mb-2 block text-[10px] font-bold text-slate-500 uppercase tracking-widest">📅 开始日期 (Start Date)</label>
+                    <input 
+                      type="date"
+                      id="modal-start-date"
+                      className={cn(
+                        "w-full rounded-2xl border p-4 text-sm outline-none transition-all focus:border-white",
+                        isDarkMode ? "border-slate-800 bg-slate-900/50 text-white" : "border-slate-200 bg-slate-50 text-slate-900"
+                      )}
+                      defaultValue={defaultEventDateStr}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[10px] font-bold text-slate-500 uppercase tracking-widest">📅 结束日期 (End Date)</label>
+                    <input 
+                      type="date"
+                      id="modal-end-date"
+                      className={cn(
+                        "w-full rounded-2xl border p-4 text-sm outline-none transition-all focus:border-white",
+                        isDarkMode ? "border-slate-800 bg-slate-900/50 text-white" : "border-slate-200 bg-slate-50 text-slate-900"
+                      )}
+                      defaultValue={defaultEventDateStr}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
                     <label className="mb-2 block text-[10px] font-bold text-slate-500 uppercase tracking-widest">🕒 开始时间 (Start)</label>
                     <select 
                       id="modal-start"
@@ -3267,9 +3321,109 @@ export default function App() {
                         const sH = parseFloat((document.getElementById('modal-start') as HTMLSelectElement).value);
                         const eH = parseFloat((document.getElementById('modal-end') as HTMLSelectElement).value);
                         const actId = parseInt(document.getElementById('activity-selector')?.getAttribute('data-selected') || '101');
+                        const startDateStr = (document.getElementById('modal-start-date') as HTMLInputElement)?.value;
+                        const endDateStr = (document.getElementById('modal-end-date') as HTMLInputElement)?.value;
 
                         if (!title) return;
-                        
+                        if (checkReadOnly()) return;
+
+                        if (startDateStr && endDateStr) {
+                          const startD = new Date(startDateStr);
+                          const endD = new Date(endDateStr);
+
+                          if (!isNaN(startD.getTime()) && !isNaN(endD.getTime()) && startD <= endD) {
+                            // Generate all dates in the range
+                            const dates: Date[] = [];
+                            let curr = new Date(startD);
+                            while (curr <= endD) {
+                              dates.push(new Date(curr));
+                              curr.setDate(curr.getDate() + 1);
+                            }
+
+                            if (dates.length > 0) {
+                              if (editingEvent) {
+                                // Update existing event to match the first date
+                                const firstDate = dates[0];
+                                const offsetAndDay = getWeekOffsetAndDay(firstDate, baseDate);
+                                const updatedEvent: CalendarEvent = {
+                                  ...editingEvent,
+                                  title,
+                                  startHour: sH,
+                                  endHour: eH,
+                                  weekday: offsetAndDay.weekday,
+                                  weekOffset: offsetAndDay.weekOffset,
+                                  activityId: actId
+                                };
+
+                                // State update
+                                setEvents(prev => prev.map(e => e.id === editingEvent.id ? updatedEvent : e));
+                                if (user) {
+                                  const eventPath = `users/${user.uid}/events/${editingEvent.id}`;
+                                  setDoc(doc(db, eventPath), updatedEvent).catch(e => handleFirestoreError(e, OperationType.WRITE, eventPath));
+                                }
+
+                                // Create new events for any other days
+                                const newEventsToAdd: CalendarEvent[] = [];
+                                for (let i = 1; i < dates.length; i++) {
+                                  const d = dates[i];
+                                  const od = getWeekOffsetAndDay(d, baseDate);
+                                  const newEv: CalendarEvent = {
+                                    id: Math.random().toString(36).substr(2, 9),
+                                    title,
+                                    startHour: sH,
+                                    endHour: eH,
+                                    weekday: od.weekday,
+                                    weekOffset: od.weekOffset,
+                                    activityId: actId
+                                  };
+                                  newEventsToAdd.push(newEv);
+                                }
+
+                                if (newEventsToAdd.length > 0) {
+                                  setEvents(prev => [...prev, ...newEventsToAdd]);
+                                  if (user) {
+                                    newEventsToAdd.forEach(ev => {
+                                      const eventPath = `users/${user.uid}/events/${ev.id}`;
+                                      setDoc(doc(db, eventPath), ev).catch(e => handleFirestoreError(e, OperationType.WRITE, eventPath));
+                                    });
+                                  }
+                                }
+                              } else {
+                                // Adding completely new events for the date range
+                                const newEventsToAdd: CalendarEvent[] = [];
+                                dates.forEach(d => {
+                                  const od = getWeekOffsetAndDay(d, baseDate);
+                                  const newEv: CalendarEvent = {
+                                    id: Math.random().toString(36).substr(2, 9),
+                                    title,
+                                    startHour: sH,
+                                    endHour: eH,
+                                    weekday: od.weekday,
+                                    weekOffset: od.weekOffset,
+                                    activityId: actId
+                                  };
+                                  newEventsToAdd.push(newEv);
+                                });
+
+                                if (newEventsToAdd.length > 0) {
+                                  setEvents(prev => [...prev, ...newEventsToAdd]);
+                                  if (user) {
+                                    newEventsToAdd.forEach(ev => {
+                                      const eventPath = `users/${user.uid}/events/${ev.id}`;
+                                      setDoc(doc(db, eventPath), ev).catch(e => handleFirestoreError(e, OperationType.WRITE, eventPath));
+                                    });
+                                  }
+                                }
+                              }
+
+                              setIsEventModalOpen(false);
+                              setEditingEvent(null);
+                              return;
+                            }
+                          }
+                        }
+
+                        // Fallback logic
                         if (editingEvent) {
                           handleUpdateEvent({ ...editingEvent, title, startHour: sH, endHour: eH, activityId: actId });
                         } else if (selectedSlot) {
