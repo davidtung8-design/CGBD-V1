@@ -145,6 +145,17 @@ const INITIAL_PERF: PerfData = {
   dailyActivitiesLog: {}
 };
 
+const ANCHOR_DATE = new Date('2026-05-18T00:00:00');
+
+const getInitialViewOffset = () => {
+  const today = new Date();
+  const todayMonday = startOfWeek(today, { weekStartsOn: 1 });
+  const anchorMonday = startOfWeek(ANCHOR_DATE, { weekStartsOn: 1 });
+  const diffTime = todayMonday.getTime() - anchorMonday.getTime();
+  const diffWeeks = Math.round(diffTime / (7 * 24 * 60 * 60 * 1000));
+  return diffWeeks;
+};
+
 const getWeekOffsetAndDay = (d: Date, base: Date) => {
   const mondayBase = startOfWeek(base, { weekStartsOn: 1 });
   const mondayDay = startOfWeek(d, { weekStartsOn: 1 });
@@ -212,9 +223,9 @@ export default function App() {
   const [todoItems, setTodoItems] = useState<Record<string, TodoItem[]>>({});
   const [dailyData, setDailyData] = useState<Record<string, DailyData>>({});
   const [perfData, setPerfData] = useState<PerfData>(INITIAL_PERF);
-  const [viewOffset, setViewOffset] = useState(0);
+  const [viewOffset, setViewOffset] = useState(getInitialViewOffset);
   const [encouragement, setEncouragement] = useState("");
-  const [baseDate, setBaseDate] = useState(new Date());
+  const [baseDate, setBaseDate] = useState(ANCHOR_DATE);
 
   // --- UI States ---
   const [isSyncing, setIsSyncing] = useState(false);
@@ -2543,9 +2554,9 @@ export default function App() {
                       onChange={(e) => {
                         if (!e.target.value) return;
                         const targetDate = new Date(e.target.value);
-                        const mondayNow = startOfWeek(new Date(), { weekStartsOn: 1 });
+                        const mondayAnchor = startOfWeek(baseDate, { weekStartsOn: 1 });
                         const mondayTarget = startOfWeek(targetDate, { weekStartsOn: 1 });
-                        const diffWeeks = Math.round((mondayTarget.getTime() - mondayNow.getTime()) / (7 * 24 * 60 * 60 * 1000));
+                        const diffWeeks = Math.round((mondayTarget.getTime() - mondayAnchor.getTime()) / (7 * 24 * 60 * 60 * 1000));
                         setViewOffset(diffWeeks);
                       }}
                     />
@@ -2577,10 +2588,10 @@ export default function App() {
                     </button>
                     
                     <button 
-                      onClick={() => setViewOffset(0)}
+                      onClick={() => setViewOffset(getInitialViewOffset())}
                       className={cn(
                         "px-4 py-2 rounded-xl text-[10px] font-bold transition-all uppercase tracking-widest",
-                        viewOffset === 0 
+                        viewOffset === getInitialViewOffset() 
                           ? (isDarkMode ? "bg-white text-black shadow-lg" : "bg-slate-900 text-white shadow-lg")
                           : (isDarkMode ? "text-slate-500 hover:text-slate-300" : "text-slate-400 hover:text-slate-600")
                       )}
@@ -3017,7 +3028,7 @@ export default function App() {
                            const end = endOfWeek(start, { weekStartsOn: 1 });
                            const label = `W${format(start, 'w')} (${format(start, 'dd/MM')})`;
                            
-                           const weekEvents = events.filter(e => e.weekOffset === i);
+                           const weekEvents = events.filter(e => e.weekOffset === getInitialViewOffset() + i);
                            const totals: any = { label };
                            
                            Object.keys(GROUP_CONFIG).forEach(k => {
@@ -3082,7 +3093,8 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                      {[-3, -2, -1, 0].map(offset => {
                         const start = startOfWeek(addWeeks(new Date(), offset), { weekStartsOn: 1 });
-                        const weekEvents = events.filter(e => e.weekOffset === offset);
+                        const targetOffset = getInitialViewOffset() + offset;
+                        const weekEvents = events.filter(e => e.weekOffset === targetOffset);
                         const totalHours = weekEvents.reduce((s, e) => s + (e.endHour - e.startHour), 0);
 
                         return (
@@ -3127,7 +3139,7 @@ export default function App() {
                               </div>
                               <button 
                                  onClick={() => {
-                                    setViewOffset(offset);
+                                    setViewOffset(targetOffset);
                                     setIsAllocationHistoryOpen(false);
                                  }}
                                  className="w-full mt-6 py-2 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-[9px] font-bold text-white/50 hover:text-white uppercase tracking-widest transition-all"
